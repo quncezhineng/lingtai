@@ -41,6 +41,8 @@ import type {
 import { API_URL } from "./api";
 import { browserAddress } from "./browser-address";
 import { localDateTime, startOfZonedDay, zonedInstant } from "./date-time";
+import { activeLocaleTag, useTranslation } from "./i18n";
+import { statusLabel, tr } from "./i18n/translate";
 import {
   Button,
   Card,
@@ -70,6 +72,7 @@ function eventDate(event: CalendarEvent) {
 }
 export function TodayScreen() {
   const { workspace: w, navigate, open, ask } = useWorkspace();
+  const { t } = useTranslation();
   const wide = useWindowDimensions().width > 1180;
   const pending = w.actions.filter((a) => a.status === "awaiting_review");
   const unread = w.mail.filter((m) => m.unread);
@@ -94,7 +97,7 @@ export function TodayScreen() {
         <View style={{ flex: 1, gap: 15, zIndex: 1 }}>
           <View style={[s.row, { gap: 7 }]}>
             <Sparkles size={13} color={colors.blueDark} />
-            <Text style={[s.label, { color: colors.blueDark }]}>A little clarity, every day</Text>
+            <Text style={[s.label, { color: colors.blueDark }]}>{t("screens.todayEyebrow")}</Text>
           </View>
           <Text
             style={{
@@ -105,20 +108,22 @@ export function TodayScreen() {
               color: colors.text,
             }}
           >
-            Your day, with a little{"\n"}more room to breathe.
+            {t("screens.todayHeroTitle")}
           </Text>
           <Text style={[s.muted, { maxWidth: 420, color: "#6B7280" }]}>
-            {events.length ? `${events.length} things on your calendar` : "Your calendar has room"}
-            {unread.length ? `, ${unread.length} unread emails` : ""}.{"\n"}Let’s make space for
-            what matters.
+            {events.length
+              ? t("screens.todayEventsCount", { count: events.length })
+              : t("screens.todayCalendarRoom")}
+            {unread.length ? t("screens.todayUnreadEmails", { count: unread.length }) : ""}.{"\n"}
+            {t("screens.todayLetMakeSpace")}
           </Text>
           <Button
-            onPress={() => ask("Help me plan my day")}
+            onPress={() => ask(t("screens.todayPlanDayPrompt"))}
             icon={Sparkles}
             primary
             style={{ alignSelf: "flex-start", marginTop: 5 }}
           >
-            Plan my day
+            {t("screens.todayPlanDay")}
           </Button>
         </View>
         {wide && (
@@ -159,7 +164,7 @@ export function TodayScreen() {
               ]}
             >
               <Check size={14} color="#739174" />
-              <Text style={s.small}>A lighter day</Text>
+              <Text style={s.small}>{t("screens.todayLighterDay")}</Text>
             </View>
             <View
               style={[
@@ -177,7 +182,7 @@ export function TodayScreen() {
               ]}
             >
               <CalendarDays size={17} color={colors.blueDark} />
-              <Text style={s.small}>Everything, together</Text>
+              <Text style={s.small}>{t("screens.todayEverythingTogether")}</Text>
             </View>
           </View>
         )}
@@ -185,25 +190,25 @@ export function TodayScreen() {
       <View style={{ flexDirection: "row", gap: 13, flexWrap: "wrap" }}>
         {[
           {
-            label: "UNREAD EMAILS",
+            label: t("screens.todayStatUnreadLabel"),
             value: unread.length,
-            note: "A fresh look at your inbox",
+            note: t("screens.todayStatUnreadNote"),
             icon: Mail,
             section: "mail" as const,
             tint: colors.sky,
           },
           {
-            label: "ON THE CALENDAR",
+            label: t("screens.todayStatCalendarLabel"),
             value: events.length,
-            note: "Make room for your priorities",
+            note: t("screens.todayStatCalendarNote"),
             icon: CalendarDays,
             section: "calendar" as const,
             tint: colors.green,
           },
           {
-            label: "WAITING FOR YOU",
+            label: t("screens.todayStatPendingLabel"),
             value: pending.length,
-            note: "Your review keeps things moving",
+            note: t("screens.todayStatPendingNote"),
             icon: ShieldCheck,
             section: "activity" as const,
             tint: colors.lavender,
@@ -238,8 +243,8 @@ export function TodayScreen() {
       <View style={{ flexDirection: wide ? "row" : "column", gap: 22 }}>
         <Card style={{ flex: 1 }}>
           <SectionHeading
-            title="On your calendar"
-            action="Full calendar"
+            title={t("screens.todayCalendarHeading")}
+            action={t("screens.todayCalendarAction")}
             onPress={() => navigate("calendar")}
           />
           {events.length ? (
@@ -247,8 +252,8 @@ export function TodayScreen() {
           ) : (
             <Empty
               icon={CalendarDays}
-              title="Some breathing room"
-              detail="No events scheduled today."
+              title={t("screens.todayCalendarEmptyTitle")}
+              detail={t("screens.todayCalendarEmptyDetail")}
             />
           )}
           <Pressable
@@ -265,13 +270,13 @@ export function TodayScreen() {
             ]}
           >
             <Plus size={15} color={colors.muted} />
-            <Text style={s.small}>Make time for something</Text>
+            <Text style={s.small}>{t("screens.todayMakeTime")}</Text>
           </Pressable>
         </Card>
         <Card style={{ flex: 1 }}>
           <SectionHeading
-            title="From your inbox"
-            action="Open mail"
+            title={t("screens.todayInboxHeading")}
+            action={t("screens.todayInboxAction")}
             onPress={() => navigate("mail")}
           />
           {w.mail.length ? (
@@ -312,22 +317,20 @@ export function TodayScreen() {
           ) : (
             <Empty
               icon={Inbox}
-              title="Inbox is quiet"
-              detail="Connect Google to bring your messages here."
+              title={t("screens.todayInboxEmptyTitle")}
+              detail={t("screens.todayInboxEmptyDetail")}
             />
           )}
         </Card>
       </View>
       <View style={{ flexDirection: wide ? "row" : "column", gap: 22 }}>
         <Card style={{ flex: 1, backgroundColor: "#F0F0E7" }}>
-          <SectionHeading title="A hand with the little things" />
-          <Text style={[s.muted, { marginBottom: 15 }]}>
-            Start with a thought. We’ll take it from there.
-          </Text>
+          <SectionHeading title={t("screens.todayHelpHeading")} />
+          <Text style={[s.muted, { marginBottom: 15 }]}>{t("screens.todayHelpSubtitle")}</Text>
           {[
-            "What needs my attention today?",
-            "Help me catch up on my inbox",
-            "Show my recent documents",
+            t("screens.todayPromptAttention"),
+            t("screens.todayPromptInbox"),
+            t("screens.todayPromptDocuments"),
           ].map((prompt) => (
             <Pressable
               key={prompt}
@@ -344,8 +347,10 @@ export function TodayScreen() {
         </Card>
         <Card style={{ flex: 1 }}>
           <SectionHeading
-            title={pending.length ? "Ready for your review" : "Recent activity"}
-            action="View all"
+            title={
+              pending.length ? t("screens.todayReviewHeading") : t("screens.todayActivityHeading")
+            }
+            action={t("screens.todayViewAll")}
             onPress={() => navigate("activity")}
           />
           {pending.length
@@ -355,7 +360,7 @@ export function TodayScreen() {
                   <LinkRow
                     key={a.id}
                     title={a.title}
-                    detail="Prepared · waiting for your approval"
+                    detail={t("screens.todayReviewDetail")}
                     onPress={() => open({ type: "review", action: a })}
                     icon={ShieldCheck}
                     tint={colors.lavender}
@@ -375,9 +380,7 @@ export function TodayScreen() {
                 </View>
               ))}
           {!pending.length && !w.activity.length && (
-            <Text style={s.muted}>
-              Your workspace is ready. Things you do here will appear in your activity.
-            </Text>
+            <Text style={s.muted}>{t("screens.todayWorkspaceReady")}</Text>
           )}
         </Card>
       </View>
@@ -416,6 +419,7 @@ export function AgendaRow({
   neighbors?: CalendarEvent[];
 }) {
   const { open } = useWorkspace();
+  const { t } = useTranslation();
   return (
     <Pressable
       onPress={() => open({ type: "event", event: e, neighbors })}
@@ -423,7 +427,7 @@ export function AgendaRow({
     >
       <View style={{ width: 65 }}>
         <Text style={[s.text, { fontSize: 11 }]}>
-          {e.allDay ? "All day" : timeLabel(e.start, e.timeZone)}
+          {e.allDay ? t("screens.agendaAllDay") : timeLabel(e.start, e.timeZone)}
         </Text>
         {!e.allDay && (
           <Text style={[s.small, { fontSize: 10 }]}>{timeLabel(e.end, e.timeZone)}</Text>
@@ -440,7 +444,10 @@ export function AgendaRow({
       <View style={{ flex: 1, gap: 3 }}>
         <Text style={[s.text, { fontSize: 13, fontWeight: "500" }]}>{e.title}</Text>
         <Text numberOfLines={1} style={[s.small, { fontSize: 11 }]}>
-          {e.location || (e.attendees.length ? `${e.attendees.length} attendees` : "Time for you")}
+          {e.location ||
+            (e.attendees.length
+              ? t("screens.agendaAttendees", { count: e.attendees.length })
+              : t("screens.agendaTimeForYou"))}
         </Text>
       </View>
       <ChevronRight size={14} color={colors.muted} />
@@ -449,6 +456,7 @@ export function AgendaRow({
 }
 export function MailScreen() {
   const { workspace: w, api, open } = useWorkspace();
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState("all");
   const [drafts, setDrafts] = useState<(EmailDraft & { id: string; createdAt: string })[]>([]);
@@ -496,8 +504,8 @@ export function MailScreen() {
         >
           <Search size={16} color={colors.muted} />
           <TextInput
-            accessibilityLabel="Search mail"
-            placeholder="Search your inbox"
+            accessibilityLabel={t("screens.mailSearchLabel")}
+            placeholder={t("screens.mailSearchPlaceholder")}
             placeholderTextColor={colors.muted}
             value={query}
             onChangeText={setQuery}
@@ -505,20 +513,20 @@ export function MailScreen() {
           />
         </View>
         <Button onPress={() => open({ type: "email" })} primary icon={Plus}>
-          Compose
+          {t("screens.mailCompose")}
         </Button>
       </View>
       <ErrorNotice error={error} />
       <Card>
         <View style={[s.row, { gap: 10, marginBottom: 15, flexWrap: "wrap" }]}>
           <Button small primary={tab === "all"} onPress={() => setTab("all")}>
-            All messages
+            {t("screens.mailTabAll")}
           </Button>
           <Button small primary={tab === "unread"} onPress={() => setTab("unread")}>
-            Unread · {w.mail.filter((m) => m.unread).length}
+            {t("screens.mailTabUnread", { count: w.mail.filter((m) => m.unread).length })}
           </Button>
           <Button small primary={tab === "drafts"} onPress={() => setTab("drafts")}>
-            Drafts · {drafts.length}
+            {t("screens.mailTabDrafts", { count: drafts.length })}
           </Button>
         </View>
         {tab === "drafts" ? (
@@ -528,15 +536,18 @@ export function MailScreen() {
                 key={d.id}
                 icon={Mail}
                 title={d.subject}
-                detail={`To: ${d.to.join(", ")} · saved ${dateLabel(d.createdAt)}`}
+                detail={t("screens.mailDraftTo", {
+                  to: d.to.join(", "),
+                  date: dateLabel(d.createdAt),
+                })}
                 onPress={() => open({ type: "email", draft: d })}
               />
             ))
           ) : (
             <Empty
               icon={Mail}
-              title="A fresh page"
-              detail="Messages you save as drafts will be here when you’re ready."
+              title={t("screens.mailDraftsEmptyTitle")}
+              detail={t("screens.mailDraftsEmptyDetail")}
             />
           )
         ) : items.length ? (
@@ -563,7 +574,12 @@ export function MailScreen() {
                   <View style={[s.row, { gap: 4, marginTop: 2 }]}>
                     <FileText size={12} color={colors.muted} />
                     <Text style={s.small}>
-                      {m.attachments.length} attachment{m.attachments.length > 1 ? "s" : ""}
+                      {m.attachments.length}{" "}
+                      {t(
+                        m.attachments.length > 1
+                          ? "screens.mailAttachmentMany"
+                          : "screens.mailAttachmentOne",
+                      )}
                     </Text>
                   </View>
                 )}
@@ -578,12 +594,8 @@ export function MailScreen() {
         ) : (
           <Empty
             icon={Inbox}
-            title={query ? "No matching messages" : "Nothing in your inbox"}
-            detail={
-              query
-                ? "Try a different name or subject."
-                : "Connect Google in Connections to read your mail here."
-            }
+            title={query ? t("screens.mailNoMatchTitle") : t("screens.mailEmptyTitle")}
+            detail={query ? t("screens.mailNoMatchDetail") : t("screens.mailEmptyDetail")}
           />
         )}
       </Card>
@@ -603,6 +615,7 @@ function plusDays(date: string, days: number) {
 }
 export function CalendarScreen() {
   const { workspace: w, api, open } = useWorkspace();
+  const { t } = useTranslation();
   const [date, setDate] = useState(todayDate());
   const [all, setAll] = useState(false);
   const [calendars, setCalendars] = useState<CalendarChoice[]>([]);
@@ -689,26 +702,26 @@ export function CalendarScreen() {
       <View style={[s.between, { gap: 12, flexWrap: "wrap" }]}>
         <View style={[s.row, { gap: 8 }]}>
           <Text style={s.title}>
-            {anchor.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+            {anchor.toLocaleDateString(activeLocaleTag(), { month: "long", year: "numeric" })}
           </Text>
           <IconButton
             icon={ChevronLeft}
-            label="Previous week"
+            label={t("screens.calendarPrevWeek")}
             onPress={() => setDate(plusDays(date, -7))}
           />
           <IconButton
             icon={ChevronRight}
-            label="Next week"
+            label={t("screens.calendarNextWeek")}
             onPress={() => setDate(plusDays(date, 7))}
           />
         </View>
         <Button primary icon={Plus} disabled={!writable} onPress={newEvent}>
-          New event
+          {t("screens.calendarNewEvent")}
         </Button>
       </View>
       {calendars.length > 0 && (
         <View style={{ gap: 9 }}>
-          <Text style={s.label}>Your calendars</Text>
+          <Text style={s.label}>{t("screens.calendarYourCalendars")}</Text>
           <View style={[s.row, { gap: 8, flexWrap: "wrap" }]}>
             {calendars.map((c) => (
               <Button
@@ -718,7 +731,7 @@ export function CalendarScreen() {
                 onPress={() => setCalendarId(c.id)}
               >
                 {c.name}
-                {["owner", "writer"].includes(c.accessRole) ? "" : " · read only"}
+                {["owner", "writer"].includes(c.accessRole) ? "" : t("screens.calendarReadOnly")}
               </Button>
             ))}
           </View>
@@ -747,7 +760,9 @@ export function CalendarScreen() {
                   backgroundColor: key === date ? colors.sky : "transparent",
                 }}
               >
-                <Text style={s.small}>{day.toLocaleDateString("en-US", { weekday: "short" })}</Text>
+                <Text style={s.small}>
+                  {day.toLocaleDateString(activeLocaleTag(), { weekday: "short" })}
+                </Text>
                 <Text
                   style={[
                     s.title,
@@ -777,26 +792,27 @@ export function CalendarScreen() {
         <View style={[s.between, { gap: 10, flexWrap: "wrap" }]}>
           <Text style={s.heading}>
             {all
-              ? "The next 30 days"
+              ? t("screens.calendarNext30Days")
               : dateLabel(`${date}T12:00:00`, { weekday: "long", month: "long", day: "numeric" })}
           </Text>
           <Button small onPress={() => setAll(!all)}>
-            {all ? "Selected day" : "Next 30 days"}
+            {all ? t("screens.calendarSelectedDay") : t("screens.calendarNextDaysAction")}
           </Button>
         </View>
         <Text style={[s.small, { marginTop: 7, marginBottom: 13 }]}>
-          {selected?.name || "Your calendar"} · {zone}. Events show their own time zone.
+          {selected?.name || t("screens.calendarYourCalendar")} · {zone}
+          {t("screens.calendarZoneNote")}
         </Text>
         <ErrorNotice error={error} />
         {!!error && (
           <Button small onPress={() => setRetry(retry + 1)}>
-            Try again
+            {t("common.tryAgain")}
           </Button>
         )}
         {loading ? (
           <View style={[s.row, { gap: 10, paddingVertical: 35, justifyContent: "center" }]}>
             <ActivityIndicator size="small" color={colors.blueDark} />
-            <Text style={s.muted}>Checking your calendar…</Text>
+            <Text style={s.muted}>{t("screens.calendarChecking")}</Text>
           </View>
         ) : events.length ? (
           events.map((e, i) => (
@@ -810,16 +826,14 @@ export function CalendarScreen() {
           !error && (
             <Empty
               icon={CalendarDays}
-              title="A little open space"
+              title={t("screens.calendarEmptyTitle")}
               detail={
-                all
-                  ? "There’s nothing scheduled for the next 30 days."
-                  : "There’s nothing on the calendar for this day."
+                all ? t("screens.calendarEmptyDetail30") : t("screens.calendarEmptyDetailDay")
               }
             >
               {writable && (
                 <Button icon={Plus} onPress={newEvent}>
-                  Add an event
+                  {t("screens.calendarAddEvent")}
                 </Button>
               )}
             </Empty>
@@ -831,6 +845,7 @@ export function CalendarScreen() {
 }
 export function BrowserScreen() {
   const { workspace: w, api, refresh, open } = useWorkspace();
+  const { t } = useTranslation();
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -856,13 +871,13 @@ export function BrowserScreen() {
         <View style={[s.row, { gap: 12, marginBottom: 15 }]}>
           <Globe2 size={22} color={colors.blueDark} />
           <View>
-            <Text style={s.heading}>A place for your open tabs</Text>
-            <Text style={s.muted}>Browse in a private, persistent workspace session.</Text>
+            <Text style={s.heading}>{t("screens.browserHeading")}</Text>
+            <Text style={s.muted}>{t("screens.browserSubtitle")}</Text>
           </View>
         </View>
         <View style={[s.row, { gap: 10 }]}>
           <TextInput
-            accessibilityLabel="Website address"
+            accessibilityLabel={t("screens.browserAddressLabel")}
             value={url}
             onChangeText={setUrl}
             onSubmitEditing={() => void create()}
@@ -878,13 +893,13 @@ export function BrowserScreen() {
             disabled={!url.trim()}
             onPress={() => void create()}
           >
-            Open session
+            {t("screens.browserOpenSession")}
           </Button>
         </View>
         <ErrorNotice error={error} />
       </Card>
       <Card>
-        <SectionHeading title="Browser sessions" />
+        <SectionHeading title={t("screens.browserSessionsHeading")} />
         {w.browsers.length ? (
           w.browsers.map((b) => (
             <Pressable
@@ -902,12 +917,14 @@ export function BrowserScreen() {
                   <Globe2 size={20} color={colors.blueDark} />
                 </View>
                 <View style={{ flex: 1, gap: 4 }}>
-                  <Text style={s.heading}>{b.title || "Browser session"}</Text>
+                  <Text style={s.heading}>{b.title || t("screens.browserSessionFallback")}</Text>
                   <Text style={s.muted} numberOfLines={1}>
                     {b.url}
                   </Text>
                 </View>
-                <Chip tint={b.status === "active" ? colors.green : colors.canvas}>{b.status}</Chip>
+                <Chip tint={b.status === "active" ? colors.green : colors.canvas}>
+                  {statusLabel(b.status)}
+                </Chip>
                 <ArrowUpRight size={17} color={colors.muted} />
               </View>
               {!!b.previewUrl && (
@@ -927,8 +944,8 @@ export function BrowserScreen() {
         ) : (
           <Empty
             icon={Globe2}
-            title="Start with a website"
-            detail="Open a session above to keep your browsing together. Live previews appear when the browser worker is configured."
+            title={t("screens.browserEmptyTitle")}
+            detail={t("screens.browserEmptyDetail")}
           />
         )}
       </Card>
@@ -937,6 +954,7 @@ export function BrowserScreen() {
 }
 export function FilesScreen() {
   const { workspace: w, api, refresh, open } = useWorkspace();
+  const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   async function upload() {
@@ -980,11 +998,9 @@ export function FilesScreen() {
   return (
     <View style={{ gap: 20 }}>
       <View style={s.between}>
-        <Text style={[s.muted, { flex: 1, marginRight: 15 }]}>
-          Documents, with a little room to work.
-        </Text>
+        <Text style={[s.muted, { flex: 1, marginRight: 15 }]}>{t("screens.filesSubtitle")}</Text>
         <Button primary icon={Upload} busy={busy} onPress={() => void upload()}>
-          Import PDF
+          {t("screens.filesImport")}
         </Button>
       </View>
       <ErrorNotice error={error} />
@@ -1018,7 +1034,9 @@ export function FilesScreen() {
                 >
                   <View style={[s.row, { gap: 5, marginBottom: 15 }]}>
                     <FileText size={13} color={colors.blueDark} />
-                    <Text style={{ fontSize: 7, color: colors.blueDark }}>DOCUMENT</Text>
+                    <Text style={{ fontSize: 7, color: colors.blueDark }}>
+                      {t("screens.filesDocumentBadge")}
+                    </Text>
                   </View>
                   {[100, 75, 90, 95, 60].map((width, i) => (
                     <View
@@ -1042,8 +1060,8 @@ export function FilesScreen() {
                   {f.name}
                 </Text>
                 <Text style={s.small}>
-                  {f.pageCount} {f.pageCount === 1 ? "page" : "pages"} ·{" "}
-                  {Math.max(1, Math.round(f.size / 1024))} KB
+                  {f.pageCount} {t(f.pageCount === 1 ? "screens.filesPage" : "screens.filesPages")}{" "}
+                  · {Math.max(1, Math.round(f.size / 1024))} KB
                 </Text>
                 <View style={[s.between, { marginTop: 9 }]}>
                   <Chip>{f.source}</Chip>
@@ -1058,8 +1076,8 @@ export function FilesScreen() {
         <Card>
           <Empty
             icon={FileText}
-            title="Your documents live here"
-            detail="Import a PDF or open a mail attachment to read, fill supported form fields, and share a copy."
+            title={t("screens.filesEmptyTitle")}
+            detail={t("screens.filesEmptyDetail")}
           />
         </Card>
       )}
@@ -1068,6 +1086,7 @@ export function FilesScreen() {
 }
 export function ActivityScreen() {
   const { workspace: w, open } = useWorkspace();
+  const { t } = useTranslation();
   const [filter, setFilter] = useState("all");
   const pending = w.actions.filter((a) => a.status === "awaiting_review");
   const actions = w.actions.filter((a) => filter === "all" || a.status === "awaiting_review");
@@ -1075,15 +1094,15 @@ export function ActivityScreen() {
     <View style={{ gap: 20 }}>
       <View style={[s.row, { gap: 10 }]}>
         <Button small primary={filter === "all"} onPress={() => setFilter("all")}>
-          All activity
+          {t("screens.activityFilterAll")}
         </Button>
         <Button small primary={filter === "review"} onPress={() => setFilter("review")}>
-          Needs review · {pending.length}
+          {t("screens.activityFilterReview", { count: pending.length })}
         </Button>
       </View>
       {actions.length > 0 && (
         <Card>
-          <SectionHeading title="Your actions" />
+          <SectionHeading title={t("screens.activityActionsHeading")} />
           {actions.map((a) => (
             <Pressable
               key={a.id}
@@ -1121,7 +1140,7 @@ export function ActivityScreen() {
                       : colors.canvas
                 }
               >
-                {a.status.replace(/_/g, " ")}
+                {statusLabel(a.status)}
               </Chip>
               <ChevronRight size={16} color={colors.muted} />
             </Pressable>
@@ -1130,7 +1149,7 @@ export function ActivityScreen() {
       )}
       {filter === "all" && (
         <Card>
-          <SectionHeading title="Workspace timeline" />
+          <SectionHeading title={t("screens.activityTimelineHeading")} />
           {w.activity.length ? (
             w.activity.map((a, i) => (
               <View
@@ -1158,14 +1177,14 @@ export function ActivityScreen() {
                     {dateLabel(a.date)} · {timeLabel(a.date)}
                   </Text>
                 </View>
-                <Chip>{a.status}</Chip>
+                <Chip>{statusLabel(a.status)}</Chip>
               </View>
             ))
           ) : (
             <Empty
               icon={Clock3}
-              title="The beginning of something lighter"
-              detail="Your actions and their results will be recorded here."
+              title={t("screens.activityEmptyTitle")}
+              detail={t("screens.activityEmptyDetail")}
             />
           )}
         </Card>
@@ -1174,8 +1193,8 @@ export function ActivityScreen() {
         <Card>
           <Empty
             icon={ShieldCheck}
-            title="You’re all caught up"
-            detail="When an email or calendar change needs your approval, it will appear here."
+            title={t("screens.activityCaughtUpTitle")}
+            detail={t("screens.activityCaughtUpDetail")}
           />
         </Card>
       )}
@@ -1184,6 +1203,7 @@ export function ActivityScreen() {
 }
 export function ConnectionsScreen({ query = "" }: { query?: string }) {
   const { workspace: w, api, refresh, notify, open } = useWorkspace();
+  const { t } = useTranslation();
   const [selected, setSelected] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -1197,10 +1217,10 @@ export function ConnectionsScreen({ query = "" }: { query?: string }) {
       );
       if (result.url) {
         await Linking.openURL(result.url);
-        notify("Finish connecting in your browser, then refresh your workspace.");
+        notify(t("screens.connectionsNotifyFinish"));
       } else {
         await refresh();
-        notify("Local Google data is ready.");
+        notify(t("screens.connectionsNotifyLocalReady"));
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -1214,7 +1234,7 @@ export function ConnectionsScreen({ query = "" }: { query?: string }) {
     try {
       await api.request("/api/google/disconnect", {});
       await refresh();
-      notify("Google disconnected.");
+      notify(t("screens.connectionsNotifyDisconnected"));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -1235,7 +1255,7 @@ export function ConnectionsScreen({ query = "" }: { query?: string }) {
     },
     {
       id: "browser",
-      name: "Agent computer",
+      name: t("threads.agentComputer"),
       icon: Globe2,
       color: "#1987CF",
       connected: w.connections.some((c) => c.id === "browser" && c.status === "connected"),
@@ -1260,16 +1280,16 @@ export function ConnectionsScreen({ query = "" }: { query?: string }) {
             <Text style={[s.small, { marginLeft: 12 }]}>
               {isConnected
                 ? w.mode === "sample"
-                  ? "Your connections"
-                  : "Connected"
-                : "Available integrations"}
+                  ? t("screens.connectionsYourConnections")
+                  : t("screens.connectionsConnected")
+                : t("screens.connectionsAvailable")}
             </Text>
             <View style={{ paddingHorizontal: 16, borderRadius: 23, backgroundColor: "#F3F4F5" }}>
               {group.map((row, index) => (
                 <Pressable
                   key={row.id}
                   accessibilityRole="button"
-                  accessibilityLabel={`Manage ${row.name}`}
+                  accessibilityLabel={t("screens.connectionsManage", { name: row.name })}
                   onPress={() =>
                     row.group === "browser" ? open({ type: "computer" }) : setSelected(row.group)
                   }
@@ -1297,7 +1317,7 @@ export function ConnectionsScreen({ query = "" }: { query?: string }) {
                   </View>
                   <Text style={[s.text, { flex: 1 }]}>{row.name}</Text>
                   {row.connected && row.group === "google" && w.mode === "sample" && (
-                    <Text style={s.small}>Local data</Text>
+                    <Text style={s.small}>{t("screens.connectionsLocalData")}</Text>
                   )}
                   {row.connected ? (
                     <ChevronRight size={18} color="#A4A7AA" />
@@ -1308,7 +1328,9 @@ export function ConnectionsScreen({ query = "" }: { query?: string }) {
                         color: row.group === "google" ? colors.blueDark : colors.muted,
                       }}
                     >
-                      {row.group === "google" ? "Connect" : "Setup"}
+                      {row.group === "google"
+                        ? t("screens.connectionsConnect")
+                        : t("screens.connectionsSetup")}
                     </Text>
                   )}
                 </Pressable>
@@ -1317,19 +1339,18 @@ export function ConnectionsScreen({ query = "" }: { query?: string }) {
           </View>
         );
       })}
-      {!rows.length && <Text style={s.muted}>No matching connectors.</Text>}
+      {!rows.length && <Text style={s.muted}>{t("screens.connectionsNoMatch")}</Text>}
       {selected && (
         <Sheet
-          title={selected === "google" ? "Google connections" : "OpenBot"}
-          subtitle={selected === "google" ? google?.account : "A computer for your agent"}
+          title={selected === "google" ? t("screens.connectionsGoogleTitle") : "OpenBot"}
+          subtitle={
+            selected === "google" ? google?.account : t("screens.connectionsOpenBotSubtitle")
+          }
           onClose={() => setSelected(undefined)}
         >
           {selected === "google" ? (
             <View style={{ gap: 18 }}>
-              <Text style={s.muted}>
-                Bring Gmail and Google Calendar into your conversations. Choose read access, then
-                enable sending and editing when you need it.
-              </Text>
+              <Text style={s.muted}>{t("screens.connectionsGoogleDescription")}</Text>
               <View style={[s.row, { gap: 7, flexWrap: "wrap" }]}>
                 {google?.capabilities.map((cap) => (
                   <Chip key={cap}>{capabilityLabel(cap)}</Chip>
@@ -1337,52 +1358,54 @@ export function ConnectionsScreen({ query = "" }: { query?: string }) {
               </View>
               <ErrorNotice error={error} />
               <Button busy={busy} primary icon={Link2} onPress={() => void connect("read")}>
-                Connect Google
+                {t("screens.connectionsConnectGoogle")}
               </Button>
               <Button busy={busy} onPress={() => void connect("write")}>
-                Enable sending & editing
+                {t("screens.connectionsEnableSending")}
               </Button>
               {connected && (
                 <Button busy={busy} danger onPress={() => void disconnect()}>
-                  Disconnect Google
+                  {t("screens.connectionsDisconnectGoogle")}
                 </Button>
               )}
               <SettingsLine
-                label="Environment"
-                value={w.mode === "sample" ? "Local · example data" : "Live workspace"}
-              />
-              <SettingsLine
-                label="Assistant"
+                label={t("screens.connectionsEnvironmentLabel")}
                 value={
-                  w.runtime.provider === "sample"
-                    ? "Guided workflows"
-                    : w.runtime.configured
-                      ? "Model connected"
-                      : "Model not configured"
+                  w.mode === "sample"
+                    ? t("screens.connectionsEnvSample")
+                    : t("screens.connectionsEnvLive")
                 }
               />
               <SettingsLine
-                label="Rich Threads"
-                value={w.runtime.richThreads ? "CopilotKit Intelligence" : "Not connected"}
+                label={t("screens.connectionsAssistantLabel")}
+                value={
+                  w.runtime.provider === "sample"
+                    ? t("screens.connectionsAssistantGuided")
+                    : w.runtime.configured
+                      ? t("screens.connectionsAssistantConnected")
+                      : t("screens.connectionsAssistantNotConfigured")
+                }
+              />
+              <SettingsLine
+                label={t("screens.connectionsRichThreads")}
+                value={
+                  w.runtime.richThreads
+                    ? "CopilotKit Intelligence"
+                    : t("screens.connectionsNotConnected")
+                }
               />
               <Button
                 small
                 icon={ArrowDownToLine}
                 onPress={() => void refresh().catch((e) => setError(String(e)))}
               >
-                Refresh connections
+                {t("screens.connectionsRefresh")}
               </Button>
             </View>
           ) : (
             <View style={{ gap: 14 }}>
-              <Text style={s.text}>
-                The OpenBot adapter is available in this open-source project. A live OpenBot backend
-                has not been configured.
-              </Text>
-              <Text style={s.muted}>
-                Your current computer uses LingTai’s persistent Chromium worker. OpenBot integration
-                will expand the execution backend while keeping this interface.
-              </Text>
+              <Text style={s.text}>{t("screens.connectionsOpenBotNotice")}</Text>
+              <Text style={s.muted}>{t("screens.connectionsOpenBotDetail")}</Text>
             </View>
           )}
         </Sheet>
@@ -1407,12 +1430,12 @@ function SettingsLine({ label, value }: { label: string; value: string }) {
 function capabilityLabel(value: string) {
   const scope = value.split("/").at(-1) || value;
   const names: Record<string, string> = {
-    "gmail.readonly": "Read Gmail",
-    "gmail.send": "Send Gmail",
-    "calendar.events.readonly": "Read calendar events",
-    "calendar.calendarlist.readonly": "Read calendar list",
-    "calendar.events": "Manage calendar events",
-    "calendar.readonly": "Read calendars",
+    "gmail.readonly": tr("screens.capabilityReadGmail"),
+    "gmail.send": tr("screens.capabilitySendGmail"),
+    "calendar.events.readonly": tr("screens.capabilityReadCalendarEvents"),
+    "calendar.calendarlist.readonly": tr("screens.capabilityReadCalendarList"),
+    "calendar.events": tr("screens.capabilityManageCalendarEvents"),
+    "calendar.readonly": tr("screens.capabilityReadCalendars"),
   };
   return names[scope] || scope;
 }

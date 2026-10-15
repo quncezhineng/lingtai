@@ -5,15 +5,17 @@ import type { Artifact, BrowserSession } from "../../../packages/domain/src";
 import type { AgentArtifact, AgentTask } from "../../../packages/domain/src/agent";
 import { ArtifactCard, TaskCard } from "./agent-ui";
 import { BrowserThreadCard } from "./computer";
+import { useTranslation } from "./i18n";
 import { Button, Card, colors, ErrorNotice, s } from "./ui";
 import { useWorkspace } from "./workspace";
 
 export function FileThreadCard({ file }: { file: Artifact }) {
   const { open } = useWorkspace();
+  const { t } = useTranslation();
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Open PDF: ${file.name}`}
+      accessibilityLabel={t("tools.openPdf", { name: file.name })}
       onPress={() => open({ type: "file", file })}
       style={{ width: "100%", maxWidth: 440 }}
     >
@@ -39,7 +41,9 @@ export function FileThreadCard({ file }: { file: Artifact }) {
             ))
           ) : (
             <Text style={s.muted}>
-              {file.pageCount} {file.pageCount === 1 ? "page" : "pages"} · Tap to read the document
+              {file.pageCount === 1
+                ? t("tools.fileTapSingle")
+                : t("tools.fileTapPlural", { pageCount: file.pageCount })}
             </Text>
           )}
         </View>
@@ -62,6 +66,7 @@ export function FileThreadCard({ file }: { file: Artifact }) {
 /** Hydrates task-linked artifacts by ID on replay; signed URLs are never stored in messages. */
 export function TaskThreadCard({ task }: { task: AgentTask }) {
   const { api } = useWorkspace();
+  const { t } = useTranslation();
   const [detail, setDetail] = useState<{
     artifacts: AgentArtifact[];
     files: Artifact[];
@@ -106,7 +111,7 @@ export function TaskThreadCard({ task }: { task: AgentTask }) {
       <ErrorNotice error={error} />
       {!!error && (
         <Button small onPress={() => setAttempt((value) => value + 1)}>
-          Reload task results
+          {t("tools.reloadTaskResults")}
         </Button>
       )}
     </View>

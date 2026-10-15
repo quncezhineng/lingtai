@@ -22,6 +22,7 @@ import type {
 } from "../../../packages/domain/src/computer";
 import { useComputerDraft } from "./computer-drafts";
 import { DesktopStream } from "./desktop-stream";
+import { useTranslation } from "./i18n";
 import { Button, Card, colors, Empty, ErrorNotice, Field, LinkRow, s, timeLabel } from "./ui";
 import { useWorkspace } from "./workspace";
 
@@ -36,6 +37,7 @@ export function LinuxWorkspace({
   onSnapshot?: (snapshot: ComputerSnapshot) => void;
 }) {
   const { api } = useWorkspace();
+  const { t } = useTranslation();
   const [snapshot, setSnapshot] = useState<ComputerSnapshot>();
   const [error, setError] = useState("");
   const [connectionError, setConnectionError] = useState("");
@@ -156,17 +158,17 @@ export function LinuxWorkspace({
         <View style={[s.row, { gap: 12 }]}>
           <Terminal size={24} color={colors.blueDark} />
           <View style={{ flex: 1, gap: 4 }}>
-            <Text style={s.heading}>Your Linux workspace</Text>
+            <Text style={s.heading}>{t("computer.yourLinuxWorkspace")}</Text>
             <Text style={s.muted}>
               {running
-                ? "Running · files persist when stopped"
+                ? t("computer.statusRunning")
                 : snapshot?.status === "stopped"
-                  ? "Stopped · your files are saved"
+                  ? t("computer.statusStopped")
                   : snapshot?.status === "unconfigured"
-                    ? "Set up the computer to get started"
+                    ? t("computer.statusUnconfigured")
                     : snapshot?.status === "error"
-                      ? "Connection needs attention"
-                      : "Connecting…"}
+                      ? t("computer.statusError")
+                      : t("computer.statusConnecting")}
             </Text>
           </View>
           {!snapshot && !error && <ActivityIndicator color={colors.blueDark} />}
@@ -176,11 +178,11 @@ export function LinuxWorkspace({
           <View style={[s.row, { gap: 8, flexWrap: "wrap" }]}>
             {running ? (
               <Button icon={Power} busy={busy} onPress={() => void control("stop")}>
-                Stop computer
+                {t("computer.stopComputer")}
               </Button>
             ) : (
               <Button primary icon={Play} busy={busy} onPress={() => void control("start")}>
-                Start computer
+                {t("computer.startComputer")}
               </Button>
             )}
             <Button
@@ -192,7 +194,7 @@ export function LinuxWorkspace({
                   .catch((e) => setError(message(e)))
               }
             >
-              Refresh
+              {t("computer.refresh")}
             </Button>
           </View>
         )}
@@ -206,7 +208,7 @@ export function LinuxWorkspace({
               .catch((e) => setError(message(e)))
           }
         >
-          Retry connection
+          {t("computer.retryConnection")}
         </Button>
       )}
       {snapshot?.enabled && (
@@ -215,10 +217,10 @@ export function LinuxWorkspace({
             {editingCommand || command.length > 0 || snapshot.commands.length === 0 ? (
               <View style={{ borderRadius: 22, backgroundColor: "#F1F3F4", padding: 18, gap: 8 }}>
                 <Text style={{ color: colors.muted, fontSize: 12, fontFamily: mono }}>
-                  TERMINAL
+                  {t("computer.terminalLabel")}
                 </Text>
                 <Field
-                  label="Working directory"
+                  label={t("computer.workingDirectory")}
                   value={cwd}
                   onChangeText={setCwd}
                   autoCapitalize="none"
@@ -226,7 +228,7 @@ export function LinuxWorkspace({
                   style={{ fontFamily: mono }}
                 />
                 <Field
-                  label="Command"
+                  label={t("computer.command")}
                   value={command}
                   onChangeText={setCommand}
                   placeholder="pwd"
@@ -246,7 +248,7 @@ export function LinuxWorkspace({
                       setCommand((text) => text.replace(/[‘’]/g, "'").replace(/[“”]/g, '"'))
                     }
                   >
-                    Use straight quotes
+                    {t("computer.useStraightQuotes")}
                   </Button>
                 )}
                 <Button
@@ -256,12 +258,12 @@ export function LinuxWorkspace({
                   disabled={!running || !command.trim() || busy}
                   onPress={() => void run()}
                 >
-                  Run command
+                  {t("computer.runCommand")}
                 </Button>
                 <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18 }}>
                   {snapshot.network === "enabled"
-                    ? "Runs on your computer with internet access. Start GUI apps with >/dev/null 2>&1 & to open them on the Desktop tab."
-                    : "Runs on your computer. Network access is off. Use Browser for the web."}
+                    ? t("computer.runWithInternet")
+                    : t("computer.runWithoutNetwork")}
                 </Text>
               </View>
             ) : (
@@ -271,19 +273,15 @@ export function LinuxWorkspace({
                 disabled={!running || busy || !!commandRunning}
                 onPress={() => setEditingCommand(true)}
               >
-                New command
+                {t("computer.newCommand")}
               </Button>
             )}
-            {!!commandRunning && (
-              <Text style={s.muted}>
-                Working… The result will appear here. Stop the computer to end running commands.
-              </Text>
-            )}
+            {!!commandRunning && <Text style={s.muted}>{t("computer.workingHint")}</Text>}
             {snapshot.commands.length === 0 ? (
               <Empty
                 icon={Terminal}
-                title="Ready for your first command"
-                detail="Run scripts, work with files, or ask your agent to create something here."
+                title={t("computer.emptyCommandsTitle")}
+                detail={t("computer.emptyCommandsDetail")}
               />
             ) : (
               [...snapshot.commands]
@@ -293,7 +291,7 @@ export function LinuxWorkspace({
             )}
             {snapshot.commands.length > 5 && (
               <Button small onPress={() => setShowHistory(!showHistory)}>
-                {showHistory ? "Show recent commands" : "Earlier commands"}
+                {showHistory ? t("computer.showRecentCommands") : t("computer.earlierCommands")}
               </Button>
             )}
           </View>
@@ -311,28 +309,25 @@ export function LinuxWorkspace({
 
 // Live view of the computer's desktop, shared with the chat's desktop card.
 function ComputerDesktop({ running }: { running: boolean }) {
+  const { t } = useTranslation();
   if (!running)
     return (
       <Empty
         icon={Monitor}
-        title="Desktop is off"
-        detail="Start the computer to see and control its desktop."
+        title={t("computer.desktopOffTitle")}
+        detail={t("computer.desktopOffDetail")}
       />
     );
   return (
     <View style={{ gap: 12 }}>
       <DesktopStream running />
-      <Text style={s.small}>
-        You and your agent share this desktop. Stopping the computer closes its apps; files in
-        /workspace are kept. Opening the desktop keeps the computer awake for 30 minutes; keep this
-        tab open or come back to the app to extend it. The link controls the desktop, so do not
-        share it.
-      </Text>
+      <Text style={s.small}>{t("computer.desktopSharedNote")}</Text>
     </View>
   );
 }
 
 function CommandReceipt({ run }: { run: ComputerCommand }) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(true);
   return (
     <Card style={{ gap: 10 }}>
@@ -351,7 +346,7 @@ function CommandReceipt({ run }: { run: ComputerCommand }) {
           ]}
         >
           {run.status.replace("_", " ")}
-          {run.exitCode !== undefined ? ` · exit ${run.exitCode}` : ""}
+          {run.exitCode !== undefined ? t("computer.exitCode", { code: run.exitCode }) : ""}
         </Text>
         <Text style={s.small}>{timeLabel(run.startedAt)}</Text>
       </View>
@@ -379,18 +374,14 @@ function CommandReceipt({ run }: { run: ComputerCommand }) {
             </Text>
           )}
           {!run.stdout && !run.stderr && run.status !== "running" && (
-            <Text style={s.small}>No output</Text>
+            <Text style={s.small}>{t("computer.noOutput")}</Text>
           )}
-          {run.truncated && (
-            <Text style={s.small}>
-              Output reached the display limit. Write large results to a file.
-            </Text>
-          )}
+          {run.truncated && <Text style={s.small}>{t("computer.outputTruncated")}</Text>}
         </>
       )}
       {!!(run.stdout || run.stderr) && (
         <Button small onPress={() => setExpanded(!expanded)}>
-          {expanded ? "Hide output" : "Show output"}
+          {expanded ? t("computer.hideOutput") : t("computer.showOutput")}
         </Button>
       )}
     </Card>
@@ -399,6 +390,7 @@ function CommandReceipt({ run }: { run: ComputerCommand }) {
 
 function ComputerFiles({ running, active }: { running: boolean; active: boolean }) {
   const { api, workspace, open, refresh } = useWorkspace();
+  const { t } = useTranslation();
   const [path, setPath] = useComputerDraft("path");
   const [directory, setDirectory] = useState<ComputerDirectory>();
   const [error, setError] = useState("");
@@ -469,7 +461,7 @@ function ComputerFiles({ running, active }: { running: boolean; active: boolean 
         path: `${path}/${file.name.replace(/[\\/]/g, "_")}`,
       });
       setImporting(false);
-      setNotice("Document copied to your computer.");
+      setNotice(t("computer.documentCopied"));
       setRetry((value) => value + 1);
     } catch (e) {
       setError(message(e));
@@ -505,7 +497,7 @@ function ComputerFiles({ running, active }: { running: boolean; active: boolean 
             ? { ...current, saved: sent.text, savedPath: sent.path }
             : current,
         );
-      setNotice("File saved to your computer.");
+      setNotice(t("computer.fileSaved"));
       setRetry((value) => value + 1);
     } catch (e) {
       setError(message(e));
@@ -530,7 +522,7 @@ function ComputerFiles({ running, active }: { running: boolean; active: boolean 
   return (
     <View style={{ gap: 12 }}>
       <View style={s.between}>
-        <Text style={s.heading}>Workspace files</Text>
+        <Text style={s.heading}>{t("computer.workspaceFiles")}</Text>
         {(busy || loading) && <ActivityIndicator color={colors.blueDark} />}
       </View>
       <Text selectable style={[s.small, { fontFamily: mono }]}>
@@ -538,13 +530,11 @@ function ComputerFiles({ running, active }: { running: boolean; active: boolean 
       </Text>
       <ErrorNotice error={error} />
       {!!notice && <Text style={[s.small, { color: "#248258" }]}>{notice}</Text>}
-      {!running && (
-        <Text style={s.muted}>Start the computer to browse or edit its saved files.</Text>
-      )}
+      {!running && <Text style={s.muted}>{t("computer.filesStartHint")}</Text>}
       {editor ? (
         <>
           <Field
-            label="File path"
+            label={t("computer.filePath")}
             value={editor.path}
             onChangeText={(value) => setEditor({ ...editor, path: value })}
             autoCorrect={false}
@@ -552,7 +542,7 @@ function ComputerFiles({ running, active }: { running: boolean; active: boolean 
             style={{ fontFamily: mono }}
           />
           <Field
-            label="File contents"
+            label={t("computer.fileContents")}
             value={editor.text}
             onChangeText={(value) => setEditor({ ...editor, text: value })}
             multiline
@@ -571,7 +561,7 @@ function ComputerFiles({ running, active }: { running: boolean; active: boolean 
               disabled={!running || !editor.path.trim()}
               onPress={() => void save()}
             >
-              Save file
+              {t("computer.saveFile")}
             </Button>
             <Button
               disabled={busy}
@@ -581,7 +571,7 @@ function ComputerFiles({ running, active }: { running: boolean; active: boolean 
                 setNotice("");
               }}
             >
-              {dirty ? "Discard edits" : "Back to files"}
+              {dirty ? t("computer.discardEdits") : t("computer.backToFiles")}
             </Button>
           </View>
         </>
@@ -595,7 +585,7 @@ function ComputerFiles({ running, active }: { running: boolean; active: boolean 
                 icon={ArrowLeft}
                 onPress={() => setPath(path.slice(0, path.lastIndexOf("/")) || "/workspace")}
               >
-                Up
+                {t("computer.up")}
               </Button>
             )}
             <Button
@@ -612,7 +602,7 @@ function ComputerFiles({ running, active }: { running: boolean; active: boolean 
                 });
               }}
             >
-              New file
+              {t("computer.newFile")}
             </Button>
             <Button
               small
@@ -620,7 +610,7 @@ function ComputerFiles({ running, active }: { running: boolean; active: boolean 
               icon={FolderPlus}
               onPress={() => setFolder("")}
             >
-              New folder
+              {t("computer.newFolder")}
             </Button>
             <Button
               small
@@ -628,7 +618,7 @@ function ComputerFiles({ running, active }: { running: boolean; active: boolean 
               icon={RefreshCw}
               onPress={() => setRetry(retry + 1)}
             >
-              Refresh files
+              {t("computer.refreshFiles")}
             </Button>
             <Button
               small
@@ -636,15 +626,13 @@ function ComputerFiles({ running, active }: { running: boolean; active: boolean 
               icon={Upload}
               onPress={() => setImporting(!importing)}
             >
-              {importing ? "Hide documents" : "Copy a document here"}
+              {importing ? t("computer.hideDocuments") : t("computer.copyDocumentHere")}
             </Button>
           </View>
           {importing && (
             <Card>
-              <Text style={s.heading}>Choose a saved PDF</Text>
-              <Text style={[s.small, { marginTop: 6 }]}>
-                Copies into this folder. A file with the same name will be replaced.
-              </Text>
+              <Text style={s.heading}>{t("computer.chooseSavedPdf")}</Text>
+              <Text style={[s.small, { marginTop: 6 }]}>{t("computer.copyIntoFolderNote")}</Text>
               {workspace.files.map((file) => (
                 <LinkRow
                   key={file.id}
@@ -654,14 +642,14 @@ function ComputerFiles({ running, active }: { running: boolean; active: boolean 
                 />
               ))}
               {!workspace.files.length && (
-                <Text style={s.muted}>Add a document from mail or Files first.</Text>
+                <Text style={s.muted}>{t("computer.addDocumentFirst")}</Text>
               )}
             </Card>
           )}
           {folder !== undefined && (
             <Card style={{ gap: 8 }}>
               <Field
-                label="Folder name"
+                label={t("computer.folderName")}
                 value={folder}
                 onChangeText={setFolder}
                 autoCapitalize="none"
@@ -674,10 +662,10 @@ function ComputerFiles({ running, active }: { running: boolean; active: boolean 
                   busy={busy}
                   onPress={() => void mkdir()}
                 >
-                  Create folder
+                  {t("computer.createFolder")}
                 </Button>
                 <Button disabled={busy} onPress={() => setFolder(undefined)}>
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
               </View>
             </Card>
@@ -691,10 +679,12 @@ function ComputerFiles({ running, active }: { running: boolean; active: boolean 
                 title={entry.name}
                 detail={
                   entry.type === "directory"
-                    ? "Folder"
+                    ? t("computer.folder")
                     : entry.type === "symlink"
-                      ? "Symbolic link"
-                      : `${Math.max(1, Math.ceil(entry.size / 1024))} KB`
+                      ? t("computer.symbolicLink")
+                      : t("computer.fileSizeKb", {
+                          size: Math.max(1, Math.ceil(entry.size / 1024)),
+                        })
                 }
                 onPress={() => {
                   if (busy || loading || !running) return;
@@ -714,8 +704,8 @@ function ComputerFiles({ running, active }: { running: boolean; active: boolean 
             directory.entries.length === 0 && (
               <Empty
                 icon={Folder}
-                title="A little space to create"
-                detail="Add a file here, or ask your agent to make one in its workspace."
+                title={t("computer.emptyFilesTitle")}
+                detail={t("computer.emptyFilesDetail")}
               />
             )}
         </>

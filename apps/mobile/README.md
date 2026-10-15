@@ -46,5 +46,6 @@ The `build:ios` and `build:android` commands validate and export platform JavaSc
 - While the agent replies, the send arrow becomes a stop square in the same input pill. Stop preserves the draft; the arrow returns when the run ends. A new message can continue immediately after stopping when no follow-ups are waiting. Held follow-ups resume through **Send queued messages**.
 - Browser previews and consoles use only signed worker URLs returned by the API. PDF downloads import through the worker API.
 - Google connects through the system browser. Refresh the workspace after completing OAuth.
+- The interface ships in English and Simplified Chinese. The header language button switches at runtime and stores the preference locally; the product name renders as 灵台 in Chinese. See [localization docs](../../docs/I18N.md).
 
 Phone and wide layouts share Chat, Activity, Ideas, Goals and Apps. The task and notification sheets restore server state when reopened. Document and browser viewers have platform-specific files; presentation and state remain shared.

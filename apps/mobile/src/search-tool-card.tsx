@@ -3,6 +3,7 @@ import { useContext, useState } from "react";
 import { ActivityIndicator, Linking, Text, View } from "react-native";
 import { z } from "zod";
 import { BrowserRunContext } from "./browser-tool-card";
+import { useTranslation } from "./i18n";
 import { Card, colors, ErrorNotice, s } from "./ui";
 
 const resultSchema = z.object({
@@ -13,6 +14,7 @@ const resultSchema = z.object({
 
 export function SearchToolCard({ result, loading }: { result: unknown; loading: boolean }) {
   const { active } = useContext(BrowserRunContext);
+  const { t } = useTranslation();
   const [linkError, setLinkError] = useState("");
   let value = result;
   if (typeof value === "string") {
@@ -28,7 +30,7 @@ export function SearchToolCard({ result, loading }: { result: unknown; loading: 
   const failure = error.success
     ? error.data.error
     : !loading && !parsed.success
-      ? "Search did not return readable results."
+      ? t("tools.searchNoResults")
       : "";
   const sources = parsed.success
     ? [...new Map(parsed.data.results.map((source) => [source.url, source])).values()]
@@ -46,14 +48,16 @@ export function SearchToolCard({ result, loading }: { result: unknown; loading: 
         )}
         <Text style={s.text}>
           {failure
-            ? "Search failed"
+            ? t("tools.searchFailed")
             : working
-              ? "Searching the web…"
+              ? t("tools.searchingWeb")
               : loading
-                ? "Search stopped"
+                ? t("tools.searchStopped")
                 : count
-                  ? `Found ${count} ${count === 1 ? "source" : "sources"}`
-                  : "No sources found"}
+                  ? count === 1
+                    ? t("tools.searchFoundOneSource")
+                    : t("tools.searchFoundSources", { count })
+                  : t("tools.noSourcesFound")}
         </Text>
       </View>
       {!loading && parsed.success && (
@@ -66,16 +70,14 @@ export function SearchToolCard({ result, loading }: { result: unknown; loading: 
               onPress={() => {
                 setLinkError("");
                 void Linking.openURL(source.url).catch(() =>
-                  setLinkError("Could not open this source."),
+                  setLinkError(t("tools.couldNotOpenSource")),
                 );
               }}
             >
               {source.title || source.url}
             </Text>
           ))}
-          {parsed.data.truncated && (
-            <Text style={s.small}>Some search results or excerpts were omitted.</Text>
-          )}
+          {parsed.data.truncated && <Text style={s.small}>{t("tools.resultsOmitted")}</Text>}
           {[...new Set(parsed.data.warnings)].map((warning) => (
             <Text key={warning} style={s.small}>
               {warning}

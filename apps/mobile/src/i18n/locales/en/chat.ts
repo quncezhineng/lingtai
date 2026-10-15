@@ -1,0 +1,50 @@
+import type { Dictionary } from "../../types";
+
+/** 主对话界面文案（命名空间：chat）。 */
+const chat = {
+  "chat.serverToolTask": "Task",
+  "chat.serverToolAgentProgress": "Agent progress",
+  "chat.serverToolGoal": "Goal",
+  "chat.serverToolTracking": "Tracking",
+  "chat.serverToolMemory": "Memory",
+  "chat.serverToolSaving": "Saving {name}…",
+  "chat.serverToolWaiting": "Waiting for the server.",
+  "chat.serverToolOpenWorkspace": "Open the workspace to see the saved result.",
+  "chat.serverToolView": "View {name}",
+  "chat.historyLoadError":
+    "Could not load conversation. Your saved messages have not been changed. {detail}",
+  "chat.stopError": "Could not stop response: {detail}",
+  "chat.saveError": "Conversation could not be saved: {detail}",
+  "chat.retryLoadingConversation": "Retry loading conversation",
+  "chat.emptyTitle": "A little help. A lot more room for life.",
+  "chat.emptySubtitle":
+    "Tell me what’s on your mind. I can make a plan, work with your apps, and use my computer to help.",
+  "chat.suggestionHackerNews": "Find cool things on Hacker News",
+  "chat.suggestionSummarize": "Summarize copilotkit.ai",
+  "chat.suggestionWatchWebsite": "Keep an eye on a website",
+  "chat.hideRecentResults": "Hide recent results",
+  "chat.recentResults": "Recent results",
+  "chat.agentWorking": "Agent is working",
+  "chat.retryResponse": "Retry response",
+  "chat.latestMessages": "Latest messages",
+  "chat.retrySavingConversation": "Retry saving conversation",
+  "chat.messagesOnHold": "Messages on hold",
+  "chat.upNext": "Up next",
+  "chat.outboxStatus": "{state} · Keep the app open until sent",
+  "chat.removeQueuedMessage": "Remove queued message: {text}",
+  "chat.sendQueuedMessages": "Send queued messages",
+  "chat.addDocument": "Add a document",
+  "chat.importPdfHint": "Import a PDF in Files to use it in a conversation.",
+  "chat.done": "Done",
+  "chat.removeAttachment": "Remove attachment: {name}",
+  "chat.attachDocument": "Attach a document",
+  "chat.messageLingTai": "Message LingTai",
+  "chat.connecting": "Connecting…",
+  "chat.conversationUnavailable": "Conversation unavailable",
+  "chat.loadingConversation": "Loading conversation…",
+  "chat.messagePlaceholder": "Message…",
+  "chat.stopReply": "Stop reply",
+  "chat.sendMessage": "Send message",
+} satisfies Dictionary;
+
+export default chat;

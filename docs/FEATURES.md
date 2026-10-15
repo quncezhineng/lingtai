@@ -15,6 +15,7 @@ The native and web agent core runs locally. This inventory describes the current
 | PDF job | Durable import, typed input request, filled-copy preview, reviewed reply, receipt | OCR/scanned forms and additional PDF field types |
 | Generated results | Plans/reports/comparisons, finance CSV metrics, and scripts in the private Linux workspace | Managed tool installation/versioning and image/audio generation |
 | Notifications | Durable in-app inbox, source-linked change alerts, restart reconciliation | APNs/FCM/device push delivery |
+| Localization | English and Simplified Chinese (灵台) UI, runtime language switcher, persisted preference, localized dates/times and domain labels | Additional locales; server-generated content remains in the server's language (see [I18N.md](I18N.md)) |
 | Connectors | Searchable capability/status catalogue, Google connection, browser worker | Plaid, health, Instagram, WhatsApp and partner APIs |
 | OpenBot | Disabled adapter with pinned protocol/identity tests | Live session bridge, routines and computer backend wiring |
 

@@ -1,0 +1,106 @@
+import type { Dictionary } from "../../types";
+
+/** 工具调用卡片文案（命名空间：tools）。 */
+const tools = {
+  // Jev 工具卡片
+  "tools.sourceLink": "来源：{title}",
+  "tools.chooseExhibit": "选择此展品",
+  "tools.chooseOption": "选择此选项",
+  "tools.chooseOptionA11y": "{caption}：{label}（选项 {position}）",
+  "tools.preparingChoices": "正在准备选项…",
+  "tools.choicesUnavailable": "无法显示这些选项，请重试。",
+  "tools.sampleMode": "示例 · 脚本化决策",
+  "tools.liveMode": "实时 Jev · 模型决策",
+  "tools.previousPreference": "此前的偏好：{label}",
+  "tools.earlierChoices": "此前的选择",
+  "tools.choiceSubmitted": "选择已提交",
+  "tools.retryChoice": "重试选择",
+  // 浏览器工具卡片
+  "tools.openingAPage": "正在打开页面",
+  "tools.browserPageFailed": "浏览器没有返回页面，请重试你的请求。",
+  "tools.readingPage": "正在读取页面…",
+  "tools.browsingPaused": "浏览已暂停",
+  "tools.couldntReadPage": "无法读取页面",
+  "tools.pageRead": "页面已读取",
+  "tools.browserPreview": "浏览器预览：{title}",
+  "tools.pageVisitedMovedOn": "页面已访问，浏览器已跳转到其他页面。",
+  "tools.sessionSavedReopen": "会话已保存，接管后可重新打开。",
+  "tools.sessionNeedsAttention": "会话需要处理，接管后可重新连接。",
+  "tools.previewUnavailable": "预览不可用，你仍可接管。",
+  "tools.connectingSavedSession": "正在连接已保存的会话…",
+  "tools.takeControl": "接管",
+  "tools.reconnectPreview": "重新连接预览",
+  // 桌面工具卡片
+  "tools.desktopTitle": "桌面",
+  "tools.usingDesktop": "正在使用桌面…",
+  "tools.desktopStepFailed": "桌面操作失败",
+  "tools.desktopStep": "桌面操作",
+  "tools.computerOffline": "电脑处于离线状态。启动后即可查看桌面；此前打开的应用程序已关闭。",
+  "tools.starting": "正在启动…",
+  "tools.startComputer": "启动电脑",
+  "tools.latestDesktopScreenshot": "最新桌面截图",
+  "tools.openInDesktopTab": "在桌面标签页中打开",
+  // 邮件工具卡片
+  "tools.mailReadingPaused": "邮件读取已暂停",
+  "tools.checkingInbox": "正在检查收件箱…",
+  "tools.readingEmail": "正在读取邮件…",
+  "tools.mailboxNoResults": "邮箱未返回可读取的结果。",
+  "tools.mailSearchNone": "没有匹配的邮件",
+  "tools.mailSearchFound": "找到 {count} 封邮件",
+  "tools.mailSearchFoundOne": "找到 1 封邮件",
+  "tools.mailSearchFoundAtLeast": "找到至少 {count} 封邮件",
+  "tools.mailSearchFoundAtLeastOne": "找到至少 1 封邮件",
+  "tools.emailUndisplayable": "无法显示该邮件。",
+  "tools.noMessagesInThread": "此会话中没有邮件。",
+  "tools.mailEmailOneMessage": "邮件 · 1 条消息",
+  "tools.mailEmailMessages": "邮件 · {count} 条消息",
+  "tools.showingExcerpt": "仅显示此会话的部分内容。",
+  "tools.openEmail": "打开邮件",
+  // 搜索工具卡片
+  "tools.searchNoResults": "搜索未返回可读取的结果。",
+  "tools.searchFailed": "搜索失败",
+  "tools.searchingWeb": "正在搜索网络…",
+  "tools.searchStopped": "搜索已停止",
+  "tools.searchFoundSources": "找到 {count} 个来源",
+  "tools.searchFoundOneSource": "找到 1 个来源",
+  "tools.noSourcesFound": "未找到任何来源",
+  "tools.couldNotOpenSource": "无法打开此来源。",
+  "tools.resultsOmitted": "部分搜索结果或摘要已被省略。",
+  // 桌面实时流
+  "tools.computerDesktop": "电脑桌面",
+  "tools.opening": "正在打开…",
+  "tools.openDesktop": "打开桌面",
+  // 助手回复
+  "tools.imageAlt": "[图片：{alt}]",
+  "tools.imagePlaceholder": "[图片]",
+  // 后台更新
+  "tools.updateForYou": "给你的一条更新",
+  "tools.dismissBackgroundUpdate": "关闭后台更新",
+  "tools.moreUpdates": "还有 {count} 条更新",
+  "tools.moreUpdatesOne": "还有 1 条更新",
+  "tools.viewTask": "查看任务",
+  // 日期 / 时间编辑器
+  "tools.chooseValidTimeZone": "请选择有效的时区。",
+  "tools.dateFieldDate": "{label} 日期",
+  "tools.dateFieldTime": "{label} 时间",
+  "tools.dateFieldDatePlaceholder": "年-月-日",
+  "tools.dateFieldTimePlaceholder": "HH:MM（24 小时制）",
+  // 浏览器控制台
+  "tools.browserConsoleTitle": "远程浏览器会话控制台",
+  // PDF 阅读器
+  "tools.pdfPrevious": "上一页",
+  "tools.pdfNext": "下一页",
+  "tools.pdfZoomOut": "缩小",
+  "tools.pdfZoomIn": "放大",
+  "tools.pdfReaderTitle": "PDF 文档阅读器",
+  "tools.pdfReaderHint": "使用阅读器工具栏下载或打印副本。",
+  // 对话内文件产物
+  "tools.openPdf": "打开 PDF：{name}",
+  "tools.fileTapSingle": "1 页 · 点击阅读文档",
+  "tools.fileTapPlural": "{pageCount} 页 · 点击阅读文档",
+  "tools.reloadTaskResults": "重新加载任务结果",
+  // 浏览器地址校验
+  "tools.enterWebsiteAddress": "请输入网址，例如 copilotkit.ai 或 https://news.ycombinator.com。",
+} satisfies Dictionary;
+
+export default tools;

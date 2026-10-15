@@ -36,6 +36,7 @@ import {
   threadLocked,
 } from "./conversation-run";
 import { DesktopToolCard } from "./desktop-tool-card";
+import { type TranslationKey, useTranslation } from "./i18n";
 import { confirmedJevSelection, displayJevUserMessage, latestJevPanelId } from "./jev-actions";
 import { JevInteractionContext, JevToolCard } from "./jev-tool-card";
 import { MailToolCard } from "./mail-tool-card";
@@ -51,6 +52,14 @@ const displayParameters = z.record(z.string(), z.unknown());
 // types omit that value, but react-native-web passes it through.
 const noFocusRing =
   Platform.OS === "web" ? ({ outlineStyle: "none" } as unknown as TextStyle) : undefined;
+// ServerToolCard 的 name 是稳定的英文标识符（同时用于判断跳转目标），显示名按此映射翻译。
+const serverToolNameKeys: Record<string, TranslationKey> = {
+  Task: "chat.serverToolTask",
+  "Agent progress": "chat.serverToolAgentProgress",
+  Goal: "chat.serverToolGoal",
+  Tracking: "chat.serverToolTracking",
+  Memory: "chat.serverToolMemory",
+};
 export function WorkspaceTools() {
   const { workspace, section } = useWorkspace();
   useAgentContext({
@@ -157,6 +166,8 @@ function ServerToolCard({
 }) {
   const { data } = useAgentWorkspace();
   const { navigate } = useWorkspace();
+  const { t } = useTranslation();
+  const label = t(serverToolNameKeys[name] ?? "chat.serverToolTask");
   let value = result;
   if (typeof value === "string") {
     try {
@@ -178,12 +189,14 @@ function ServerToolCard({
   if (task) return <TaskThreadCard task={task} />;
   return (
     <Card style={{ padding: 16, gap: 10 }}>
-      <Text style={s.heading}>{loading ? `Saving ${name.toLowerCase()}…` : name}</Text>
+      <Text style={s.heading}>
+        {loading ? t("chat.serverToolSaving", { name: label.toLowerCase() }) : label}
+      </Text>
       {parsed.success && parsed.data.error ? (
         <ErrorNotice error={parsed.data.error} />
       ) : (
         <Text style={s.muted}>
-          {loading ? "Waiting for the server." : "Open the workspace to see the saved result."}
+          {loading ? t("chat.serverToolWaiting") : t("chat.serverToolOpenWorkspace")}
         </Text>
       )}
       <Button
@@ -198,7 +211,7 @@ function ServerToolCard({
           )
         }
       >
-        View {name.toLowerCase()}
+        {t("chat.serverToolView", { name: label.toLowerCase() })}
       </Button>
     </Card>
   );
@@ -213,6 +226,7 @@ export function ChatScreen({
   active?: boolean;
 }) {
   const { api, workspace: w, refresh, navigate } = useWorkspace();
+  const { t } = useTranslation();
   const { data: agentWorkspace, refresh: refreshAgent } = useAgentWorkspace();
   const { enabled: richThreads, mainId, claimPrompt } = useMuseThread();
   const selection = thread || { id: "local", existing: false };
@@ -305,7 +319,9 @@ export function ChatScreen({
         if (active) {
           setLoaded(false);
           setHistoryError(
-            `Could not load conversation. Your saved messages have not been changed. ${e instanceof Error ? e.message : String(e)}`,
+            t("chat.historyLoadError", {
+              detail: e instanceof Error ? e.message : String(e),
+            }),
           );
         }
       }
@@ -354,9 +370,7 @@ export function ChatScreen({
           await saveHistory();
         } catch (e) {
           queue.pause();
-          setSaveError(
-            `Conversation could not be saved: ${e instanceof Error ? e.message : String(e)}`,
-          );
+          setSaveError(t("chat.saveError", { detail: e instanceof Error ? e.message : String(e) }));
         } finally {
           runLock.current = false;
           setBusy(false);
@@ -451,7 +465,7 @@ export function ChatScreen({
     try {
       await copilotkit.stopAgent({ agent });
     } catch (e) {
-      setError(`Could not stop response: ${e instanceof Error ? e.message : String(e)}`);
+      setError(t("chat.stopError", { detail: e instanceof Error ? e.message : String(e) }));
     }
   }
   function send() {
@@ -511,7 +525,7 @@ export function ChatScreen({
           <>
             <ErrorNotice error={historyError} />
             <Button onPress={() => setHistoryAttempt((attempt) => attempt + 1)}>
-              Retry loading conversation
+              {t("chat.retryLoadingConversation")}
             </Button>
           </>
         )}
@@ -535,23 +549,22 @@ export function ChatScreen({
                 maxWidth: 350,
               }}
             >
-              A little help. A lot more room for life.
+              {t("chat.emptyTitle")}
             </Text>
             <Text style={[s.muted, { maxWidth: 320, textAlign: "center", lineHeight: 23 }]}>
-              Tell me what’s on your mind. I can make a plan, work with your apps, and use my
-              computer to help.
+              {t("chat.emptySubtitle")}
             </Text>
             <View style={{ width: "100%", maxWidth: 360, marginTop: 14, gap: 8 }}>
               {[
                 {
-                  text: "Find cool things on Hacker News",
+                  text: t("chat.suggestionHackerNews"),
                   action: () => enqueue("Check out Hacker News for cool stuff"),
                 },
                 {
-                  text: "Summarize copilotkit.ai",
+                  text: t("chat.suggestionSummarize"),
                   action: () => enqueue("Summarize copilotkit.ai"),
                 },
-                { text: "Keep an eye on a website", action: () => navigate("goals") },
+                { text: t("chat.suggestionWatchWebsite"), action: () => navigate("goals") },
               ].map((item) => (
                 <Button key={item.text} onPress={item.action}>
                   {item.text}
@@ -675,7 +688,7 @@ export function ChatScreen({
                 style={{ alignSelf: "flex-start", marginTop: 6 }}
                 onPress={() => setShowResults(!showResults)}
               >
-                {showResults ? "Hide recent results" : "Recent results"}
+                {showResults ? t("chat.hideRecentResults") : t("chat.recentResults")}
               </Button>
             )}
             {showResults && (
@@ -712,7 +725,7 @@ export function ChatScreen({
         {(!richThreads || selection.id === mainId) && <BackgroundUpdates />}
         {(busy || agent.isRunning) && (
           <View
-            accessibilityLabel="Agent is working"
+            accessibilityLabel={t("chat.agentWorking")}
             style={[
               s.row,
               {
@@ -753,7 +766,7 @@ export function ChatScreen({
                 .catch((e) => setError(e instanceof Error ? e.message : String(e)));
             }}
           >
-            Retry response
+            {t("chat.retryResponse")}
           </Button>
         )}
       </ScrollView>
@@ -768,7 +781,7 @@ export function ChatScreen({
             list.current?.scrollToEnd({ animated: true });
           }}
         >
-          Latest messages
+          {t("chat.latestMessages")}
         </Button>
       )}
       <KeyboardAvoidingView
@@ -784,13 +797,15 @@ export function ChatScreen({
               void saveHistory().catch((e) => setSaveError(String(e)));
             }}
           >
-            Retry saving conversation
+            {t("chat.retrySavingConversation")}
           </Button>
         )}
         {!!outbox.pending.length && (
           <View style={{ padding: 12, gap: 6 }}>
             <Text style={s.small}>
-              {outbox.paused ? "Messages on hold" : "Up next"} · Keep the app open until sent
+              {t("chat.outboxStatus", {
+                state: outbox.paused ? t("chat.messagesOnHold") : t("chat.upNext"),
+              })}
             </Text>
             {outbox.pending.map((message) => (
               <View key={message.id} style={[s.row, { gap: 8 }]}>
@@ -799,7 +814,9 @@ export function ChatScreen({
                 </Text>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={`Remove queued message: ${displayJevUserMessage(message.text, messages)}`}
+                  accessibilityLabel={t("chat.removeQueuedMessage", {
+                    text: displayJevUserMessage(message.text, messages),
+                  })}
                   hitSlop={10}
                   onPress={() => {
                     queue.remove(message.id);
@@ -823,14 +840,14 @@ export function ChatScreen({
                   flush();
                 }}
               >
-                Send queued messages
+                {t("chat.sendQueuedMessages")}
               </Button>
             )}
           </View>
         )}
         {picking && (
           <Card style={{ marginBottom: 12, padding: 15 }}>
-            <Text style={s.heading}>Add a document</Text>
+            <Text style={s.heading}>{t("chat.addDocument")}</Text>
             <ScrollView style={{ maxHeight: 230 }} keyboardShouldPersistTaps="handled">
               {w.files.length ? (
                 w.files.map((f) => (
@@ -848,7 +865,7 @@ export function ChatScreen({
                   />
                 ))
               ) : (
-                <Text style={s.muted}>Import a PDF in Files to use it in a conversation.</Text>
+                <Text style={s.muted}>{t("chat.importPdfHint")}</Text>
               )}
             </ScrollView>
             <Button
@@ -856,7 +873,7 @@ export function ChatScreen({
               onPress={() => setPicking(false)}
               style={{ alignSelf: "flex-end", marginTop: 8 }}
             >
-              Done
+              {t("chat.done")}
             </Button>
           </Card>
         )}
@@ -882,7 +899,7 @@ export function ChatScreen({
                   <Pressable
                     key={f.id}
                     accessibilityRole="button"
-                    accessibilityLabel={`Remove attachment: ${f.name}`}
+                    accessibilityLabel={t("chat.removeAttachment", { name: f.name })}
                     onPress={() => setAttachments((ids) => ids.filter((id) => id !== f.id))}
                     style={[
                       s.row,
@@ -911,7 +928,7 @@ export function ChatScreen({
           <View style={[s.row, { gap: 7, alignItems: "flex-end" }]}>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Attach a document"
+              accessibilityLabel={t("chat.attachDocument")}
               accessibilityState={{ expanded: picking }}
               onPress={() => setPicking(!picking)}
               style={({ pressed }) => ({
@@ -928,7 +945,7 @@ export function ChatScreen({
               </Text>
             </Pressable>
             <TextInput
-              accessibilityLabel="Message LingTai"
+              accessibilityLabel={t("chat.messageLingTai")}
               value={draft}
               onChangeText={setDraft}
               onContentSizeChange={(event) =>
@@ -936,12 +953,12 @@ export function ChatScreen({
               }
               placeholder={
                 !isReady
-                  ? "Connecting…"
+                  ? t("chat.connecting")
                   : !loaded
                     ? historyError
-                      ? "Conversation unavailable"
-                      : "Loading conversation…"
-                    : "Message…"
+                      ? t("chat.conversationUnavailable")
+                      : t("chat.loadingConversation")
+                    : t("chat.messagePlaceholder")
               }
               placeholderTextColor="#949B9F"
               selectionColor={colors.blueDark}
@@ -978,7 +995,7 @@ export function ChatScreen({
             />
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={replying ? "Stop reply" : "Send message"}
+              accessibilityLabel={replying ? t("chat.stopReply") : t("chat.sendMessage")}
               disabled={!replying && (!draft.trim() || !loaded || !isReady)}
               onPress={replying ? () => void stop() : send}
               style={({ pressed }) => ({

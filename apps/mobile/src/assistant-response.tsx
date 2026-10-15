@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { Linking, Text, type TextStyle } from "react-native";
 import Markdown, { type MarkdownStyles, type RenderRules } from "react-native-markdown-renderer";
 import { assistantMarkdown, isSafeAssistantUrl } from "./assistant-markdown";
+import { tr } from "./i18n/translate";
 import { colors, ErrorNotice } from "./ui";
 
 const textStyle = { color: colors.text, fontSize: 16, lineHeight: 24 };
@@ -30,7 +31,9 @@ const rules: RenderRules = {
   ),
   image: (node) => (
     <Text key={node.key} selectable style={{ color: colors.muted }}>
-      {node.attributes.alt ? `[Image: ${node.attributes.alt}]` : "[Image]"}
+      {node.attributes.alt
+        ? tr("tools.imageAlt", { alt: node.attributes.alt })
+        : tr("tools.imagePlaceholder")}
     </Text>
   ),
   code_block: renderCodeBlock,

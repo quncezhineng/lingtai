@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { ComputerSnapshot } from "../../../packages/domain/src/computer";
 import { useComputerDraft } from "./computer-drafts";
 import { DesktopStream } from "./desktop-stream";
+import { useTranslation } from "./i18n";
 import { Button, Card, colors, ErrorNotice, s } from "./ui";
 import { useWorkspace } from "./workspace";
 
@@ -36,6 +37,7 @@ export function DesktopToolCard({
   loading: boolean;
 }) {
   const { api, open } = useWorkspace();
+  const { t } = useTranslation();
   const [, setTab] = useComputerDraft("tab");
   const latest = live;
   const value = parse(result);
@@ -97,13 +99,13 @@ export function DesktopToolCard({
           <Monitor size={21} color={colors.blueDark} />
         </View>
         <View style={{ flex: 1, gap: 1 }}>
-          <Text style={[s.text, { fontWeight: "600" }]}>Desktop</Text>
+          <Text style={[s.text, { fontWeight: "600" }]}>{t("tools.desktopTitle")}</Text>
           <Text numberOfLines={1} style={[s.small, { fontSize: 12 }]}>
             {loading
-              ? "Using the desktop…"
+              ? t("tools.usingDesktop")
               : value?.error
-                ? "The desktop step failed"
-                : (value?.action ?? "Desktop step")}
+                ? t("tools.desktopStepFailed")
+                : (value?.action ?? t("tools.desktopStep"))}
           </Text>
         </View>
         {loading && <ActivityIndicator size="small" color={colors.blueDark} />}
@@ -111,11 +113,9 @@ export function DesktopToolCard({
       <ErrorNotice error={value?.error || error} />
       {latest && snapshot && !running ? (
         <View style={{ backgroundColor: "#FAFAFB", borderRadius: 12, padding: 16, gap: 10 }}>
-          <Text style={s.small}>
-            The computer is offline. Start it to see the desktop; apps that were open are closed.
-          </Text>
+          <Text style={s.small}>{t("tools.computerOffline")}</Text>
           <Button small icon={Play} disabled={starting} onPress={() => void start()}>
-            {starting ? "Starting…" : "Start computer"}
+            {starting ? t("tools.starting") : t("tools.startComputer")}
           </Button>
         </View>
       ) : latest && running ? (
@@ -125,7 +125,7 @@ export function DesktopToolCard({
           <>
             {!!value?.receiptId && (
               <Image
-                accessibilityLabel="Latest desktop screenshot"
+                accessibilityLabel={t("tools.latestDesktopScreenshot")}
                 source={{
                   uri: api.url(`/api/computer/desktop/screenshot?receipt=${value.receiptId}`),
                   headers: { Authorization: `Bearer ${api.token}` },
@@ -146,7 +146,7 @@ export function DesktopToolCard({
           open({ type: "computer" });
         }}
       >
-        Open in Desktop tab
+        {t("tools.openInDesktopTab")}
       </Button>
     </Card>
   );

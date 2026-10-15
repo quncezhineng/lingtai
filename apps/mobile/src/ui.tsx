@@ -15,6 +15,8 @@ import {
   type ViewStyle,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { activeLocaleTag, useTranslation } from "./i18n";
+import { tr } from "./i18n/translate";
 export const colors = {
   canvas: "#FCFCFC",
   card: "#FFFFFF",
@@ -265,6 +267,7 @@ export function Sheet({
 }) {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const compact = width < 600;
   return (
     <Modal transparent animationType={compact ? "slide" : "fade"} visible onRequestClose={onClose}>
@@ -304,7 +307,7 @@ export function Sheet({
               <Text style={s.title}>{title}</Text>
               {!!subtitle && <Text style={s.muted}>{subtitle}</Text>}
             </View>
-            <IconButton icon={X} label="Close details" onPress={onClose} />
+            <IconButton icon={X} label={t("ui.closeDetails")} onPress={onClose} />
           </View>
           <ScrollView
             keyboardShouldPersistTaps="handled"
@@ -419,8 +422,9 @@ export function Mascot({
     sand: "#FAF0DF",
     lilac: "#F1ECF9",
   }[variant];
+  const { t } = useTranslation();
   return (
-    <View accessibilityLabel="LingTai capybara" style={{ width: size, height: size }}>
+    <View accessibilityLabel={t("ui.capybaraLabel")} style={{ width: size, height: size }}>
       <View
         style={{
           position: "absolute",
@@ -445,18 +449,22 @@ export function dateLabel(value: string, options?: Intl.DateTimeFormatOptions) {
   const date = new Date(value);
   return Number.isNaN(date.getTime())
     ? value
-    : date.toLocaleDateString("en-US", options || { month: "short", day: "numeric" });
+    : date.toLocaleDateString(activeLocaleTag(), options || { month: "short", day: "numeric" });
 }
 export function timeLabel(value: string, timeZone?: string) {
   const date = new Date(value);
   return Number.isNaN(date.getTime())
     ? value
-    : date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone });
+    : date.toLocaleTimeString(activeLocaleTag(), {
+        hour: "numeric",
+        minute: "2-digit",
+        timeZone,
+      });
 }
 export { relativeDate } from "./relative-date";
 
 export function resultSummary(value: string) {
   return /^Saved to (?:sample|local) sent mail(?: · .+)?$/.test(value)
-    ? "Reply saved in your local Sent mail."
+    ? tr("ui.replySaved")
     : value;
 }

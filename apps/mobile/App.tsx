@@ -37,36 +37,45 @@ import { ChatScreen, WorkspaceTools } from "./src/chat";
 import { ComputerEntry } from "./src/computer";
 import { ComputerDraftProvider } from "./src/computer-drafts";
 import { Details } from "./src/details";
+import { I18nProvider, localizeAgentName, useTranslation } from "./src/i18n";
+import { LanguageSwitcher } from "./src/i18n/LanguageSwitcher";
+import type { TranslationKey } from "./src/i18n/locales/en";
 import { BrowserScreen, CalendarScreen, FilesScreen, MailScreen } from "./src/screens";
 import { ThreadsProvider, ThreadsSheet, useMuseThread } from "./src/threads";
 import { Button, Card, colors, ErrorNotice, Field, IconButton, Mascot, s } from "./src/ui";
 import { type Detail, useWorkspace, WorkspaceContext } from "./src/workspace";
 
-const nav: { id: Section; label: string; icon: LucideIcon }[] = [
-  { id: "chat", label: "Chat", icon: MessageCircle },
-  { id: "activity", label: "Activity", icon: PanelsTopLeft },
-  { id: "ideas", label: "Ideas", icon: Lightbulb },
-  { id: "goals", label: "Goals", icon: SquareCheck },
-  { id: "apps", label: "Apps", icon: Shapes },
+const nav: { id: Section; labelKey: TranslationKey; icon: LucideIcon }[] = [
+  { id: "chat", labelKey: "app.navChat", icon: MessageCircle },
+  { id: "activity", labelKey: "app.navActivity", icon: PanelsTopLeft },
+  { id: "ideas", labelKey: "app.navIdeas", icon: Lightbulb },
+  { id: "goals", labelKey: "app.navGoals", icon: SquareCheck },
+  { id: "apps", labelKey: "app.navApps", icon: Shapes },
 ];
-const titles: Partial<Record<Section, { title: string; subtitle: string }>> = {
-  activity: { title: "Activity", subtitle: "Plans, progress, decisions and results." },
-  ideas: { title: "Ideas", subtitle: "Useful next steps, grounded in your world." },
-  goals: {
-    title: "Goals",
-    subtitle: "Longer-term goals and things to keep an eye on.",
-  },
-  apps: {
-    title: "Apps",
-    subtitle: "Connections, capabilities and what your agent remembers.",
-  },
-  connections: { title: "Apps", subtitle: "Connections and capabilities." },
-  mail: { title: "Mail", subtitle: "The conversations behind your work." },
-  calendar: { title: "Calendar", subtitle: "Time for what matters." },
-  browser: { title: "Browser", subtitle: "Your connected browsing sessions." },
-  files: { title: "Files", subtitle: "Documents, forms and filled copies." },
-};
+const titles: Partial<Record<Section, { titleKey: TranslationKey; subtitleKey: TranslationKey }>> =
+  {
+    activity: { titleKey: "app.titleActivity", subtitleKey: "app.subtitleActivity" },
+    ideas: { titleKey: "app.titleIdeas", subtitleKey: "app.subtitleIdeas" },
+    goals: { titleKey: "app.titleGoals", subtitleKey: "app.subtitleGoals" },
+    apps: { titleKey: "app.titleApps", subtitleKey: "app.subtitleApps" },
+    connections: { titleKey: "app.titleConnections", subtitleKey: "app.subtitleConnections" },
+    mail: { titleKey: "app.titleMail", subtitleKey: "app.subtitleMail" },
+    calendar: { titleKey: "app.titleCalendar", subtitleKey: "app.subtitleCalendar" },
+    browser: { titleKey: "app.titleBrowser", subtitleKey: "app.subtitleBrowser" },
+    files: { titleKey: "app.titleFiles", subtitleKey: "app.subtitleFiles" },
+  };
+
+/** 应用入口：先挂载语言上下文，保证包含登录页在内的所有界面都可被翻译。 */
 export default function App() {
+  return (
+    <I18nProvider>
+      <Root />
+    </I18nProvider>
+  );
+}
+
+function Root() {
+  const { t } = useTranslation();
   const [token, setToken] = useState("");
   const [accessKey, setAccessKey] = useState("");
   const [busy, setBusy] = useState(true);
@@ -111,27 +120,26 @@ export default function App() {
             <Text
               style={{ fontSize: 32, color: colors.text, letterSpacing: -1, fontWeight: "500" }}
             >
-              Welcome to LingTai.
+              {t("app.welcomeTitle")}
             </Text>
-            <Text style={[s.muted, { textAlign: "center" }]}>A little room for your day.</Text>
+            <Text style={[s.muted, { textAlign: "center" }]}>{t("app.welcomeSubtitle")}</Text>
             {busy ? (
               <ActivityIndicator color={colors.blueDark} />
             ) : (
               <Card style={{ width: "100%" }}>
                 <ErrorNotice error={error} />
                 <Field
-                  label="Workspace access key"
+                  label={t("app.accessKeyLabel")}
                   value={accessKey}
                   onChangeText={setAccessKey}
                   secureTextEntry
-                  placeholder="Required for a live workspace"
+                  placeholder={t("app.accessKeyPlaceholder")}
                 />
                 <Button primary onPress={() => void connect(accessKey || undefined)}>
-                  Open workspace
+                  {t("app.openWorkspace")}
                 </Button>
                 <Text style={[s.small, { marginTop: 15 }]}>
-                  Local workspaces open without a key. Make sure your LingTai server is running at{" "}
-                  {API_URL}.
+                  {t("app.localWorkspaceHint", { url: API_URL })}
                 </Text>
               </Card>
             )}
@@ -142,6 +150,7 @@ export default function App() {
   );
 }
 function WorkspaceApp({ token }: { token: string }) {
+  const { t } = useTranslation();
   const api = useMemo(() => new MuseApi(token), [token]);
   const [workspace, setWorkspace] = useState<Workspace>();
   const [section, setSection] = useState<Section>("chat");
@@ -196,13 +205,13 @@ function WorkspaceApp({ token }: { token: string }) {
           <>
             <ErrorNotice error={error} />
             <Button onPress={() => void refresh().catch((e) => setError(String(e)))}>
-              Try again
+              {t("common.tryAgain")}
             </Button>
           </>
         ) : (
           <>
             <ActivityIndicator color={colors.blueDark} />
-            <Text style={s.muted}>Opening your workspace…</Text>
+            <Text style={s.muted}>{t("app.openingWorkspace")}</Text>
           </>
         )}
       </SafeAreaView>
@@ -241,6 +250,7 @@ function WorkspaceShell({
   prompt?: { id: number; text: string };
 }) {
   const { workspace, section, navigate, open } = useWorkspace();
+  const { t } = useTranslation();
   const { data } = useAgentWorkspace();
   const {
     selection,
@@ -261,16 +271,17 @@ function WorkspaceShell({
     data?.tasks.find(
       (task) => task.status === "waiting_approval" || task.status === "waiting_input",
     ) || data?.tasks.find((task) => task.status === "running");
-  const agentName = data?.identity.name || "LingTai";
+  // 服务端默认名称是英文原名（LingTai），展示前统一本地化，简体中文下显示「灵台」。
+  const agentName = localizeAgentName(data?.identity.name);
   const status = activeTask
     ? activeTask.status === "waiting_approval"
-      ? `Ready to review · ${activeTask.title}`
+      ? t("app.statusReadyToReview", { title: activeTask.title })
       : activeTask.status === "waiting_input"
-        ? `Needs your input · ${activeTask.title}`
+        ? t("app.statusNeedsInput", { title: activeTask.title })
         : activeTask.plan.find((step) => step.status === "running")?.title || activeTask.title
     : data?.tasks.some((task) => task.status === "queued")
-      ? "Picking up your next task…"
-      : "Here when you need me";
+      ? t("app.statusPickingUp")
+      : t("app.statusIdle");
   const title = titles[section] || titles.apps;
   const Screen =
     section === "mail"
@@ -304,14 +315,14 @@ function WorkspaceShell({
             <View style={{ position: "absolute", left: 0, top: 16 }}>
               <IconButton
                 icon={Menu}
-                label="Open conversations and menu"
+                label={t("app.openConversations")}
                 onPress={() => setThreadsOpen(true)}
               />
             </View>
             <View pointerEvents="box-none" style={{ alignItems: "center", gap: 1 }}>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`Open ${agentName} activity and approvals`}
+                accessibilityLabel={t("app.openActivity", { name: agentName })}
                 onPress={() => navigate("activity")}
                 style={({ pressed }) => ({
                   alignItems: "center",
@@ -339,26 +350,38 @@ function WorkspaceShell({
               </Pressable>
               {section === "chat" && <ComputerEntry />}
             </View>
-            <View style={{ position: "absolute", right: 0, top: 16 }}>
-              <IconButton
-                icon={Bell}
-                label={`Notifications, ${pending} unread or pending`}
-                onPress={() => open({ type: "notifications" })}
-              />
-              {pending > 0 && (
-                <View
-                  pointerEvents="none"
-                  style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: 4,
-                    position: "absolute",
-                    top: 7,
-                    right: 9,
-                    backgroundColor: colors.blueDark,
-                  }}
+            <View
+              style={{
+                position: "absolute",
+                right: 0,
+                top: 16,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              <LanguageSwitcher />
+              <View>
+                <IconButton
+                  icon={Bell}
+                  label={t("app.notificationsLabel", { count: pending })}
+                  onPress={() => open({ type: "notifications" })}
                 />
-              )}
+                {pending > 0 && (
+                  <View
+                    pointerEvents="none"
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: 4,
+                      position: "absolute",
+                      top: 7,
+                      right: 9,
+                      backgroundColor: colors.blueDark,
+                    }}
+                  />
+                )}
+              </View>
             </View>
           </View>
           <View style={{ flex: 1, minHeight: 0 }}>
@@ -375,10 +398,12 @@ function WorkspaceShell({
                     style={{ alignSelf: "flex-start", marginBottom: 18 }}
                     onPress={() => navigate("apps")}
                   >
-                    Back to Apps
+                    {t("app.backToApps")}
                   </Button>
                 )}
-                <Text style={[s.title, { fontSize: 25, marginBottom: 22 }]}>{title?.title}</Text>
+                <Text style={[s.title, { fontSize: 25, marginBottom: 22 }]}>
+                  {title && t(title.titleKey)}
+                </Text>
                 <ErrorNotice error={error} />
                 <Screen />
               </ScrollView>
@@ -395,13 +420,13 @@ function WorkspaceShell({
                 <>
                   <ErrorNotice error={threadsError} />
                   {threadsError ? (
-                    <Button onPress={retryThreads}>Retry main chat</Button>
+                    <Button onPress={retryThreads}>{t("app.retryMainChat")}</Button>
                   ) : threadsLoading ? (
                     <ActivityIndicator color={colors.blueDark} />
                   ) : null}
                   {!threadsLoading && selection.id !== mainId && (
                     <Text style={[s.small, { textAlign: "center", marginBottom: 8 }]}>
-                      Side chat
+                      {t("app.sideChat")}
                     </Text>
                   )}
                   {visited.map((thread) => (
@@ -453,7 +478,7 @@ function WorkspaceShell({
                   <Pressable
                     key={item.id}
                     accessibilityRole="tab"
-                    accessibilityLabel={item.label}
+                    accessibilityLabel={t(item.labelKey)}
                     accessibilityState={{ selected: active }}
                     onPress={() => navigate(item.id)}
                     style={{
@@ -493,7 +518,7 @@ function WorkspaceShell({
               <Text style={{ color: "#FFF", fontSize: 13, flexShrink: 1 }}>{toast}</Text>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Dismiss notification"
+                accessibilityLabel={t("app.dismissNotification")}
                 onPress={clearToast}
               >
                 <X size={16} color="#FFF" />

@@ -38,6 +38,8 @@ import { browserAddress, browserSite } from "./browser-address";
 import { ComputerSheet } from "./computer";
 import DateTimeEditor from "./DateTimeEditor";
 import { localDateTime, zonedInstant } from "./date-time";
+import { activeLocaleTag, useTranslation } from "./i18n";
+import { statusLabel } from "./i18n/translate";
 import PdfReader from "./PdfReader";
 import {
   Button,
@@ -58,6 +60,7 @@ import {
 } from "./ui";
 import { type Detail, useWorkspace } from "./workspace";
 export function Details({ detail }: { detail: Detail }) {
+  const { t } = useTranslation();
   const { close, navigate } = useWorkspace();
   if (detail.type === "computer") return <ComputerSheet />;
   if (detail.type === "task") return <TaskDetail taskId={detail.taskId} />;
@@ -78,14 +81,18 @@ export function Details({ detail }: { detail: Detail }) {
   if (detail.type === "review") return <ReviewDetail initial={detail.action} />;
   if (detail.type === "browser") return <BrowserDetail initial={detail.browser} />;
   return (
-    <Sheet title="Your workspace" subtitle="A little room for everything." onClose={close}>
+    <Sheet
+      title={t("threads.sheetSubtitleSample")}
+      subtitle={t("details.workspaceSubtitle")}
+      onClose={close}
+    >
       {[
-        { section: "mail" as const, title: "Mail", icon: MailIcon },
-        { section: "calendar" as const, title: "Calendar", icon: CalendarDays },
-        { section: "browser" as const, title: "Browser", icon: Globe2 },
-        { section: "files" as const, title: "Files", icon: FileText },
-        { section: "activity" as const, title: "Activity", icon: Clock3 },
-        { section: "connections" as const, title: "Connections", icon: ShieldCheck },
+        { section: "mail" as const, title: t("app.titleMail"), icon: MailIcon },
+        { section: "calendar" as const, title: t("app.titleCalendar"), icon: CalendarDays },
+        { section: "browser" as const, title: t("app.titleBrowser"), icon: Globe2 },
+        { section: "files" as const, title: t("app.titleFiles"), icon: FileText },
+        { section: "activity" as const, title: t("app.titleActivity"), icon: Clock3 },
+        { section: "connections" as const, title: t("details.connections"), icon: ShieldCheck },
       ].map((item) => (
         <LinkRow
           key={item.section}
@@ -101,6 +108,7 @@ export function Details({ detail }: { detail: Detail }) {
   );
 }
 function MailDetail({ mail: m }: { mail: Mail }) {
+  const { t } = useTranslation();
   const { workspace: w, api, refresh, open, close } = useWorkspace();
   const [error, setError] = useState("");
   const [importing, setImporting] = useState("");
@@ -142,13 +150,16 @@ function MailDetail({ mail: m }: { mail: Mail }) {
   return (
     <Sheet
       title={m.subject}
-      subtitle={`${thread.length} message${thread.length === 1 ? "" : "s"} in this conversation`}
+      subtitle={t(
+        thread.length === 1 ? "details.messageInConversation" : "details.messagesInConversation",
+        { count: thread.length },
+      )}
       onClose={close}
     >
       {loading && (
         <View style={[s.row, { gap: 10, paddingBottom: 20 }]}>
           <ActivityIndicator color={colors.blueDark} />
-          <Text style={s.muted}>Loading the conversation…</Text>
+          <Text style={s.muted}>{t("details.loadingConversation")}</Text>
         </View>
       )}
       {thread.map((message) => (
@@ -157,7 +168,9 @@ function MailDetail({ mail: m }: { mail: Mail }) {
             <View style={{ gap: 4, flex: 1 }}>
               <Text style={s.heading}>{message.sender}</Text>
               <Text style={s.small}>{message.from}</Text>
-              <Text style={s.small}>To: {message.to.join(", ")}</Text>
+              <Text style={s.small}>
+                {t("details.toLine", { recipients: message.to.join(", ") })}
+              </Text>
             </View>
             <Text style={s.small}>
               {dateLabel(message.date)} · {timeLabel(message.date)}
@@ -173,7 +186,7 @@ function MailDetail({ mail: m }: { mail: Mail }) {
               <LinkRow
                 key={id}
                 title={file.name}
-                detail={`${file.pageCount} pages · PDF attachment`}
+                detail={t("details.pdfAttachment", { pages: file.pageCount })}
                 icon={FileText}
                 onPress={() => open({ type: "file", file })}
               />
@@ -184,14 +197,17 @@ function MailDetail({ mail: m }: { mail: Mail }) {
                 icon={FileText}
                 onPress={() => void importAttachment(id)}
               >
-                {decodeURIComponent(id.split(":").slice(2).join(":")) || "Open attachment"}
+                {decodeURIComponent(id.split(":").slice(2).join(":")) ||
+                  t("details.openAttachment")}
               </Button>
             );
           })}
         </Card>
       ))}
       <ErrorNotice error={error} />
-      {!!error && <Button onPress={() => setRetry(retry + 1)}>Reload conversation</Button>}
+      {!!error && (
+        <Button onPress={() => setRetry(retry + 1)}>{t("details.reloadConversation")}</Button>
+      )}
       <Button
         primary
         icon={Reply}
@@ -212,12 +228,13 @@ function MailDetail({ mail: m }: { mail: Mail }) {
           })
         }
       >
-        Write a reply
+        {t("details.writeReply")}
       </Button>
     </Sheet>
   );
 }
 function EmailEditor({ draft }: { draft?: Partial<EmailDraft> & { id?: string } }) {
+  const { t } = useTranslation();
   const { workspace: w, api, refresh, open, close, notify } = useWorkspace();
   const [to, setTo] = useState(draft?.to?.join(", ") || "");
   const [cc, setCc] = useState(draft?.cc?.join(", ") || "");
@@ -264,7 +281,7 @@ function EmailEditor({ draft }: { draft?: Partial<EmailDraft> & { id?: string } 
           ...(draft?.id ? { id: draft.id } : {}),
         });
         await refresh();
-        notify("Draft saved in LingTai.");
+        notify(t("details.draftSaved"));
         close();
       }
     } catch (e) {
@@ -275,60 +292,65 @@ function EmailEditor({ draft }: { draft?: Partial<EmailDraft> & { id?: string } 
   }
   return (
     <Sheet
-      title={draft?.threadId ? "Write a reply" : "A new message"}
-      subtitle={`From ${w.profile.email} · saved privately in LingTai`}
+      title={draft?.threadId ? t("details.writeReply") : t("details.newMessage")}
+      subtitle={t("details.emailFrom", { email: w.profile.email })}
       onClose={close}
     >
       <Field
-        label="To"
+        label={t("details.to")}
         value={to}
         onChangeText={setTo}
-        placeholder="person@example.com"
+        placeholder={t("details.toPlaceholder")}
         autoCapitalize="none"
         keyboardType="email-address"
       />
       <View style={{ flexDirection: "row", gap: 16 }}>
         <View style={{ flex: 1 }}>
           <Field
-            label="Cc"
+            label={t("details.cc")}
             value={cc}
             onChangeText={setCc}
-            placeholder="Optional"
+            placeholder={t("details.optional")}
             autoCapitalize="none"
           />
         </View>
         <View style={{ flex: 1 }}>
           <Field
-            label="Bcc"
+            label={t("details.bcc")}
             value={bcc}
             onChangeText={setBcc}
-            placeholder="Optional"
+            placeholder={t("details.optional")}
             autoCapitalize="none"
           />
         </View>
       </View>
       <Field
-        label="Subject"
+        label={t("details.subject")}
         value={subject}
         onChangeText={setSubject}
-        placeholder="What’s on your mind?"
+        placeholder={t("details.subjectPlaceholder")}
       />
       <Field
-        label="Message"
+        label={t("details.message")}
         value={body}
         onChangeText={setBody}
         multiline
-        placeholder="Start your message…"
+        placeholder={t("details.messagePlaceholder")}
         style={{ minHeight: 210 }}
       />
       {w.files.length > 0 && (
         <Card style={{ padding: 16, marginBottom: 18 }}>
-          <Text style={[s.heading, { fontSize: 13, marginBottom: 5 }]}>Attachments</Text>
+          <Text style={[s.heading, { fontSize: 13, marginBottom: 5 }]}>
+            {t("details.attachments")}
+          </Text>
           {w.files.map((f) => (
             <CheckRow
               key={f.id}
               checked={attachments.includes(f.id)}
-              label={`${f.name} · ${Math.max(1, Math.round(f.size / 1024))} KB`}
+              label={t("details.fileSizeLabel", {
+                name: f.name,
+                size: Math.max(1, Math.round(f.size / 1024)),
+              })}
               onPress={() =>
                 setAttachments(
                   attachments.includes(f.id)
@@ -349,7 +371,7 @@ function EmailEditor({ draft }: { draft?: Partial<EmailDraft> & { id?: string } 
           disabled={!!busy}
           onPress={() => void save(true)}
         >
-          Review email
+          {t("details.reviewEmail")}
         </Button>
         <Button
           icon={Save}
@@ -357,12 +379,10 @@ function EmailEditor({ draft }: { draft?: Partial<EmailDraft> & { id?: string } 
           disabled={!!busy}
           onPress={() => void save(false)}
         >
-          Save draft
+          {t("details.saveDraft")}
         </Button>
       </View>
-      <Text style={[s.small, { marginTop: 13 }]}>
-        You’ll review the exact recipients, message, and attachments before anything is sent.
-      </Text>
+      <Text style={[s.small, { marginTop: 13 }]}>{t("details.reviewNote")}</Text>
     </Sheet>
   );
 }
@@ -375,6 +395,7 @@ function EventEditor({
   draft?: EventDraft;
   neighbors?: CalendarEvent[];
 }) {
+  const { t } = useTranslation();
   const seed = e || draft;
   const { workspace: w, api, open, close, refresh } = useWorkspace();
   const initialStart = new Date();
@@ -444,20 +465,18 @@ function EventEditor({
   }
   return (
     <Sheet
-      title={e ? "Make a little time" : "Something to look forward to"}
-      subtitle={
-        e ? "Edit this event, then review your changes." : "Create an event in your calendar."
-      }
+      title={e ? t("details.editEventTitle") : t("details.newEventTitle")}
+      subtitle={e ? t("details.editEventSubtitle") : t("details.newEventSubtitle")}
       onClose={close}
     >
       <Field
-        label="Event title"
+        label={t("details.eventTitle")}
         value={title}
         onChangeText={setTitle}
-        placeholder="What are you making time for?"
+        placeholder={t("details.eventTitlePlaceholder")}
       />
       <CheckRow
-        label="All-day event"
+        label={t("details.allDayEvent")}
         checked={allDay}
         onPress={() => {
           try {
@@ -479,46 +498,48 @@ function EventEditor({
         }}
       />
       <DateTimeEditor
-        label="Starts"
+        label={t("details.starts")}
         value={start}
         onChange={setStart}
         timeZone={zone}
         allDay={allDay}
       />
-      <DateTimeEditor label="Ends" value={end} onChange={setEnd} timeZone={zone} allDay={allDay} />
-      {allDay && (
-        <Text style={[s.small, { marginBottom: 15 }]}>
-          The end date is the day after the last day of your event.
-        </Text>
-      )}
+      <DateTimeEditor
+        label={t("details.ends")}
+        value={end}
+        onChange={setEnd}
+        timeZone={zone}
+        allDay={allDay}
+      />
+      {allDay && <Text style={[s.small, { marginBottom: 15 }]}>{t("details.allDayNote")}</Text>}
       <Field
-        label="Time zone"
+        label={t("details.timeZone")}
         value={zone}
         onChangeText={setZone}
-        placeholder="America/Los_Angeles"
+        placeholder={t("details.timeZonePlaceholder")}
       />
       <Field
-        label="Location or meeting link"
+        label={t("details.locationLabel")}
         value={location}
         onChangeText={setLocation}
-        placeholder="Optional"
+        placeholder={t("details.optional")}
       />
       <Field
-        label="Attendees"
+        label={t("details.attendees")}
         value={attendees}
         onChangeText={setAttendees}
-        placeholder="Email addresses, separated by commas"
+        placeholder={t("details.attendeesPlaceholder")}
       />
       <Field
-        label="Notes"
+        label={t("details.notes")}
         value={description}
         onChangeText={setDescription}
         multiline
-        placeholder="Anything else to keep in mind?"
+        placeholder={t("details.notesPlaceholder")}
       />
       {!!conflicts.length && (
         <Card style={{ backgroundColor: colors.orange, padding: 16, marginBottom: 16 }}>
-          <Text style={s.heading}>This time overlaps</Text>
+          <Text style={s.heading}>{t("details.timeOverlap")}</Text>
           {conflicts.map((c) => (
             <Text key={c.id} style={s.muted}>
               {c.title} · {timeLabel(c.start, c.timeZone)}–{timeLabel(c.end, c.timeZone)}
@@ -529,11 +550,11 @@ function EventEditor({
       <ErrorNotice error={error} />
       <View style={[s.row, { gap: 10, flexWrap: "wrap" }]}>
         <Button primary icon={ShieldCheck} busy={busy} onPress={() => void propose()}>
-          Review {e ? "changes" : "event"}
+          {e ? t("details.reviewChanges") : t("details.reviewEvent")}
         </Button>
         {e && (
           <Button icon={Trash2} disabled={busy} danger onPress={() => void propose(true)}>
-            Review deletion
+            {t("details.reviewDeletion")}
           </Button>
         )}
       </View>
@@ -541,6 +562,7 @@ function EventEditor({
   );
 }
 function ReviewDetail({ initial }: { initial: ActionProposal }) {
+  const { t } = useTranslation();
   const { workspace: w, api, refresh, close, open } = useWorkspace();
   const [local, setLocal] = useState(initial);
   const [busy, setBusy] = useState(false);
@@ -596,12 +618,8 @@ function ReviewDetail({ initial }: { initial: ActionProposal }) {
   const email = action.kind === "email.send";
   return (
     <Sheet
-      title={pending ? "One last look" : action.title}
-      subtitle={
-        w.mode === "sample"
-          ? "This action stays in your local workspace."
-          : "Review this exact action before it changes your connected account."
-      }
+      title={pending ? t("details.oneLastLook") : action.title}
+      subtitle={w.mode === "sample" ? t("details.sampleActionNote") : t("details.reviewActionNote")}
       onClose={close}
     >
       <View style={[s.row, { gap: 13, marginBottom: 21 }]}>
@@ -612,44 +630,45 @@ function ReviewDetail({ initial }: { initial: ActionProposal }) {
           <Text style={s.heading}>{action.title}</Text>
           <Text style={s.small}>{action.kind.replace(".", " · ")}</Text>
         </View>
-        <Chip tint={pending ? colors.lavender : colors.green}>
-          {action.status.replace(/_/g, " ")}
-        </Chip>
+        <Chip tint={pending ? colors.lavender : colors.green}>{statusLabel(action.status)}</Chip>
       </View>
       <Card style={{ gap: 13 }}>
-        <ReviewLine label="Account" value={action.account || w.profile.email} />
+        <ReviewLine label={t("details.account")} value={action.account || w.profile.email} />
         {email ? (
           <>
-            <ReviewLine label="To" value={arrayText(d.to)} />
-            <ReviewLine label="Cc" value={arrayText(d.cc) || "None"} />
-            <ReviewLine label="Bcc" value={arrayText(d.bcc) || "None"} />
-            <ReviewLine label="Subject" value={String(d.subject || "")} />
+            <ReviewLine label={t("details.to")} value={arrayText(d.to)} />
+            <ReviewLine label={t("details.cc")} value={arrayText(d.cc) || t("details.none")} />
+            <ReviewLine label={t("details.bcc")} value={arrayText(d.bcc) || t("details.none")} />
+            <ReviewLine label={t("details.subject")} value={String(d.subject || "")} />
             <View style={s.divider} />
             <Text selectable style={[s.text, { lineHeight: 25 }]}>
               {String(d.body || "")}
             </Text>
             <View style={s.divider} />
-            <Text style={s.label}>Attachments</Text>
+            <Text style={s.label}>{t("details.attachments")}</Text>
             {Array.isArray(d.attachmentIds) && d.attachmentIds.length ? (
               d.attachmentIds.map((id) => {
                 const file = w.files.find((f) => f.id === id);
                 return (
                   <Text key={String(id)} style={s.text}>
-                    {file?.name || String(id)} · version {String(id).slice(-8)}
+                    {t("details.attachmentVersion", {
+                      name: file?.name || String(id),
+                      version: String(id).slice(-8),
+                    })}
                   </Text>
                 );
               })
             ) : (
-              <Text style={s.muted}>No attachments</Text>
+              <Text style={s.muted}>{t("details.noAttachments")}</Text>
             )}
           </>
         ) : (
           <>
-            <ReviewLine label="Event" value={String(d.title || "")} />
+            <ReviewLine label={t("details.eventLabel")} value={String(d.title || "")} />
             {action.kind !== "calendar.delete" && (
               <>
                 <ReviewLine
-                  label="Starts"
+                  label={t("details.starts")}
                   value={
                     d.allDay
                       ? String(d.start || "")
@@ -657,25 +676,37 @@ function ReviewDetail({ initial }: { initial: ActionProposal }) {
                   }
                 />
                 <ReviewLine
-                  label="Ends"
+                  label={t("details.ends")}
                   value={
                     d.allDay
-                      ? `${String(d.end || "")} (exclusive)`
+                      ? t("details.endExclusive", { date: String(d.end || "") })
                       : `${dateLabel(String(d.end || ""), { year: "numeric", month: "short", day: "numeric", timeZone: String(d.timeZone || "UTC") })} · ${timeLabel(String(d.end || ""), String(d.timeZone || "UTC"))}`
                   }
                 />
-                <ReviewLine label="Time zone" value={String(d.timeZone || "")} />
-                <ReviewLine label="All day" value={d.allDay ? "Yes" : "No"} />
-                <ReviewLine label="Location" value={String(d.location || "None")} />
-                <ReviewLine label="Attendees" value={arrayText(d.attendees) || "Just you"} />
-                <ReviewLine label="Notes" value={String(d.description || "None")} />
+                <ReviewLine label={t("details.timeZone")} value={String(d.timeZone || "")} />
+                <ReviewLine
+                  label={t("details.allDay")}
+                  value={d.allDay ? t("details.yes") : t("details.no")}
+                />
+                <ReviewLine
+                  label={t("details.location")}
+                  value={String(d.location || t("details.none"))}
+                />
+                <ReviewLine
+                  label={t("details.attendees")}
+                  value={arrayText(d.attendees) || t("details.justYou")}
+                />
+                <ReviewLine
+                  label={t("details.notes")}
+                  value={String(d.description || t("details.none"))}
+                />
               </>
             )}
-            <ReviewLine label="Calendar" value={String(d.calendarId || "primary")} />
+            <ReviewLine label={t("app.titleCalendar")} value={String(d.calendarId || "primary")} />
             <Text style={s.small}>
               {action.kind === "calendar.delete"
-                ? "This removes the event and may notify its attendees."
-                : "Attendees may receive an invitation or update from your connected calendar."}
+                ? t("details.deleteEventNote")
+                : t("details.updateEventNote")}
             </Text>
           </>
         )}
@@ -691,38 +722,38 @@ function ReviewDetail({ initial }: { initial: ActionProposal }) {
       {pending ? (
         <>
           <Text style={[s.small, { marginVertical: 17 }]}>
-            Review expires{" "}
-            {new Date(action.expiresAt).toLocaleString(undefined, {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-              hour: "numeric",
-              minute: "2-digit",
-              timeZoneName: "short",
+            {t("details.reviewExpires", {
+              date: new Date(action.expiresAt).toLocaleString(activeLocaleTag(), {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+                hour: "numeric",
+                minute: "2-digit",
+                timeZoneName: "short",
+              }),
             })}
-            . Your approval applies only to the details shown above.
           </Text>
           <View style={[s.row, { gap: 10, flexWrap: "wrap" }]}>
             <Button primary icon={Check} busy={busy} onPress={() => void decide("approve")}>
               {w.mode === "sample"
-                ? "Approve locally"
+                ? t("details.approveLocally")
                 : email
-                  ? "Approve & send"
-                  : "Approve change"}
+                  ? t("details.approveAndSend")
+                  : t("details.approveChange")}
             </Button>
             {action.kind !== "calendar.delete" && (
               <Button icon={Edit3} disabled={busy} onPress={() => void edit()}>
-                Edit details
+                {t("details.editDetails")}
               </Button>
             )}
             <Button icon={X} disabled={busy} onPress={() => void decide("deny")}>
-              Don’t proceed
+              {t("details.dontProceed")}
             </Button>
           </View>
         </>
       ) : (
         <Button style={{ alignSelf: "flex-start", marginTop: 19 }} onPress={close}>
-          Done
+          {t("details.done")}
         </Button>
       )}
     </Sheet>
@@ -742,6 +773,7 @@ function ReviewLine({ label, value }: { label: string; value: string }) {
   );
 }
 function FileDetail({ file: f }: { file: Artifact }) {
+  const { t } = useTranslation();
   const { api, refresh, open, close } = useWorkspace();
   const [values, setValues] = useState<Record<string, string | boolean>>(() =>
     Object.fromEntries(
@@ -790,32 +822,34 @@ function FileDetail({ file: f }: { file: Artifact }) {
   return (
     <Sheet
       title={f.name}
-      subtitle={`${f.pageCount} pages · ${Math.max(1, Math.round(f.size / 1024))} KB · ${f.source}`}
+      subtitle={t("details.fileSubtitle", {
+        pages: f.pageCount,
+        size: Math.max(1, Math.round(f.size / 1024)),
+        source: f.source,
+      })}
       onClose={close}
       wide
     >
       <PdfReader url={url} token={api.token} pageCount={f.pageCount} />
       <View style={[s.row, { gap: 10, marginVertical: 18, flexWrap: "wrap" }]}>
         <Button icon={Download} onPress={() => void share()}>
-          {Platform.OS === "web" ? "Open / download" : "Save or share"}
+          {Platform.OS === "web" ? t("details.openDownload") : t("details.saveOrShare")}
         </Button>
         <Button
           icon={Send}
           onPress={() => open({ type: "email", draft: { attachmentIds: [f.id] } })}
         >
-          Attach to email
+          {t("details.attachToEmail")}
         </Button>
       </View>
       {f.fields && f.fields.length > 0 && (
         <Card>
-          <SectionHeading title="Fill this form" />
-          <Text style={[s.muted, { marginBottom: 18 }]}>
-            Add your details below. Saving creates a new copy and keeps the original intact.
-          </Text>
+          <SectionHeading title={t("details.fillForm")} />
+          <Text style={[s.muted, { marginBottom: 18 }]}>{t("details.fillFormNote")}</Text>
           {f.fields.map((field) =>
             field.type === "unsupported" ? (
               <Text key={field.name} style={s.muted}>
-                {field.name} · this field type is not supported
+                {t("details.unsupportedField", { name: field.name })}
               </Text>
             ) : field.type === "checkbox" ? (
               <CheckRow
@@ -834,19 +868,21 @@ function FileDetail({ file: f }: { file: Artifact }) {
             ),
           )}
           <Button primary icon={Save} busy={busy} onPress={() => void fill()}>
-            Save filled copy
+            {t("details.saveFilledCopy")}
           </Button>
         </Card>
       )}
       <ErrorNotice error={error} />
       <Text style={[s.small, { marginTop: 15 }]}>
-        Added {dateLabel(f.createdAt)}
-        {f.parentId ? " · filled copy" : ""}
+        {t(f.parentId ? "details.addedFilledCopy" : "details.addedFile", {
+          date: dateLabel(f.createdAt),
+        })}
       </Text>
     </Sheet>
   );
 }
 function BrowserDetail({ initial }: { initial: BrowserSession }) {
+  const { t } = useTranslation();
   const { workspace: w, api, refresh, close, notify } = useWorkspace();
   const [local, setLocal] = useState(initial);
   const [url, setUrl] = useState(initial.url);
@@ -895,8 +931,10 @@ function BrowserDetail({ initial }: { initial: BrowserSession }) {
       const files = result.files;
       notify(
         files.length
-          ? `${files.length} PDF download${files.length === 1 ? "" : "s"} added to Files.`
-          : "No new PDF downloads in this session.",
+          ? t(files.length === 1 ? "details.pdfDownloadAdded" : "details.pdfDownloadsAdded", {
+              count: files.length,
+            })
+          : t("details.noNewPdfDownloads"),
       );
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -926,14 +964,17 @@ function BrowserDetail({ initial }: { initial: BrowserSession }) {
   return (
     <Sheet
       title={browserSite(browser.url)}
-      subtitle={`${browser.status} · updated ${timeLabel(browser.updatedAt)}`}
+      subtitle={t("details.browserSubtitle", {
+        status: browser.status,
+        time: timeLabel(browser.updatedAt),
+      })}
       onClose={close}
       wide
     >
       <View style={[s.row, { gap: 10, marginBottom: 16 }]}>
         <View style={{ flex: 1 }}>
           <Field
-            label="Website address"
+            label={t("details.websiteAddress")}
             value={url}
             onChangeText={setUrl}
             autoCapitalize="none"
@@ -942,18 +983,22 @@ function BrowserDetail({ initial }: { initial: BrowserSession }) {
           />
         </View>
         <Button primary busy={busy} disabled={loading || !url.trim()} onPress={() => void mutate()}>
-          {browser.status === "closed" ? "Reopen" : browser.status === "error" ? "Reconnect" : "Go"}
+          {browser.status === "closed"
+            ? t("details.reopen")
+            : browser.status === "error"
+              ? t("details.reconnect")
+              : t("details.go")}
         </Button>
       </View>
       <ErrorNotice error={error} />
       {loading ? (
         <View style={[s.row, { gap: 10, paddingVertical: 24 }]}>
           {error ? (
-            <Button onPress={() => setRetry(retry + 1)}>Retry connection</Button>
+            <Button onPress={() => setRetry(retry + 1)}>{t("details.retryConnection")}</Button>
           ) : (
             <>
               <ActivityIndicator color={colors.blueDark} />
-              <Text style={s.muted}>Connecting to your browser…</Text>
+              <Text style={s.muted}>{t("details.connectingBrowser")}</Text>
             </>
           )}
         </View>
@@ -969,12 +1014,14 @@ function BrowserDetail({ initial }: { initial: BrowserSession }) {
         <Empty
           icon={Globe2}
           title={
-            browser.status === "closed" ? "This session is closed" : "Preview is not available"
+            browser.status === "closed"
+              ? t("details.sessionClosed")
+              : t("details.previewUnavailable")
           }
           detail={
             browser.status === "closed"
-              ? "Your profile and downloads are saved. Reopen to continue where you left off."
-              : "Reconnect to continue with your saved browser profile."
+              ? t("details.sessionClosedDetail")
+              : t("details.previewUnavailableDetail")
           }
         />
       )}
@@ -984,22 +1031,22 @@ function BrowserDetail({ initial }: { initial: BrowserSession }) {
             icon={ExternalLink}
             onPress={() => void Linking.openURL(api.url(browser.consoleUrl || ""))}
           >
-            Open browser in a window
+            {t("details.openBrowserWindow")}
           </Button>
         )}
         {!loading && (
           <Button icon={RotateCw} disabled={busy} onPress={() => setRetry(retry + 1)}>
-            Refresh connection
+            {t("details.refreshConnection")}
           </Button>
         )}
         {!loading && browser.status !== "closed" && (
           <Button icon={Download} busy={busy} onPress={() => void importDownloads()}>
-            Import PDF downloads
+            {t("details.importPdfDownloads")}
           </Button>
         )}
         {!loading && browser.status !== "closed" && (
           <Button icon={X} danger busy={busy} onPress={() => void mutate(true)}>
-            Close session
+            {t("details.closeSession")}
           </Button>
         )}
       </View>
