@@ -111,7 +111,7 @@ export default function App() {
             <Text
               style={{ fontSize: 32, color: colors.text, letterSpacing: -1, fontWeight: "500" }}
             >
-              Welcome to OpenMuse.
+              Welcome to LingTai.
             </Text>
             <Text style={[s.muted, { textAlign: "center" }]}>A little room for your day.</Text>
             {busy ? (
@@ -130,7 +130,7 @@ export default function App() {
                   Open workspace
                 </Button>
                 <Text style={[s.small, { marginTop: 15 }]}>
-                  Local workspaces open without a key. Make sure your OpenMuse server is running at{" "}
+                  Local workspaces open without a key. Make sure your LingTai server is running at{" "}
                   {API_URL}.
                 </Text>
               </Card>
@@ -261,7 +261,7 @@ function WorkspaceShell({
     data?.tasks.find(
       (task) => task.status === "waiting_approval" || task.status === "waiting_input",
     ) || data?.tasks.find((task) => task.status === "running");
-  const agentName = data?.identity.name || "OpenMuse";
+  const agentName = data?.identity.name || "LingTai";
   const status = activeTask
     ? activeTask.status === "waiting_approval"
       ? `Ready to review · ${activeTask.title}`
@@ -438,7 +438,7 @@ function WorkspaceShell({
                 padding: 5,
                 backgroundColor: "#FFF",
                 borderRadius: 40,
-                shadowColor: "#132631",
+                shadowColor: "#312E81",
                 shadowOffset: { width: 0, height: 2 },
                 shadowOpacity: 0.07,
                 shadowRadius: 18,
@@ -461,7 +461,7 @@ function WorkspaceShell({
                       height: 47,
                       alignItems: "center",
                       justifyContent: "center",
-                      backgroundColor: active ? "#F0F1F2" : "transparent",
+                      backgroundColor: active ? "#EEF2FF" : "transparent",
                       borderRadius: 28,
                     }}
                   >
@@ -489,7 +489,7 @@ function WorkspaceShell({
                 },
               ]}
             >
-              <Check size={16} color={colors.blue} />
+              <Check size={16} color="#A5B4FC" />
               <Text style={{ color: "#FFF", fontSize: 13, flexShrink: 1 }}>{toast}</Text>
               <Pressable
                 accessibilityRole="button"

@@ -83,7 +83,7 @@ export function MailToolCard({
       style={{ padding: 18, gap: 14, backgroundColor: "#F0EFF2", maxWidth: 440, width: "100%" }}
     >
       <View style={[s.row, { gap: 10 }]}>
-        <View style={[s.iconBox, { backgroundColor: "#E9F5FC" }]}>
+        <View style={[s.iconBox, { backgroundColor: "#EEF2FF" }]}>
           <Mail size={20} color={colors.blueDark} />
         </View>
         <View style={{ flex: 1 }}>

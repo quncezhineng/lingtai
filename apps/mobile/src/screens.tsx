@@ -82,7 +82,7 @@ export function TodayScreen() {
       <View
         style={[
           {
-            backgroundColor: "#E8F2F8",
+            backgroundColor: "#EEF2FF",
             borderRadius: 24,
             padding: 32,
             minHeight: 228,
@@ -107,7 +107,7 @@ export function TodayScreen() {
           >
             Your day, with a little{"\n"}more room to breathe.
           </Text>
-          <Text style={[s.muted, { maxWidth: 420, color: "#617680" }]}>
+          <Text style={[s.muted, { maxWidth: 420, color: "#6B7280" }]}>
             {events.length ? `${events.length} things on your calendar` : "Your calendar has room"}
             {unread.length ? `, ${unread.length} unread emails` : ""}.{"\n"}Let’s make space for
             what matters.
@@ -129,7 +129,7 @@ export function TodayScreen() {
                 width: 190,
                 height: 190,
                 borderRadius: 100,
-                backgroundColor: "#DAEAF2",
+                backgroundColor: "#E0E7FF",
               }}
             />
             <View
@@ -139,7 +139,7 @@ export function TodayScreen() {
                 height: 145,
                 borderRadius: 80,
                 borderWidth: 1,
-                borderColor: "#C8DBE6",
+                borderColor: "#C7D2FE",
               }}
             />
             <Mascot size={94} />
@@ -304,7 +304,7 @@ export function TodayScreen() {
                 </View>
                 {m.unread && (
                   <View
-                    style={{ width: 5, height: 5, borderRadius: 4, backgroundColor: "#78ABD0" }}
+                    style={{ width: 5, height: 5, borderRadius: 4, backgroundColor: "#6366F1" }}
                   />
                 )}
               </Pressable>
@@ -434,7 +434,7 @@ export function AgendaRow({
           width: 3,
           height: 42,
           borderRadius: 4,
-          backgroundColor: ["#BCDAEB", "#C7D6AB", "#D9CDEA"][index % 3],
+          backgroundColor: ["#C7D2FE", "#C7D6AB", "#D9CDEA"][index % 3],
         }}
       />
       <View style={{ flex: 1, gap: 3 }}>
@@ -570,7 +570,7 @@ export function MailScreen() {
               </View>
               {m.unread && (
                 <View
-                  style={{ width: 6, height: 6, borderRadius: 4, backgroundColor: "#83B5D3" }}
+                  style={{ width: 6, height: 6, borderRadius: 4, backgroundColor: "#818CF8" }}
                 />
               )}
             </Pressable>
@@ -764,7 +764,7 @@ export function CalendarScreen() {
                     backgroundColor: [...events, ...w.events].some(
                       (e) => e.calendarId === calendarId && eventDate(e) === key,
                     )
-                      ? "#8DB6CA"
+                      ? "#A5B4FC"
                       : "transparent",
                   }}
                 />
@@ -1025,7 +1025,7 @@ export function FilesScreen() {
                       key={width}
                       style={{
                         height: 3,
-                        backgroundColor: i === 0 ? "#A4BED0" : "#E3E7E3",
+                        backgroundColor: i === 0 ? "#A5B4FC" : "#E3E7E3",
                         width: `${width}%`,
                         marginBottom: 7,
                         borderRadius: 3,
@@ -1380,8 +1380,8 @@ export function ConnectionsScreen({ query = "" }: { query?: string }) {
                 has not been configured.
               </Text>
               <Text style={s.muted}>
-                Your current computer uses OpenMuse’s persistent Chromium worker. OpenBot
-                integration will expand the execution backend while keeping this interface.
+                Your current computer uses LingTai’s persistent Chromium worker. OpenBot integration
+                will expand the execution backend while keeping this interface.
               </Text>
             </View>
           )}

@@ -6,7 +6,7 @@ import { startEgressProxy } from "../src/proxy.ts";
 
 // Only a public URL identity: validated fixture traffic is sent to loopback.
 export const fixtureOrigin = "http://1.1.1.1";
-export const fixtureTitle = "OpenMuse fixture";
+export const fixtureTitle = "LingTai fixture";
 export const fixtureText = "Stable page text.";
 export const fixturePdf = await readFile(new URL("./fixtures/document.pdf", import.meta.url));
 
@@ -41,9 +41,9 @@ export async function createBrowserFixture(options: { host?: string; port?: numb
     else if (path === "/large?size=100000") body = "x".repeat(100_000);
     else if (path === "/large?size=100001") body = "x".repeat(100_001);
     else if (path === "/seed")
-      body = `<script>localStorage.setItem("openmuse-profile-test", "retained");</script>`;
+      body = `<script>localStorage.setItem("lingtai-profile-test", "retained");</script>`;
     else if (path === "/state")
-      body = `<script>document.body.textContent = localStorage.getItem("openmuse-profile-test") ?? "missing";</script>`;
+      body = `<script>document.body.textContent = localStorage.getItem("lingtai-profile-test") ?? "missing";</script>`;
     else if (path === "/favicon.ico") {
       response.writeHead(204);
       response.end();

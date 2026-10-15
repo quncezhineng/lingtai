@@ -39,7 +39,7 @@ for (const scenario of [
       // A provider failure after the outcome must not replace it with a failed task.
       errorStatus: (index) => (index > 0 ? 503 : undefined),
     });
-    const directory = await mkdtemp(join(tmpdir(), "openmuse-model-outcome-"));
+    const directory = await mkdtemp(join(tmpdir(), "lingtai-model-outcome-"));
     const db = await createStore();
     const server = await createApp(db, {
       mode: "sample",

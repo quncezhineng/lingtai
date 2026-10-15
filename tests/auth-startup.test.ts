@@ -21,7 +21,7 @@ function config(dataDir: string): Config {
 }
 
 test("concurrent first startups share one complete signing key", async (t) => {
-  const directory = await mkdtemp(join(tmpdir(), "openmuse-auth-race-"));
+  const directory = await mkdtemp(join(tmpdir(), "lingtai-auth-race-"));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const instances = await Promise.all(
     Array.from({ length: 16 }, () => createAuth({} as Store, config(directory))),
@@ -36,7 +36,7 @@ test("concurrent first startups share one complete signing key", async (t) => {
 });
 
 test("startup preserves an existing signing key and its links", async (t) => {
-  const directory = await mkdtemp(join(tmpdir(), "openmuse-auth-existing-"));
+  const directory = await mkdtemp(join(tmpdir(), "lingtai-auth-existing-"));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const key = Buffer.alloc(32, 7).toString("base64");
   await writeFile(join(directory, "session-signing-key"), key, { mode: 0o600 });

@@ -21,11 +21,18 @@ export const colors = {
   text: "#11191C",
   muted: "#697176",
   line: "#EEEEF0",
-  blue: "#C8E7FF",
-  blueDark: "#1473C8",
-  sky: "#EDF7FD",
+  // Theme palette. `primary` is the brand purple (#4F46E5), `primaryLight` the
+  // secondary one (#6366F1). The legacy `blue`/`blueDark` keys now map onto the
+  // purple palette: `blue` is the solid fill (needs `onPrimary` foreground),
+  // `blueDark` the accent used for icons, links and emphasis text.
+  primary: "#4F46E5",
+  primaryLight: "#6366F1",
+  onPrimary: "#FFFFFF",
+  blue: "#4F46E5",
+  blueDark: "#6366F1",
+  sky: "#EEF2FF",
   green: "#E3F3E8",
-  lavender: "#F0EEFA",
+  lavender: "#E0E7FF",
   orange: "#FDF0DF",
   danger: "#AA4A45",
 };
@@ -133,7 +140,7 @@ export function Button({
   danger?: boolean;
   style?: ViewStyle;
 }) {
-  const color = danger ? colors.danger : colors.text;
+  const color = danger ? colors.danger : primary ? colors.onPrimary : colors.text;
   return (
     <Pressable
       accessibilityRole="button"
@@ -332,8 +339,8 @@ export function CheckRow({
           height: 19,
           borderRadius: 5,
           borderWidth: 1,
-          borderColor: checked ? colors.text : colors.line,
-          backgroundColor: checked ? colors.text : "#FFF",
+          borderColor: checked ? colors.blue : colors.line,
+          backgroundColor: checked ? colors.blue : "#FFF",
           alignItems: "center",
           justifyContent: "center",
         }}
@@ -399,7 +406,7 @@ export function LinkRow({
     </Pressable>
   );
 }
-/** OpenMuse's original capybara, shared by every assistant surface. */
+/** LingTai's original capybara, shared by every assistant surface. */
 export function Mascot({
   size = 42,
   variant = "sky",
@@ -408,12 +415,12 @@ export function Mascot({
   variant?: "sky" | "sand" | "lilac";
 }) {
   const palette = {
-    sky: "#ECF5FA",
+    sky: "#EEF2FF",
     sand: "#FAF0DF",
     lilac: "#F1ECF9",
   }[variant];
   return (
-    <View accessibilityLabel="OpenMuse capybara" style={{ width: size, height: size }}>
+    <View accessibilityLabel="LingTai capybara" style={{ width: size, height: size }}>
       <View
         style={{
           position: "absolute",

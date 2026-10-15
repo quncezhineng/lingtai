@@ -16,7 +16,7 @@ import { modelFixture } from "./helpers/model.ts";
 
 for (const checkpoint of ["artifact", "cache"] as const) {
   test(`model fill reuses its PDF after a failed ${checkpoint} checkpoint`, async (t) => {
-    const directory = await mkdtemp(join(tmpdir(), "openmuse-model-fill-"));
+    const directory = await mkdtemp(join(tmpdir(), "lingtai-model-fill-"));
     const db = await createStore();
     const calls: { name: string; arguments: object }[] = [];
     const { requests } = await modelFixture(t, (index) => calls[index]);
@@ -97,7 +97,7 @@ for (const checkpoint of ["artifact", "cache"] as const) {
 }
 
 test("CopilotKit model worker executes server tools and persists the confirmed outcome", async (t) => {
-  const directory = await mkdtemp(join(tmpdir(), "openmuse-model-"));
+  const directory = await mkdtemp(join(tmpdir(), "lingtai-model-"));
   const db = await createStore();
   const calls: { name: string; arguments: object }[] = [
     {
@@ -204,7 +204,7 @@ test("CopilotKit model worker executes server tools and persists the confirmed o
 });
 
 test("the model worker keeps the text a model replies with when it calls no tool", async (t) => {
-  const directory = await mkdtemp(join(tmpdir(), "openmuse-model-text-"));
+  const directory = await mkdtemp(join(tmpdir(), "lingtai-model-text-"));
   const db = await createStore();
   const mock = createDemoModel({ latency: 0, firstByteDelay: 0 });
   await mock.start();
@@ -252,7 +252,7 @@ test("the model worker keeps the text a model replies with when it calls no tool
 });
 
 test("replaying a completed prepared action returns its receipt without reopening approval", async (t) => {
-  const directory = await mkdtemp(join(tmpdir(), "openmuse-model-replay-"));
+  const directory = await mkdtemp(join(tmpdir(), "lingtai-model-replay-"));
   const db = await createStore();
   const draft = {
     title: "Sample walk",
@@ -378,7 +378,7 @@ test("browser reads keep observation identity distinct while reusing one session
 });
 
 test("a task cancelled while the model run is being prepared never calls the provider", async (t) => {
-  const directory = await mkdtemp(join(tmpdir(), "openmuse-model-cancel-"));
+  const directory = await mkdtemp(join(tmpdir(), "lingtai-model-cancel-"));
   const db = await createStore();
   const { requests } = await modelFixture(t, () => undefined);
   const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -421,7 +421,7 @@ test("a task cancelled while the model run is being prepared never calls the pro
 });
 
 test("aborting delegated read_web stops before page read and requeues the task", async (t) => {
-  const directory = await mkdtemp(join(tmpdir(), "openmuse-model-browser-abort-"));
+  const directory = await mkdtemp(join(tmpdir(), "lingtai-model-browser-abort-"));
   const db = await createStore();
   const browserCalls: string[] = [];
   let resolveNavigation!: () => void;

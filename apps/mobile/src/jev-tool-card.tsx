@@ -86,11 +86,11 @@ function ChoiceButton({
         ]}
       >
         {pending ? (
-          <ActivityIndicator size="small" color={colors.text} />
+          <ActivityIndicator size="small" color={colors.onPrimary} />
         ) : selected ? (
-          <Check size={15} color={colors.text} />
+          <Check size={15} color={colors.onPrimary} />
         ) : null}
-        <Text style={s.buttonText}>{caption}</Text>
+        <Text style={[s.buttonText, { color: colors.onPrimary }]}>{caption}</Text>
       </Pressable>
     );
   }

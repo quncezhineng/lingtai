@@ -144,7 +144,7 @@ export function TaskCard({
               style={{
                 height: 4,
                 width: `${Math.round((done / task.plan.length) * 100)}%`,
-                backgroundColor: "#6AAEE0",
+                backgroundColor: "#6366F1",
                 borderRadius: 4,
               }}
             />
@@ -752,15 +752,15 @@ function FinanceArtifact({ artifact }: { artifact: AgentArtifact }) {
             <Svg width="100%" height="100%">
               <Defs>
                 <LinearGradient id="finance" x1="0" y1="0" x2="0.5" y2="1">
-                  <Stop offset="0" stopColor="#281066" />
-                  <Stop offset="0.5" stopColor="#163BBF" />
-                  <Stop offset="1" stopColor="#148CE8" />
+                  <Stop offset="0" stopColor="#312E81" />
+                  <Stop offset="0.5" stopColor="#4F46E5" />
+                  <Stop offset="1" stopColor="#6366F1" />
                 </LinearGradient>
               </Defs>
               <Rect width="100%" height="100%" fill="url(#finance)" />
             </Svg>
           </View>
-          <Text style={{ color: "#D4DCFC", fontSize: 11, lineHeight: 18, marginBottom: 20 }}>
+          <Text style={{ color: "#DDD6FE", fontSize: 11, lineHeight: 18, marginBottom: 20 }}>
             Read from your imported transactions.{"\n"}
             {String(period?.from ?? "")} — {String(period?.to ?? "")}
             {"\n"}
@@ -819,7 +819,7 @@ function FinanceArtifact({ artifact }: { artifact: AgentArtifact }) {
                   <Text style={s.text}>{String(row.name)}</Text>
                   <Text style={s.text}>{amount(row.amount)}</Text>
                 </View>
-                <View style={{ height: 7, backgroundColor: "#DFE8EB", borderRadius: 8 }}>
+                <View style={{ height: 7, backgroundColor: "#E0E7FF", borderRadius: 8 }}>
                   <View
                     style={{
                       width: `${Math.min(100, (Number(row.amount) / spending) * 100)}%`,
@@ -934,7 +934,7 @@ export function DelegateSheet({ goalId, milestoneId }: { goalId?: string; milest
   return (
     <Sheet
       title="Hand over an outcome"
-      subtitle="OpenMuse saves a plan and keeps working on the server."
+      subtitle="LingTai saves a plan and keeps working on the server."
       onClose={close}
     >
       {milestoneId && (
@@ -1147,7 +1147,7 @@ function IdeaCard({ idea }: { idea: Idea }) {
           <EvidenceList items={idea.evidence} />
           {editing && (
             <Field
-              label="What should OpenMuse do?"
+              label="What should LingTai do?"
               value={prompt}
               onChangeText={setPrompt}
               multiline
@@ -1246,8 +1246,8 @@ export function GoalsScreen() {
               height: 16,
               borderRadius: 8,
               borderWidth: 5,
-              borderColor: "#D7E9FA",
-              backgroundColor: "#3D9BDE",
+              borderColor: "#C7D2FE",
+              backgroundColor: "#6366F1",
             }}
           />
           <Text style={[s.heading, { color: colors.blueDark }]}>Goals</Text>
@@ -1571,7 +1571,7 @@ function MonitorForm({ onDone }: { onDone: () => void }) {
       <Text style={[s.small, { marginBottom: 14 }]}>
         {sample
           ? "Changes to this built-in page stay in your workspace."
-          : "OpenMuse checks this public page on the server and saves meaningful changes in Notifications."}
+          : "LingTai checks this public page on the server and saves meaningful changes in Notifications."}
       </Text>
       <ErrorNotice error={error} />
       <Button
@@ -1723,7 +1723,7 @@ export function AppsScreen() {
   const { data, mutate } = useAgentWorkspace();
   const [query, setQuery] = useState("");
   const [settings, setSettings] = useState(false);
-  const [name, setName] = useState(data?.identity.name || "OpenMuse");
+  const [name, setName] = useState(data?.identity.name || "LingTai");
   const [tone, setTone] = useState(data?.identity.tone || "warm");
   const [avatar, setAvatar] = useState(data?.identity.avatar || "sky");
   const [showChatUpdates, setShowChatUpdates] = useState(data?.identity.showChatUpdates !== false);

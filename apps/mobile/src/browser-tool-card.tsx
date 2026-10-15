@@ -135,7 +135,7 @@ export function BrowserToolCard({
               {(["90%", "74%", "84%"] as const).map((width) => (
                 <View
                   key={width}
-                  style={{ height: 7, width, borderRadius: 4, backgroundColor: "#E3E9ED" }}
+                  style={{ height: 7, width, borderRadius: 4, backgroundColor: "#E0E7FF" }}
                 />
               ))}
             </View>
