@@ -23,7 +23,7 @@ services:
       - key: AGENT_BACKEND
         value: model
       - key: MODEL
-        value: openai/gpt-5
+        value: deepseek/deepseek-chat
       - key: DATA_DIR
         value: /var/data/lingtai
       - key: TASK_WORKER_ENABLED
@@ -57,7 +57,7 @@ services:
         generateValue: true
       - key: TOKEN_ENCRYPTION_KEY
         generateValue: true
-      - key: OPENAI_API_KEY
+      - key: DEEPSEEK_API_KEY
         sync: false
       - key: CPK_INTELLIGENCE_API_KEY
         sync: false
