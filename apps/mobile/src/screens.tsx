@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock3,
+  Cpu,
   FileText,
   Globe2,
   Inbox,
@@ -1241,9 +1242,31 @@ export function ConnectionsScreen({ query = "" }: { query?: string }) {
       setBusy(false);
     }
   }
+  async function switchModel(model: string) {
+    setBusy(true);
+    setError("");
+    try {
+      await api.request("/api/model", { model });
+      await refresh();
+      notify(t("screens.connectionsModelSwitched", { model: shortModel(model) }));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
   const google = w.connections.find((c) => c.id === "google");
   const connected = google?.status === "connected" || google?.status === "sample";
+  const modelOptions = w.runtime.modelOptions ?? [];
   const rows = [
+    {
+      id: "model",
+      name: t("screens.connectionsModelLabel"),
+      icon: Cpu,
+      color: "#4F46E5",
+      connected: Boolean(w.runtime.model) && modelOptions.length > 0,
+      group: "model",
+    },
     { id: "gmail", name: "Gmail", icon: Mail, color: "#EA5B4D", connected, group: "google" },
     {
       id: "calendar",
@@ -1319,6 +1342,9 @@ export function ConnectionsScreen({ query = "" }: { query?: string }) {
                   {row.connected && row.group === "google" && w.mode === "sample" && (
                     <Text style={s.small}>{t("screens.connectionsLocalData")}</Text>
                   )}
+                  {row.connected && row.group === "model" && w.runtime.model && (
+                    <Text style={s.small}>{shortModel(w.runtime.model)}</Text>
+                  )}
                   {row.connected ? (
                     <ChevronRight size={18} color="#A4A7AA" />
                   ) : (
@@ -1342,9 +1368,19 @@ export function ConnectionsScreen({ query = "" }: { query?: string }) {
       {!rows.length && <Text style={s.muted}>{t("screens.connectionsNoMatch")}</Text>}
       {selected && (
         <Sheet
-          title={selected === "google" ? t("screens.connectionsGoogleTitle") : "OpenBot"}
+          title={
+            selected === "google"
+              ? t("screens.connectionsGoogleTitle")
+              : selected === "model"
+                ? t("screens.connectionsModelLabel")
+                : "OpenBot"
+          }
           subtitle={
-            selected === "google" ? google?.account : t("screens.connectionsOpenBotSubtitle")
+            selected === "google"
+              ? google?.account
+              : selected === "model"
+                ? t("screens.connectionsModelSubtitle")
+                : t("screens.connectionsOpenBotSubtitle")
           }
           onClose={() => setSelected(undefined)}
         >
@@ -1402,6 +1438,41 @@ export function ConnectionsScreen({ query = "" }: { query?: string }) {
                 {t("screens.connectionsRefresh")}
               </Button>
             </View>
+          ) : selected === "model" ? (
+            <View style={{ gap: 18 }}>
+              {modelOptions.length ? (
+                modelOptions.map((choice) => (
+                  <View key={choice.provider} style={{ gap: 8 }}>
+                    <Text style={s.small}>{choice.label}</Text>
+                    <View style={[s.row, { gap: 7, flexWrap: "wrap" }]}>
+                      {choice.models.map((spec) => {
+                        const current = spec === w.runtime.model;
+                        return (
+                          <Pressable
+                            key={spec}
+                            accessibilityRole="button"
+                            accessibilityState={{ selected: current, disabled: busy || current }}
+                            disabled={busy || current}
+                            onPress={() => void switchModel(spec)}
+                            style={[s.row, { gap: 4, opacity: busy ? 0.5 : 1 }]}
+                          >
+                            <Chip tint={current ? colors.sky : undefined}>{shortModel(spec)}</Chip>
+                            {current && <Check size={13} color={colors.blueDark} />}
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </View>
+                ))
+              ) : (
+                <Text style={s.muted}>{t("screens.connectionsModelEmpty")}</Text>
+              )}
+              <ErrorNotice error={error} />
+              <SettingsLine
+                label={t("screens.connectionsModelCurrent")}
+                value={w.runtime.model ?? t("screens.connectionsNotConnected")}
+              />
+            </View>
           ) : (
             <View style={{ gap: 14 }}>
               <Text style={s.text}>{t("screens.connectionsOpenBotNotice")}</Text>
@@ -1425,6 +1496,11 @@ function SettingsLine({ label, value }: { label: string; value: string }) {
       <Text style={[s.text, { fontSize: 12, flexShrink: 1, textAlign: "right" }]}>{value}</Text>
     </View>
   );
+}
+
+/** `deepseek/deepseek-chat` reads better as the model id alone inside the picker. */
+function shortModel(spec: string) {
+  return spec.split("/").slice(1).join("/") || spec;
 }
 
 function capabilityLabel(value: string) {

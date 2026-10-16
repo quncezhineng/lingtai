@@ -3,6 +3,7 @@ import { StatusBar } from "expo-status-bar";
 import {
   Bell,
   Check,
+  CircleUserRound,
   Lightbulb,
   type LucideIcon,
   Menu,
@@ -24,6 +25,7 @@ import {
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import type { Section, Workspace } from "../../packages/domain/src";
+import { AccountScreen } from "./src/account";
 import {
   AgentActivityScreen,
   AgentStatus,
@@ -32,7 +34,15 @@ import {
   IdeasScreen,
 } from "./src/agent-ui";
 import { AgentWorkspaceProvider, useAgentWorkspace } from "./src/agent-workspace";
-import { API_URL, createSession, MuseApi } from "./src/api";
+import {
+  API_URL,
+  type AuthMode,
+  authConfig,
+  createSession,
+  MuseApi,
+  requestOtp,
+  verifyOtp,
+} from "./src/api";
 import { ChatScreen, WorkspaceTools } from "./src/chat";
 import { ComputerEntry } from "./src/computer";
 import { ComputerDraftProvider } from "./src/computer-drafts";
@@ -40,10 +50,14 @@ import { Details } from "./src/details";
 import { I18nProvider, localizeAgentName, useTranslation } from "./src/i18n";
 import { LanguageSwitcher } from "./src/i18n/LanguageSwitcher";
 import type { TranslationKey } from "./src/i18n/locales/en";
+import { clearStorage, readStorage, writeStorage } from "./src/i18n/storage";
 import { BrowserScreen, CalendarScreen, FilesScreen, MailScreen } from "./src/screens";
 import { ThreadsProvider, ThreadsSheet, useMuseThread } from "./src/threads";
 import { Button, Card, colors, ErrorNotice, Field, IconButton, Mascot, s } from "./src/ui";
 import { type Detail, useWorkspace, WorkspaceContext } from "./src/workspace";
+
+/** 登录会话在本地持久化的键，刷新网页后据此恢复登录状态。 */
+const SESSION_KEY = "lingtai.session";
 
 const nav: { id: Section; labelKey: TranslationKey; icon: LucideIcon }[] = [
   { id: "chat", labelKey: "app.navChat", icon: MessageCircle },
@@ -51,6 +65,7 @@ const nav: { id: Section; labelKey: TranslationKey; icon: LucideIcon }[] = [
   { id: "ideas", labelKey: "app.navIdeas", icon: Lightbulb },
   { id: "goals", labelKey: "app.navGoals", icon: SquareCheck },
   { id: "apps", labelKey: "app.navApps", icon: Shapes },
+  { id: "account", labelKey: "app.navAccount", icon: CircleUserRound },
 ];
 const titles: Partial<Record<Section, { titleKey: TranslationKey; subtitleKey: TranslationKey }>> =
   {
@@ -58,6 +73,7 @@ const titles: Partial<Record<Section, { titleKey: TranslationKey; subtitleKey: T
     ideas: { titleKey: "app.titleIdeas", subtitleKey: "app.subtitleIdeas" },
     goals: { titleKey: "app.titleGoals", subtitleKey: "app.subtitleGoals" },
     apps: { titleKey: "app.titleApps", subtitleKey: "app.subtitleApps" },
+    account: { titleKey: "app.titleAccount", subtitleKey: "app.subtitleAccount" },
     connections: { titleKey: "app.titleConnections", subtitleKey: "app.subtitleConnections" },
     mail: { titleKey: "app.titleMail", subtitleKey: "app.subtitleMail" },
     calendar: { titleKey: "app.titleCalendar", subtitleKey: "app.subtitleCalendar" },
@@ -74,27 +90,96 @@ export default function App() {
   );
 }
 
+/**
+ * 登录入口。
+ *
+ * 服务端有两种登录方式：
+ * - 账号模式（配置了 Supabase）：每个用户用邮箱注册/登录，各自的工作区数据互相隔离；
+ * - 访问密钥模式（未配置 Supabase）：整个部署共用一个访问密钥，即单用户部署。
+ * 具体用哪种由 /api/auth/config 决定，本地示例部署仍会直接打开工作区。
+ */
 function Root() {
   const { t } = useTranslation();
-  const [token, setToken] = useState("");
+  const [token, setToken] = useState(() => readStorage(SESSION_KEY) ?? "");
+  const [authMode, setAuthMode] = useState<AuthMode | null>(null);
   const [accessKey, setAccessKey] = useState("");
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [codeSent, setCodeSent] = useState(false);
+  const [sendingCode, setSendingCode] = useState(false);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState("");
-  const connect = useCallback(async (key?: string) => {
+  /** 登录成功后持久化会话令牌，刷新网页后也能自动恢复登录状态。 */
+  const applySession = useCallback((nextToken: string) => {
+    writeStorage(SESSION_KEY, nextToken);
+    setToken(nextToken);
+  }, []);
+  const connect = useCallback(
+    async (key?: string) => {
+      setBusy(true);
+      setError("");
+      try {
+        const session = await createSession(key);
+        applySession(session.token);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e));
+      } finally {
+        setBusy(false);
+      }
+    },
+    [applySession],
+  );
+  const signOut = useCallback(() => {
+    clearStorage(SESSION_KEY);
+    setToken("");
+  }, []);
+  /** 账号模式下请求发送验证码；成功后提示用户查收邮件。 */
+  const sendCode = useCallback(async () => {
+    setSendingCode(true);
+    setError("");
+    try {
+      await requestOtp(email);
+      setCodeSent(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSendingCode(false);
+    }
+  }, [email]);
+  /** 账号模式下校验验证码登录，成功后 token 只属于当前用户。 */
+  const submitAccount = useCallback(async () => {
     setBusy(true);
     setError("");
     try {
-      const session = await createSession(key);
-      setToken(session.token);
+      const session = await verifyOtp({ email, code });
+      applySession(session.token);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }
-  }, []);
+  }, [email, code, applySession]);
   useEffect(() => {
-    void connect();
+    let cancelled = false;
+    void (async () => {
+      try {
+        const config = await authConfig();
+        if (cancelled) return;
+        setAuthMode(config.authMode);
+        if (config.authMode === "access-key") await connect();
+        else setBusy(false);
+      } catch {
+        if (cancelled) return;
+        // 读不到配置时按访问密钥模式处理，保证本地开发仍能打开工作区。
+        setAuthMode("access-key");
+        await connect();
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [connect]);
+  const accountMode = authMode === "supabase";
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" />
@@ -103,7 +188,7 @@ function Root() {
           runtimeUrl={`${API_URL}/api/copilotkit`}
           headers={{ Authorization: `Bearer ${token}` }}
         >
-          <WorkspaceApp token={token} />
+          <WorkspaceApp token={token} onSignOut={signOut} />
         </CopilotKitProvider>
       ) : (
         <SafeAreaView
@@ -123,24 +208,69 @@ function Root() {
               {t("app.welcomeTitle")}
             </Text>
             <Text style={[s.muted, { textAlign: "center" }]}>{t("app.welcomeSubtitle")}</Text>
-            {busy ? (
+            {authMode === null ? (
               <ActivityIndicator color={colors.blueDark} />
             ) : (
               <Card style={{ width: "100%" }}>
                 <ErrorNotice error={error} />
-                <Field
-                  label={t("app.accessKeyLabel")}
-                  value={accessKey}
-                  onChangeText={setAccessKey}
-                  secureTextEntry
-                  placeholder={t("app.accessKeyPlaceholder")}
-                />
-                <Button primary onPress={() => void connect(accessKey || undefined)}>
-                  {t("app.openWorkspace")}
-                </Button>
-                <Text style={[s.small, { marginTop: 15 }]}>
-                  {t("app.localWorkspaceHint", { url: API_URL })}
-                </Text>
+                {accountMode ? (
+                  <>
+                    <Field
+                      label={t("app.emailLabel")}
+                      value={email}
+                      onChangeText={setEmail}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      keyboardType="email-address"
+                      placeholder={t("app.emailPlaceholder")}
+                    />
+                    <Button busy={sendingCode} onPress={() => void sendCode()}>
+                      {t("app.sendCode")}
+                    </Button>
+                    {codeSent && (
+                      <Text style={[s.small, { textAlign: "center" }]}>
+                        {t("app.sendCodeSent")}
+                      </Text>
+                    )}
+                    <Field
+                      label={t("app.codeLabel")}
+                      value={code}
+                      onChangeText={setCode}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      keyboardType="number-pad"
+                      placeholder={t("app.codePlaceholder")}
+                    />
+                    <Button
+                      primary
+                      busy={busy}
+                      disabled={!code}
+                      onPress={() => void submitAccount()}
+                    >
+                      {t("app.signIn")}
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Field
+                      label={t("app.accessKeyLabel")}
+                      value={accessKey}
+                      onChangeText={setAccessKey}
+                      secureTextEntry
+                      placeholder={t("app.accessKeyPlaceholder")}
+                    />
+                    <Button
+                      primary
+                      busy={busy}
+                      onPress={() => void connect(accessKey || undefined)}
+                    >
+                      {t("app.openWorkspace")}
+                    </Button>
+                    <Text style={[s.small, { marginTop: 15 }]}>
+                      {t("app.localWorkspaceHint", { url: API_URL })}
+                    </Text>
+                  </>
+                )}
               </Card>
             )}
           </View>
@@ -149,7 +279,7 @@ function Root() {
     </SafeAreaProvider>
   );
 }
-function WorkspaceApp({ token }: { token: string }) {
+function WorkspaceApp({ token, onSignOut }: { token: string; onSignOut: () => void }) {
   const { t } = useTranslation();
   const api = useMemo(() => new MuseApi(token), [token]);
   const [workspace, setWorkspace] = useState<Workspace>();
@@ -163,15 +293,22 @@ function WorkspaceApp({ token }: { token: string }) {
     setWorkspace(snapshot);
     setError("");
   }, [api]);
+  /** 统一处理刷新失败：令牌过期/无效（401）时退回登录页，其余错误提示重试。 */
+  const runRefresh = useCallback(() => {
+    void refresh().catch((e) => {
+      if ((e as { status?: number }).status === 401) onSignOut();
+      else setError(String(e));
+    });
+  }, [refresh, onSignOut]);
   useEffect(() => {
-    void refresh().catch((e) => setError(String(e)));
-  }, [refresh]);
+    runRefresh();
+  }, [runRefresh]);
   useEffect(() => {
     const listener = AppState.addEventListener("change", (state) => {
-      if (state === "active") void refresh().catch((e) => setError(String(e)));
+      if (state === "active") runRefresh();
     });
     return () => listener.remove();
-  }, [refresh]);
+  }, [runRefresh]);
   useEffect(() => {
     if (!toast) return;
     const timer = setTimeout(() => setToast(""), 5500);
@@ -184,6 +321,11 @@ function WorkspaceApp({ token }: { token: string }) {
   );
   const open = useCallback((next: Detail) => setDetail(next), []);
   const close = useCallback(() => setDetail(undefined), []);
+  /** 退出登录：先让服务端作废令牌，再清空本地会话回到登录页。 */
+  const signOut = useCallback(() => {
+    void api.request("/api/auth/signout", {}).catch(() => undefined);
+    onSignOut();
+  }, [api, onSignOut]);
   const ask = useCallback((text: string) => {
     setPrompt({ id: Date.now(), text });
     setSection("chat");
@@ -204,9 +346,7 @@ function WorkspaceApp({ token }: { token: string }) {
         {error ? (
           <>
             <ErrorNotice error={error} />
-            <Button onPress={() => void refresh().catch((e) => setError(String(e)))}>
-              {t("common.tryAgain")}
-            </Button>
+            <Button onPress={runRefresh}>{t("common.tryAgain")}</Button>
           </>
         ) : (
           <>
@@ -229,6 +369,7 @@ function WorkspaceApp({ token }: { token: string }) {
               clearToast={() => setToast("")}
               error={error}
               prompt={prompt}
+              onSignOut={signOut}
             />
           </ThreadsProvider>
         </ComputerDraftProvider>
@@ -242,12 +383,14 @@ function WorkspaceShell({
   clearToast,
   error,
   prompt,
+  onSignOut,
 }: {
   detail?: Detail;
   toast: string;
   clearToast: () => void;
   error: string;
   prompt?: { id: number; text: string };
+  onSignOut: () => void;
 }) {
   const { workspace, section, navigate, open } = useWorkspace();
   const { t } = useTranslation();
@@ -405,7 +548,7 @@ function WorkspaceShell({
                   {title && t(title.titleKey)}
                 </Text>
                 <ErrorNotice error={error} />
-                <Screen />
+                {section === "account" ? <AccountScreen onSignOut={onSignOut} /> : <Screen />}
               </ScrollView>
             )}
             <View
@@ -459,7 +602,8 @@ function WorkspaceShell({
               style={{
                 flexDirection: "row",
                 width: "100%",
-                maxWidth: 370,
+                // 六个页签（含「我的」）比原来多一个，容器放宽以保证点击区域。
+                maxWidth: 430,
                 padding: 5,
                 backgroundColor: "#FFF",
                 borderRadius: 40,

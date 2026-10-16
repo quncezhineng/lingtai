@@ -170,11 +170,15 @@ export async function modelFixture(
 }
 
 // The same fixture protocol served in the OpenAI Chat Completions wire format
-// (`/v1/chat/completions` SSE), for the optional gateway adapter path.
+// (`/v1/chat/completions` SSE), for the optional gateway adapter path and for
+// the OpenAI-compatible providers (DeepSeek, Moonshot) that carry their own env vars.
 export async function chatCompletionsFixture(
   t: TestContext,
   reply: (index: number) => ModelCall | undefined | Promise<ModelCall | undefined>,
+  env: { baseUrl?: string; apiKey?: string } = {},
 ) {
+  const baseUrlVar = env.baseUrl ?? "OPENAI_BASE_URL";
+  const apiKeyVar = env.apiKey ?? "OPENAI_API_KEY";
   const requests: { path: string; body: string }[] = [];
   const server = createServer(async (request, response) => {
     let body = "";
@@ -219,15 +223,15 @@ export async function chatCompletionsFixture(
   await once(server, "listening");
   const address = server.address();
   assert.ok(address && typeof address !== "string");
-  const previousBase = process.env.OPENAI_BASE_URL;
-  const previousKey = process.env.OPENAI_API_KEY;
-  process.env.OPENAI_BASE_URL = `http://127.0.0.1:${address.port}/v1`;
-  process.env.OPENAI_API_KEY = "local-test-fixture";
+  const previousBase = process.env[baseUrlVar];
+  const previousKey = process.env[apiKeyVar];
+  process.env[baseUrlVar] = `http://127.0.0.1:${address.port}/v1`;
+  process.env[apiKeyVar] = "local-test-fixture";
   t.after(async () => {
-    if (previousBase === undefined) delete process.env.OPENAI_BASE_URL;
-    else process.env.OPENAI_BASE_URL = previousBase;
-    if (previousKey === undefined) delete process.env.OPENAI_API_KEY;
-    else process.env.OPENAI_API_KEY = previousKey;
+    if (previousBase === undefined) delete process.env[baseUrlVar];
+    else process.env[baseUrlVar] = previousBase;
+    if (previousKey === undefined) delete process.env[apiKeyVar];
+    else process.env[apiKeyVar] = previousKey;
     server.closeAllConnections();
     await new Promise<void>((resolve) => server.close(() => resolve()));
   });

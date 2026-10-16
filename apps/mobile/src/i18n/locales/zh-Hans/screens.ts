@@ -136,6 +136,12 @@ const screens = {
   "screens.connectionsAssistantNotConfigured": "模型未配置",
   "screens.connectionsRichThreads": "富会话线程",
   "screens.connectionsNotConnected": "未连接",
+  "screens.connectionsModelLabel": "大模型",
+  "screens.connectionsModelSubtitle": "助手对话和后台任务都使用这个模型。",
+  "screens.connectionsModelCurrent": "当前模型",
+  "screens.connectionsModelEmpty":
+    "当前部署运行引导式示例工作流，没有可切换的模型。在服务端配置厂商密钥后即可在这里选择。",
+  "screens.connectionsModelSwitched": "已切换到 {model}",
   "screens.connectionsRefresh": "刷新连接",
   "screens.connectionsOpenBotNotice":
     "这个开源项目中已经提供了 OpenBot 适配器，但尚未配置可用的 OpenBot 后端。",

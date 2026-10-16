@@ -79,6 +79,66 @@ test("OPENAI_CHAT_COMPLETIONS routes a gateway through /chat/completions and kee
   }
 });
 
+for (const provider of [
+  { name: "deepseek", env: { baseUrl: "DEEPSEEK_BASE_URL", apiKey: "DEEPSEEK_API_KEY" } },
+  { name: "moonshot", env: { baseUrl: "MOONSHOT_BASE_URL", apiKey: "MOONSHOT_API_KEY" } },
+] as const) {
+  test(`${provider.name}/model traffic uses Chat Completions on its own base URL and key`, async (t) => {
+    let toolRuns = 0;
+    const { requests } = await chatCompletionsFixture(
+      t,
+      (index) =>
+        index === 0 ? { name: "note_step", arguments: { note: "step one done" } } : undefined,
+      provider.env,
+    );
+    const agent = tanstackAgent({
+      model: `${provider.name}/fixture`,
+      maxSteps: 3,
+      tools: [
+        defineTool({
+          name: "note_step",
+          description: "Record a step note",
+          parameters: z.object({ note: z.string() }),
+          execute: async ({ note }) => {
+            toolRuns++;
+            return { recorded: note };
+          },
+        }),
+      ],
+      prompt: "Use the tool once, then finish.",
+    });
+    const outcome = await run(agent);
+    assert.equal(outcome.error, undefined);
+    assert.equal(outcome.finished, true);
+    assert.ok(outcome.text.includes("Current state: empty."), "the final model reply arrived");
+    assert.equal(toolRuns, 1, "the server tool executed exactly once");
+    assert.ok(requests.length >= 2, "the tool result was sent back for a second model call");
+    for (const request of requests)
+      assert.equal(
+        request.path,
+        "/v1/chat/completions",
+        "compatible providers use Chat Completions",
+      );
+  });
+
+  test(`${provider.name}/model without ${provider.env.apiKey} reports a clear error`, async () => {
+    const previousKey = process.env[provider.env.apiKey];
+    delete process.env[provider.env.apiKey];
+    try {
+      const agent = tanstackAgent({
+        model: `${provider.name}/fixture`,
+        maxSteps: 1,
+        tools: [],
+        prompt: "Say hello.",
+      });
+      const outcome = await run(agent);
+      assert.match(String(outcome.error), new RegExp(`${provider.env.apiKey} is not set`));
+    } finally {
+      if (previousKey !== undefined) process.env[provider.env.apiKey] = previousKey;
+    }
+  });
+}
+
 test("without the flag the OpenAI adapter keeps using the Responses API", async (t) => {
   const previous = process.env.OPENAI_CHAT_COMPLETIONS;
   delete process.env.OPENAI_CHAT_COMPLETIONS;

@@ -24,7 +24,10 @@ import { AgentService } from "./engine/service.ts";
 import { AppError } from "./errors.ts";
 import { Files } from "./files.ts";
 import { GoogleAuth } from "./google-auth.ts";
-import { rateLimit } from "./rate-limit.ts";
+import { applyModel, isOfferedModel, modelChoices } from "./models.ts";
+import { createRateLimitStore, rateLimit } from "./rate-limit.ts";
+import { createSupabaseAuth } from "./supabase-auth.ts";
+import { createSupabaseData } from "./supabase-data.ts";
 import { WorkspaceService } from "./workspace.ts";
 
 export async function createApp(
@@ -36,7 +39,11 @@ export async function createApp(
   const auth = await createAuth(db, config),
     files = new Files(db, config, auth),
     google = new GoogleAuth(db, config),
-    workspace = new WorkspaceService(db, config, files, google);
+    workspace = new WorkspaceService(db, config, files, google),
+    // 配置了 Supabase 项目就有账号体系；否则回退到单一共享访问密钥。
+    accounts = createSupabaseAuth(config),
+    // 操作行为日志与业务资源索引写入 Supabase（旁路，失败不影响主流程）。
+    supabaseData = createSupabaseData(config);
   const actions = new ActionService(db, {
     execute: (owner, input, connectionId, targetVersion) =>
       workspace.execute(owner, input, connectionId, targetVersion),
@@ -49,6 +56,11 @@ export async function createApp(
   const agent = new AgentService(db, config, workspace, files, actions, browser, computer);
   const intelligence = new CopilotKitIntelligence({ apiKey: config.intelligenceApiKey });
   const runtime = makeRuntime(config, agent, auth, intelligence);
+  // 启动时恢复上一次在 App 里选中的模型，让选择跨重启保留。
+  // 若该厂商的密钥已被移除，则回退到 .env 的 MODEL，避免指向不可用的模型。
+  const savedModel = await db.get<{ model?: string }>("system", "settings", "model");
+  if (savedModel?.model && isOfferedModel(config, savedModel.model))
+    applyModel(config, savedModel.model);
   const app = new Hono<{ Variables: { owner: string } }>();
   const origins = new Set([...config.allowedOrigins, new URL(config.publicUrl).origin]);
   app.use("*", async (c, next) => {
@@ -99,25 +111,131 @@ export async function createApp(
     c.json({
       ok: true,
       mode: config.mode,
+      // 每个用户是否各自注册登录（多用户），还是共用一个访问密钥（单用户）。
+      authMode: accounts ? "supabase" : "access-key",
       agentConfigured: agentConfigured(config),
       browserConfigured: Boolean(config.workerUrl && config.workerToken),
     }),
   );
-  let loginWindow = 0,
-    loginAttempts = 0;
-  app.post("/api/session", async (c) => {
-    if (Date.now() - loginWindow > 60000) {
-      loginWindow = Date.now();
-      loginAttempts = 0;
+  /** 登录风控：按客户端 IP 与邮箱账号两个维度限流，防暴力破解与撞库。 */
+  const signInByIp = createRateLimitStore({
+    windowMs: 60_000,
+    maxRequests: 30,
+    maxEntries: 100_000,
+  });
+  const signInByAccount = createRateLimitStore({
+    windowMs: 60_000,
+    maxRequests: 10,
+    maxEntries: 100_000,
+  });
+  const clientIp = (c: { req: { header: (name: string) => string | undefined } }) => {
+    if (config.trustProxy) {
+      const forwarded = c.req.header("x-forwarded-for")?.split(",")[0]?.trim();
+      if (forwarded) return forwarded;
     }
-    if (++loginAttempts > 30)
+    return c.req.header("x-real-ip") ?? "unknown";
+  };
+  const device = (c: { req: { header: (name: string) => string | undefined } }) =>
+    c.req.header("user-agent")?.slice(0, 200) || undefined;
+  const guardSignIn = (
+    c: { req: { header: (name: string) => string | undefined } },
+    email?: string,
+  ) => {
+    if (!signInByIp.take(clientIp(c), Date.now()))
       throw new AppError("Too many sign-in attempts. Try again in a minute.", 429);
+    if (email && !signInByAccount.take(email, Date.now()))
+      throw new AppError("Too many attempts for this account. Try again in a minute.", 429);
+  };
+  /** 旁路写入操作行为日志；未配置 Supabase 时静默跳过。 */
+  const audit = (
+    userId: string,
+    action: string,
+    c: { req: { header: (name: string) => string | undefined } },
+  ) => {
+    if (!supabaseData) return;
+    void supabaseData.writeAuditLog({
+      user_id: userId,
+      action,
+      ip: clientIp(c),
+      user_agent: c.req.header("user-agent"),
+    });
+  };
+  /**
+   * 首次进入工作区时准备示例数据与智能体状态。
+   * 所有数据都挂在 owner 名下，因此每个用户的对话完全独立。
+   */
+  const openWorkspace = async (owner: string) => {
+    await workspace.ensureSample(owner, actions);
+    await agent.ensure(owner);
+    if (config.mode === "sample") await agent.refreshIdeas(owner);
+  };
+  /** 前端据此决定展示邮箱登录还是访问密钥输入框。 */
+  app.get("/api/auth/config", (c) =>
+    c.json({ mode: config.mode, authMode: accounts ? "supabase" : "access-key" }),
+  );
+  const accountSchema = z.object({
+    email: z.email(),
+    password: z.string().min(8, "Use a password with at least 8 characters").max(128),
+    displayName: z.string().trim().min(1).max(80).optional(),
+  });
+  app.post("/api/auth/signup", async (c) => {
+    if (!accounts) throw new AppError("This deployment does not enable user accounts", 400);
+    const body = accountSchema.parse(await c.req.json());
+    const email = body.email.trim().toLowerCase();
+    guardSignIn(c, email);
+    const user = await accounts.signUp({
+      email,
+      password: body.password,
+      displayName: body.displayName,
+    });
+    await openWorkspace(user.id);
+    const session = await auth.issue(user.id, user.email, device(c));
+    audit(user.id, "signup", c);
+    return c.json({ ...session, user: { id: user.id, email: user.email } }, 201);
+  });
+  app.post("/api/auth/signin", async (c) => {
+    if (!accounts) throw new AppError("This deployment does not enable user accounts", 400);
+    const body = accountSchema.omit({ displayName: true }).parse(await c.req.json());
+    const email = body.email.trim().toLowerCase();
+    guardSignIn(c, email);
+    const user = await accounts.signIn({
+      email,
+      password: body.password,
+    });
+    await openWorkspace(user.id);
+    const session = await auth.issue(user.id, user.email, device(c));
+    audit(user.id, "signin", c);
+    return c.json({ ...session, user: { id: user.id, email: user.email } });
+  });
+  app.post("/api/session", async (c) => {
+    guardSignIn(c);
     const body = z.object({ accessKey: z.string().optional() }).parse(await c.req.json());
-    const session = await auth.session(body.accessKey);
-    await workspace.ensureSample("local-user", actions);
-    await agent.ensure("local-user");
-    if (config.mode === "sample") await agent.refreshIdeas("local-user");
+    const session = await auth.session(body.accessKey, device(c));
+    await openWorkspace("local-user");
     return c.json(session);
+  });
+  /** 请求邮箱验证码（使用 Supabase Auth 的 Email OTP）。 */
+  app.post("/api/auth/otp/request", async (c) => {
+    if (!accounts) throw new AppError("This deployment does not enable email verification", 400);
+    const body = z.object({ email: z.email() }).parse(await c.req.json());
+    const email = body.email.trim().toLowerCase();
+    guardSignIn(c, email);
+    await accounts.sendOtp(email);
+    return c.json({ ok: true });
+  });
+  /** 验证码登录：验证通过后返回会话（未注册邮箱自动建档）。 */
+  app.post("/api/auth/otp/verify", async (c) => {
+    if (!accounts) throw new AppError("This deployment does not enable email verification", 400);
+    const body = z
+      .object({ email: z.email(), code: z.string().regex(/^\d{6}$/) })
+      .parse(await c.req.json());
+    const email = body.email.trim().toLowerCase();
+    guardSignIn(c, email);
+    const user = await accounts.verifyOtp(email, body.code);
+    await openWorkspace(user.id);
+    const session = await auth.issue(user.id, user.email, device(c));
+    audit(user.id, "signin_otp", c);
+    return c.json({ ...session, user: { id: user.id, email: user.email } });
   });
   app.get("/api/google/callback", async (c) => {
     if (c.req.query("error"))
@@ -142,6 +260,57 @@ export async function createApp(
     c.set("owner", owner);
     await next();
   });
+  /**
+   * 当前登录用户；账号模式下 owner 就是 Supabase 用户 uuid。
+   * 供 App 的「我的」页面展示昵称、邮箱等个人信息。
+   */
+  app.get("/api/auth/me", async (c) => {
+    const session = await auth.profile(c.req.header("authorization"));
+    // 头像、昵称从 user_profiles 读取，邮箱来自会话；取不到就回退 null，不影响登录本身。
+    const profile = accounts ? await accounts.readProfile(session.owner) : {};
+    return c.json({
+      id: session.owner,
+      email: session.email ?? null,
+      displayName: profile.displayName ?? null,
+      bio: profile.bio ?? null,
+      avatarUrl: profile.avatarUrl ?? null,
+      // 登录方式：每个用户各自注册登录，还是整站共用一个访问密钥。
+      authMode: accounts ? "supabase" : "access-key",
+      mode: config.mode,
+      expiresAt: session.expiresAt,
+    });
+  });
+  /** 退出登录：作废当前会话令牌（Supabase 侧账号不受影响）。 */
+  app.post("/api/auth/signout", async (c) => {
+    const profile = await auth.profile(c.req.header("authorization")).catch(() => undefined);
+    await auth.revoke(c.req.header("authorization"));
+    if (profile) audit(profile.owner, "signout", c);
+    return c.json({ ok: true });
+  });
+  /** 多端登录管理：列出当前用户的所有活跃会话。 */
+  app.get("/api/auth/sessions", async (c) => {
+    const session = await auth.profile(c.req.header("authorization"));
+    const sessions = await auth.sessions(session.owner);
+    return c.json({
+      sessions: sessions.map((s) => ({
+        id: s.id,
+        device: s.device ?? null,
+        createdAt: s.createdAt,
+        lastSeenAt: s.lastSeenAt,
+        expiresAt: s.expiresAt,
+        current: s.id === session.sessionId,
+      })),
+    });
+  });
+  /** 远程下线：撤销指定会话（只能操作属于当前登录用户的会话）。 */
+  app.post("/api/auth/sessions/:id/revoke", async (c) => {
+    const session = await auth.profile(c.req.header("authorization"));
+    const id = c.req.param("id");
+    if (!(await auth.revokeSession(session.owner, id)))
+      throw new AppError("Session not found", 404);
+    audit(session.owner, "session_revoked", c);
+    return c.json({ ok: true });
+  });
   app.get("/api/workspace", async (c) => {
     const [snapshot, reachable] = await Promise.all([
       workspace.snapshot(c.get("owner"), c.req.query("q")),
@@ -155,6 +324,29 @@ export async function createApp(
         : connection,
     );
     return c.json(snapshot);
+  });
+  /** 可选模型目录：只列出服务端已配置密钥的厂商，密钥本身永不下发到 App。 */
+  app.get("/api/models", async (c) =>
+    c.json({
+      model: config.model ?? null,
+      options: config.agentBackend === "model" ? modelChoices(config) : [],
+    }),
+  );
+  /**
+   * 切换当前模型。
+   *
+   * 对话、任务与健康检查都在调用时读取 config.model，因此这里改完立即全局生效，
+   * 无需重启服务；选择结果写入数据库，重启后由 createApp 自动恢复。
+   */
+  app.post("/api/model", async (c) => {
+    const body = z.object({ model: z.string().trim().min(1).max(200) }).parse(await c.req.json());
+    if (config.agentBackend !== "model")
+      throw new AppError("This deployment does not run a switchable model backend", 400);
+    if (!isOfferedModel(config, body.model))
+      throw new AppError(`${body.model} is not available on this server`, 400);
+    applyModel(config, body.model);
+    await db.put("system", "settings", { id: "model", model: body.model });
+    return c.json({ model: config.model });
   });
   app.route("/api/agent", agentRoutes(agent));
   app.route("/api/computer", computerRoutes(computer, files));

@@ -52,6 +52,19 @@ export class Store {
     );
     return result.rows.map((row) => row.data as T);
   }
+  /** 按 data 里某个字符串字段过滤，用于「同一 owner 下按字段聚合」的场景（例如列出某用户的所有会话）。 */
+  async listByField<T = Record<string, unknown>>(
+    owner: string,
+    kind: string,
+    field: string,
+    value: string,
+  ): Promise<T[]> {
+    const result = await this.db.query(
+      `SELECT data FROM records WHERE owner=$1 AND kind=$2 AND data->>$3=$4 ORDER BY updated_at DESC,id`,
+      [owner, kind, field, value],
+    );
+    return result.rows.map((row) => row.data as T);
+  }
   async put<T extends { id: string }>(owner: string, kind: string, value: T): Promise<T> {
     await this.db.query(
       "INSERT INTO records(owner,kind,id,data) VALUES($1,$2,$3,$4::jsonb) ON CONFLICT(owner,kind,id) DO UPDATE SET data=excluded.data,updated_at=now()",

@@ -140,6 +140,12 @@ const screens = {
   "screens.connectionsAssistantNotConfigured": "Model not configured",
   "screens.connectionsRichThreads": "Rich Threads",
   "screens.connectionsNotConnected": "Not connected",
+  "screens.connectionsModelLabel": "Model",
+  "screens.connectionsModelSubtitle": "Chat and background tasks run on this model.",
+  "screens.connectionsModelCurrent": "Current model",
+  "screens.connectionsModelEmpty":
+    "This deployment runs guided sample workflows, so there is no model to switch. Set a provider key on the server to choose one here.",
+  "screens.connectionsModelSwitched": "Now using {model}",
   "screens.connectionsRefresh": "Refresh connections",
   "screens.connectionsOpenBotNotice":
     "The OpenBot adapter is available in this open-source project. A live OpenBot backend has not been configured.",

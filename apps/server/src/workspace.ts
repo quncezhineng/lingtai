@@ -19,6 +19,7 @@ import type { Store } from "./db.ts";
 import { AppError } from "./errors.ts";
 import type { Files } from "./files.ts";
 import type { GoogleAuth } from "./google-auth.ts";
+import { modelChoices } from "./models.ts";
 
 export class WorkspaceService {
   private seeding = new Map<string, Promise<void>>();
@@ -365,6 +366,9 @@ export class WorkspaceService {
         configured: agentConfigured(this.config),
         openbotConfigured: false,
         richThreads: true,
+        model: this.config.model,
+        // Only the model backend reads MODEL; sample and AG-UI runtimes are not switchable.
+        modelOptions: this.config.agentBackend === "model" ? modelChoices(this.config) : [],
       },
     };
   }

@@ -37,11 +37,12 @@ export async function createBrowserManager(
   options: {
     dataDir: string;
     maxSessions?: number;
+    maxProfiles?: number;
     idleTimeoutMs?: number;
   },
   createProxy = startEgressProxy,
 ) {
-  const { dataDir, maxSessions = 3, idleTimeoutMs = 30 * 60_000 } = options;
+  const { dataDir, maxSessions = 3, maxProfiles = 20, idleTimeoutMs = 30 * 60_000 } = options;
   await mkdir(dataDir, { recursive: true, mode: 0o700 });
   const sessions = new Map<string, Session>();
   const running = new Map<string, Running>();
@@ -166,10 +167,10 @@ export async function createBrowserManager(
         `Close an active session before opening another (limit ${maxSessions}).`,
         409,
       );
-    if (!sessions.has(id) && sessions.size >= 20)
+    if (!sessions.has(id) && sessions.size >= maxProfiles)
       throw new WorkerError(
         "PROFILE_LIMIT",
-        "The worker has reached its 20 saved-profile limit.",
+        `The worker has reached its ${maxProfiles} saved-profile limit.`,
         409,
       );
     const previous = sessions.get(id);

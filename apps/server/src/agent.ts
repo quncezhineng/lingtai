@@ -21,7 +21,9 @@ export function agentConfigured(config: Config) {
           config.model &&
             (process.env.OPENAI_API_KEY ||
               process.env.ANTHROPIC_API_KEY ||
-              process.env.GOOGLE_API_KEY),
+              process.env.GOOGLE_API_KEY ||
+              process.env.DEEPSEEK_API_KEY ||
+              process.env.MOONSHOT_API_KEY),
         ))
   );
 }

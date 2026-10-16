@@ -35,6 +35,7 @@ export async function createWorkerServer(
     token: string;
     dataDir: string;
     maxSessions?: number;
+    maxProfiles?: number;
     idleTimeoutMs?: number;
   },
   createBrowser = createBrowserManager,

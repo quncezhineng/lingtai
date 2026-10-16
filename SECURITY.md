@@ -6,7 +6,12 @@ Use the repository's **Security → Report a vulnerability** form for private re
 
 ## Deployment boundary
 
-LingTai currently supports one owner per deployment. Live mode uses a shared access key; it is not multi-tenant account authentication. Sample mode binds to loopback and contains fictional data. Use HTTPS and restricted network access for a remote live deployment.
+LingTai supports two access models, chosen by configuration:
+
+- **User accounts** (set `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`): every person registers and signs in with their own email and password. Credentials live in Supabase Auth (`auth.users`), LingTai signs its own 24-hour session token afterwards, and every workspace record is stored under that account's id. This is the multi-user mode.
+- **Shared access key** (no Supabase variables): one owner per deployment. `LINGTAI_ACCESS_KEY` is a single secret; anyone holding it acts as that owner. It is not account authentication, so do not hand it out as a per-person login.
+
+Sample mode binds to loopback and contains fictional data. Use HTTPS and restricted network access for a remote live deployment.
 
 The API holds provider credentials. Google tokens are encrypted at rest; short-lived signed URLs grant file and browser-console access. Protect `.env`, `.lingtai`, database backups, and browser profiles as private data. A signed URL is a credential until it expires.
 

@@ -15,7 +15,12 @@ import {
 } from "@tanstack/ai";
 import { type AnthropicChatModel, anthropicText } from "@tanstack/ai-anthropic";
 import { type GeminiTextModel, geminiText } from "@tanstack/ai-gemini";
-import { type OpenAIChatModel, openaiChatCompletions, openaiText } from "@tanstack/ai-openai";
+import {
+  createOpenaiChatCompletions,
+  type OpenAIChatModel,
+  openaiChatCompletions,
+  openaiText,
+} from "@tanstack/ai-openai";
 import { map, mergeMap, type Observable } from "rxjs";
 import { z } from "zod";
 import { MODEL_MAX_RETRIES } from "../config.ts";
@@ -26,7 +31,7 @@ function adapter(spec: string) {
   const [, provider = "", model = ""] = spec.trim().match(/^([^/:]*)[/:](.*)$/) ?? [];
   if (!provider || !model.trim())
     throw new Error(
-      `Invalid model string "${spec}". Use "openai/gpt-5", "anthropic/claude-sonnet-4.5", or "google/gemini-2.5-pro".`,
+      `Invalid model string "${spec}". Use "openai/gpt-5", "anthropic/claude-sonnet-4.5", "google/gemini-2.5-pro" or "deepseek/deepseek-chat".`,
     );
   const id = model.trim();
   switch (provider.toLowerCase()) {
@@ -59,9 +64,33 @@ function adapter(spec: string) {
           retryOptions: { attempts: MODEL_MAX_RETRIES + 1 },
         },
       });
+    case "deepseek":
+      return openAiCompatible(id, "deepseek", "https://api.deepseek.com/v1");
+    case "moonshot":
+      return openAiCompatible(id, "moonshot", "https://api.moonshot.cn/v1");
     default:
       throw unknownProvider(provider, spec);
   }
+}
+
+/**
+ * DeepSeek and Moonshot expose OpenAI-compatible Chat Completions endpoints rather than
+ * the Responses API. Each provider has its own key and base URL env vars, so both can be
+ * configured side by side (a single OPENAI_BASE_URL cannot serve two at once).
+ */
+function openAiCompatible(
+  model: string,
+  provider: "deepseek" | "moonshot",
+  defaultBaseUrl: string,
+) {
+  const prefix = provider.toUpperCase();
+  const apiKey = process.env[`${prefix}_API_KEY`]?.trim();
+  if (!apiKey)
+    throw new Error(`MODEL uses the ${provider} provider, but ${prefix}_API_KEY is not set.`);
+  return createOpenaiChatCompletions(model as OpenAIChatModel, apiKey, {
+    baseURL: process.env[`${prefix}_BASE_URL`]?.trim() || defaultBaseUrl,
+    maxRetries: MODEL_MAX_RETRIES,
+  });
 }
 
 /** With OPENAI_BASE_URL set, a gateway model ID most likely needs the openai/ prefix. */
@@ -74,7 +103,7 @@ export function unknownProvider(
     ? ` For a model on your OPENAI_BASE_URL gateway, use "openai/${spec.trim()}".`
     : "";
   return new Error(
-    `Unknown provider "${provider}" in "${spec}". Supported: openai, anthropic, google (gemini).${hint}`,
+    `Unknown provider "${provider}" in "${spec}". Supported: openai, anthropic, google (gemini), deepseek, moonshot.${hint}`,
   );
 }
 

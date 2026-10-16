@@ -36,6 +36,10 @@ export interface Config {
   databaseUrl?: string;
   accessKey?: string;
   encryptionKey?: string;
+  /** Supabase 项目地址；配置后启用邮箱账号体系（多用户），未配置则回退单一访问密钥。 */
+  supabaseUrl?: string;
+  supabaseAnonKey?: string;
+  supabaseServiceRoleKey?: string;
   model?: string;
   jevMode?: "off" | "sample" | "live";
   typesafeApiKey?: string;
@@ -57,6 +61,8 @@ export interface Config {
   computerProvider?: ComputerProvider;
   computerE2bTemplate?: string;
   e2bApiKey?: string;
+  /** 登录会话有效期（毫秒），默认 24 小时。 */
+  sessionTtlMs?: number;
   allowedOrigins: string[];
   trustProxy?: boolean;
 }
@@ -92,6 +98,23 @@ export function browserWorkerUrl(value?: string): string | undefined {
   const trimmed = value?.trim();
   if (!trimmed) return undefined;
   return trimmed.includes("://") ? trimmed : `http://${trimmed}`;
+}
+
+/** 解析正整数的可选环境变量；未设置返回 undefined，非法值直接抛错。 */
+function positiveInt(value: string | undefined, name: string): number | undefined {
+  if (!value?.trim()) return undefined;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0)
+    throw new Error(`${name} must be a positive integer`);
+  return parsed;
+}
+
+/**
+ * 配好完整 Supabase 凭证时启用邮箱账号体系：每个用户各自注册登录，
+ * 工作区数据按用户 uuid 隔离。未配置时沿用单一共享访问密钥（每个部署一个 owner）。
+ */
+export function supabaseAuthConfigured(config: Config): boolean {
+  return Boolean(config.supabaseUrl && config.supabaseAnonKey && config.supabaseServiceRoleKey);
 }
 
 // Provider SDKs retry transient failures before the response starts, with
@@ -133,6 +156,13 @@ export function readConfig(): Config {
   }
   const port = Number(process.env.PORT ?? 8787);
   const publicUrl = process.env.PUBLIC_API_URL ?? `http://localhost:${port}`;
+  const supabaseUrl = process.env.SUPABASE_URL?.trim().replace(/\/+$/, "");
+  const supabaseAnonKey = process.env.SUPABASE_PUBLISHABLE_KEY?.trim();
+  const supabaseServiceRoleKey = process.env.SUPABASE_SECRET_KEY?.trim();
+  if (supabaseUrl && (!supabaseAnonKey || !supabaseServiceRoleKey))
+    throw new Error(
+      "SUPABASE_URL requires both SUPABASE_PUBLISHABLE_KEY and SUPABASE_SECRET_KEY so each user can sign in",
+    );
   const config: Config = {
     mode,
     port,
@@ -142,6 +172,9 @@ export function readConfig(): Config {
     databaseUrl: process.env.DATABASE_URL,
     accessKey: process.env.LINGTAI_ACCESS_KEY,
     encryptionKey: process.env.TOKEN_ENCRYPTION_KEY,
+    supabaseUrl,
+    supabaseAnonKey,
+    supabaseServiceRoleKey,
     model: process.env.MODEL,
     jevMode,
     typesafeApiKey,
@@ -163,6 +196,7 @@ export function readConfig(): Config {
     computerProvider,
     computerE2bTemplate: process.env.COMPUTER_E2B_TEMPLATE?.trim() || "desktop",
     e2bApiKey,
+    sessionTtlMs: positiveInt(process.env.SESSION_TTL_MS, "SESSION_TTL_MS"),
     allowedOrigins: (
       process.env.ALLOWED_ORIGINS ?? "http://localhost:8081,http://127.0.0.1:8081"
     ).split(","),
@@ -170,12 +204,16 @@ export function readConfig(): Config {
     // behind a proxy that sets them; otherwise a direct caller can spoof them.
     trustProxy: process.env.TRUST_PROXY === "true",
   };
+  if (mode === "live" && !config.encryptionKey)
+    throw new Error("Live mode requires TOKEN_ENCRYPTION_KEY (32-byte base64)");
   if (
     mode === "live" &&
-    (!config.accessKey || config.accessKey.length < 24 || !config.encryptionKey)
+    !supabaseAuthConfigured(config) &&
+    (!config.accessKey || config.accessKey.length < 24)
   )
     throw new Error(
-      "Live mode requires LINGTAI_ACCESS_KEY (24+ characters) and TOKEN_ENCRYPTION_KEY (32-byte base64)",
+      "Live mode requires LINGTAI_ACCESS_KEY (24+ characters), or SUPABASE_URL with " +
+        "SUPABASE_PUBLISHABLE_KEY and SUPABASE_SECRET_KEY so each user can sign in with an email account",
     );
   if (mode === "sample" && !["127.0.0.1", "localhost", "::1"].includes(config.host))
     throw new Error("Sample workspace is local-only. HOST must be a loopback address.");

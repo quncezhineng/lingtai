@@ -61,6 +61,18 @@ test("API protects private data and rejects unrelated web origins", async () => 
     403,
   );
 });
+test("the account endpoint describes the session behind the App's account page", async () => {
+  const response = await app.request("/api/auth/me", { headers: headers() });
+  assert.equal(response.status, 200);
+  const profile = await response.json();
+  // 未配置 Supabase 时没有账号体系，owner 是固定的 local-user，也没有邮箱与昵称。
+  assert.equal(profile.id, "local-user");
+  assert.equal(profile.authMode, "access-key");
+  assert.equal(profile.mode, "sample");
+  assert.equal(profile.email, null);
+  assert.equal(profile.displayName, null);
+  assert.ok(profile.expiresAt > Date.now(), "the session has a future expiry");
+});
 test("file operations recover a published PDF when metadata persistence fails", async (t) => {
   const owner = "file-recovery";
   const bytes = await createSamplePdf();

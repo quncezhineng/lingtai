@@ -38,6 +38,21 @@ services:
           name: lingtai-web
           type: web
           envVarKey: RENDER_EXTERNAL_URL
+      # User accounts: with these three set, every user signs up and signs in with
+      # their own email and gets a private workspace. Leave them unset to fall back
+      # to the single shared LINGTAI_ACCESS_KEY below.
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      # Email verification-code sign-in uses Supabase Auth's email OTP (enable
+      # "Email OTP" in Supabase Auth settings; no extra provider key needed).
+      # Signed-in sessions expire after this many milliseconds (default 24 hours).
+      - key: SESSION_TTL_MS
+        value: "86400000"
+      # Only used when the Supabase variables above are unset (one owner per deploy).
       - key: LINGTAI_ACCESS_KEY
         generateValue: true
       - key: TOKEN_ENCRYPTION_KEY
@@ -58,6 +73,16 @@ services:
           name: lingtai-browser
           type: pserv
           envVarKey: WORKER_TOKEN
+      # Per-user Linux computer sandbox (optional). Choose E2B Desktop so every
+      # user gets their own container; a unique COMPUTER_DEPLOYMENT_ID is required.
+      - key: COMPUTER_ENABLED
+        value: "false"
+      - key: COMPUTER_PROVIDER
+        value: e2b-desktop
+      - key: E2B_API_KEY
+        sync: false
+      - key: COMPUTER_DEPLOYMENT_ID
+        sync: false
 
   # Private Chromium for page reads, screenshots, and Take control.
   # Remove this service to skip it. The image listens on 8790, not $PORT.
@@ -78,6 +103,12 @@ services:
         value: 0.0.0.0
       - key: WORKER_DATA_DIR
         value: /data
+      # Raise these when many signed-in users need the browser at once; each user
+      # gets an isolated Chromium profile.
+      - key: WORKER_MAX_SESSIONS
+        value: "3"
+      - key: WORKER_MAX_PROFILES
+        value: "20"
 
   - type: web
     name: lingtai-web

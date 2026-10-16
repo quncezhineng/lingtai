@@ -12,7 +12,8 @@ export type Section =
   | "connections"
   | "ideas"
   | "goals"
-  | "apps";
+  | "apps"
+  | "account";
 export interface Mail {
   id: string;
   threadId: string;
@@ -195,6 +196,10 @@ export interface Workspace {
     configured: boolean;
     openbotConfigured: boolean;
     richThreads?: boolean;
+    /** The `provider/model-id` currently in use, when one is set. */
+    model?: string;
+    /** Providers the app may switch to, each with its curated model IDs. Empty when switching does not apply. */
+    modelOptions?: { provider: string; label: string; models: string[] }[];
   };
 }
 
