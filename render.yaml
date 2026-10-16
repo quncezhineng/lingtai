@@ -23,11 +23,11 @@ services:
       - key: AGENT_BACKEND
         value: model
       - key: MODEL
-        value: deepseek/deepseek-chat
+        value: deepseek/deepseek-v4-flash
       - key: DATA_DIR
         value: /var/data/lingtai
       - key: TASK_WORKER_ENABLED
-        value: true
+        value: "true"
       - key: PUBLIC_API_URL
         fromService:
           name: lingtai-api
