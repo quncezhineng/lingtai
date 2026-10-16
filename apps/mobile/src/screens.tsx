@@ -43,7 +43,7 @@ import { API_URL } from "./api";
 import { browserAddress } from "./browser-address";
 import { localDateTime, startOfZonedDay, zonedInstant } from "./date-time";
 import { activeLocaleTag, useTranslation } from "./i18n";
-import { statusLabel, tr } from "./i18n/translate";
+import { runtimeLabel, statusLabel, tr } from "./i18n/translate";
 import {
   Button,
   Card,
@@ -360,7 +360,7 @@ export function TodayScreen() {
                 .map((a) => (
                   <LinkRow
                     key={a.id}
-                    title={a.title}
+                    title={runtimeLabel(a.title)}
                     detail={t("screens.todayReviewDetail")}
                     onPress={() => open({ type: "review", action: a })}
                     icon={ShieldCheck}
@@ -375,7 +375,7 @@ export function TodayScreen() {
                     <Check size={14} color={colors.text} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={[s.text, { fontSize: 12 }]}>{a.title}</Text>
+                    <Text style={[s.text, { fontSize: 12 }]}>{runtimeLabel(a.title)}</Text>
                     <Text style={s.small}>{relativeDate(a.date)}</Text>
                   </View>
                 </View>
@@ -1129,7 +1129,7 @@ export function ActivityScreen() {
                 )}
               </View>
               <View style={{ flex: 1, gap: 4 }}>
-                <Text style={s.text}>{a.title}</Text>
+                <Text style={s.text}>{runtimeLabel(a.title)}</Text>
                 <Text style={s.small}>{relativeDate(a.createdAt)}</Text>
               </View>
               <Chip
@@ -1172,7 +1172,7 @@ export function ActivityScreen() {
                   <Clock3 size={16} color={colors.muted} />
                 </View>
                 <View style={{ flex: 1, gap: 4 }}>
-                  <Text style={s.text}>{a.title}</Text>
+                  <Text style={s.text}>{runtimeLabel(a.title)}</Text>
                   <Text style={s.muted}>{resultSummary(a.detail)}</Text>
                   <Text style={s.small}>
                     {dateLabel(a.date)} · {timeLabel(a.date)}

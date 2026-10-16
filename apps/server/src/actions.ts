@@ -7,6 +7,7 @@ import {
 } from "../../../packages/domain/src/index.ts";
 import type { Store } from "./db.ts";
 import { AppError } from "./errors.ts";
+import { backgroundFailure } from "./log.ts";
 
 interface Options {
   execute: (
@@ -26,6 +27,10 @@ interface Options {
   }>;
   connected: (owner: string) => Promise<boolean>;
   connection?: (owner: string) => Promise<{ id: string; account: string } | null>;
+  /**
+   * 复核有结果后回调（已批准、已拒绝、已过期）。通知清理失败不能影响复核本身。
+   */
+  decided?: (owner: string, action: ActionProposal) => Promise<void>;
   now?: () => number;
 }
 export class ActionService {
@@ -131,6 +136,7 @@ export class ActionService {
         if (!current) throw new AppError("Action not found", 404);
         return current;
       }
+      await this.resolveReview(owner, expired);
       throw new AppError("This review expired. Create a fresh proposal.", 409);
     }
     if (decision === "approve" && !(await this.options.connected(owner)))
@@ -163,6 +169,7 @@ export class ActionService {
       claimed,
       decision === "deny" ? "Declined; no changes made" : "Approved; execution started",
     );
+    await this.resolveReview(owner, claimed);
     if (decision === "deny") return claimed;
     if (claimed.taskId) {
       const task = await this.db.get<{ status: string }>(owner, "tasks", claimed.taskId);
@@ -214,5 +221,21 @@ export class ActionService {
       date: new Date(this.now()).toISOString(),
       status: action.status,
     });
+  }
+  /**
+   * 过期的复核不再等你的答复：主动收尾，而不是等下次点击时才报错。
+   * 返回被收尾的复核，方便调用方一起处理它留下的通知。
+   */
+  async expireStale(): Promise<{ owner: string; value: ActionProposal }[]> {
+    return this.db.expireStaleActions<ActionProposal>(new Date(this.now()).toISOString());
+  }
+  /** 复核已经不再是「等你处理」，它点亮的未读通知要一起收起。 */
+  private async resolveReview(owner: string, action: ActionProposal) {
+    if (!this.options.decided) return;
+    try {
+      await this.options.decided(owner, action);
+    } catch (error) {
+      backgroundFailure("resolve review notifications", error);
+    }
   }
 }

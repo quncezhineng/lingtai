@@ -31,6 +31,7 @@ import type { Store } from "../db.ts";
 import { AppError } from "../errors.ts";
 import type { Files } from "../files.ts";
 import { backgroundFailure } from "../log.ts";
+import { resolveTaskNotifications } from "../notifications.ts";
 import { SearchService } from "../search.ts";
 import type { WorkspaceService } from "../workspace.ts";
 import { analyzeSpending } from "./finance.ts";
@@ -86,6 +87,9 @@ export class AgentService {
     if (this.refreshing) return;
     this.refreshing = true;
     try {
+      // 过期的复核不再等你的答复：收尾之后，它就不该继续点亮「通知」上的提示。
+      for (const { owner, value } of await this.actions.expireStale())
+        await resolveTaskNotifications(this.db, owner, value.taskId);
       // Recover publications if the process exited after committing an outcome.
       for (const { owner, value } of await this.db.scan<AgentTask>("tasks"))
         await this.publishOutcome(owner, value);
@@ -322,6 +326,9 @@ export class AgentService {
       if (proposal?.status === "awaiting_review")
         await this.actions.decide(owner, proposal.id, proposal.hash, "deny");
     }
+    // 取消和重试都是「这件事我已经处理过了」：留下的未读通知不再点亮「通知」上的提示。
+    if (action === "cancel" || action === "retry")
+      await resolveTaskNotifications(this.db, owner, id);
     await this.db.put(owner, "run-events", {
       id: randomUUID(),
       taskId: id,
@@ -355,6 +362,8 @@ export class AgentService {
       },
     );
     if (!next) throw new AppError("Task changed; refresh and try again", 409);
+    // 用户已经补充了信息，这条任务要你回答的通知就算处理完了。
+    await resolveTaskNotifications(this.db, owner, id);
     return next;
   }
   async createGoal(owner: string, raw: unknown, id?: string) {

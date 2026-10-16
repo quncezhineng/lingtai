@@ -15,17 +15,27 @@ export function BackgroundUpdates() {
   const updates = data?.notifications.filter((item) => !item.read && item.taskId) || [];
   const update = updates[0];
   if (!update || data?.identity.showChatUpdates === false) return null;
-  async function dismiss() {
-    if (!update) return;
+  async function markRead() {
+    if (!update) return false;
     setBusy(true);
     try {
       await mutate(`/notifications/${update.id}/read`, {});
       setError("");
+      return true;
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
+      return false;
     } finally {
       setBusy(false);
     }
+  }
+  async function dismiss() {
+    await markRead();
+  }
+  // 打开任务就等于看过这条更新：和「通知」里一致地标为已读，右上角的提示随之收起。
+  async function view() {
+    if (!update?.taskId) return;
+    if (await markRead()) open({ type: "task", taskId: update.taskId });
   }
   return (
     <Card style={{ backgroundColor: colors.sky, padding: 16, gap: 10 }}>
@@ -48,11 +58,7 @@ export function BackgroundUpdates() {
       <Text style={s.heading}>{update.title}</Text>
       <Text style={s.text}>{resultSummary(update.body)}</Text>
       <View style={[s.row, { gap: 8, flexWrap: "wrap" }]}>
-        <Button
-          small
-          icon={ArrowRight}
-          onPress={() => update.taskId && open({ type: "task", taskId: update.taskId })}
-        >
+        <Button small icon={ArrowRight} busy={busy} onPress={() => void view()}>
           {t("tools.viewTask")}
         </Button>
         {updates.length > 1 && (

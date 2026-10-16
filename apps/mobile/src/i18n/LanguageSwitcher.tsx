@@ -5,8 +5,8 @@
  * 选择任意语言后立即生效并写入本地存储，无需刷新页面。
  */
 import { Check, Languages } from "lucide-react-native";
-import { useCallback, useState } from "react";
-import { Modal, Pressable, Text, View } from "react-native";
+import { useCallback, useRef, useState } from "react";
+import { Modal, Pressable, Text, useWindowDimensions, View } from "react-native";
 import { colors } from "../ui";
 import { useTranslation } from "./index";
 import { LOCALE_LABELS, type Locale } from "./types";
@@ -14,6 +14,9 @@ import { LOCALE_LABELS, type Locale } from "./types";
 export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
   const { locale, locales, setLocale, t } = useTranslation();
   const [open, setOpen] = useState(false);
+  const [anchor, setAnchor] = useState<{ top: number; right: number } | null>(null);
+  const { width: windowWidth } = useWindowDimensions();
+  const trigger = useRef<View>(null);
   const current = LOCALE_LABELS[locale];
 
   const choose = useCallback(
@@ -24,13 +27,25 @@ export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
     [setLocale],
   );
 
+  // 弹窗要贴着按钮的下方：先量出按钮在窗口里的位置，再按它的下沿和右沿定位。
+  const show = useCallback(() => {
+    trigger.current?.measureInWindow((x, y, width, height) => {
+      setAnchor({
+        top: y + height + 6,
+        right: Math.max(12, windowWidth - (x + width)),
+      });
+      setOpen(true);
+    });
+  }, [windowWidth]);
+
   return (
     <>
       <Pressable
+        ref={trigger}
         accessibilityRole="button"
         accessibilityLabel={t("common.currentLanguage", { language: current.english })}
         accessibilityHint={t("common.changeLanguage")}
-        onPress={() => setOpen(true)}
+        onPress={show}
         style={({ pressed }) => ({
           height: 38,
           paddingHorizontal: compact ? 9 : 11,
@@ -46,7 +61,7 @@ export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
         <Languages size={15} strokeWidth={1.8} color={colors.text} />
         <Text style={{ fontSize: 12, fontWeight: "600", color: colors.text }}>{current.short}</Text>
       </Pressable>
-      {open && (
+      {open && anchor && (
         <Modal transparent animationType="fade" visible onRequestClose={() => setOpen(false)}>
           <Pressable
             accessibilityRole="button"
@@ -54,15 +69,15 @@ export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
             onPress={() => setOpen(false)}
             style={{
               flex: 1,
-              alignItems: "flex-end",
-              paddingTop: 96,
-              paddingRight: 20,
               backgroundColor: "rgba(17,25,28,0.18)",
             }}
           >
             <View
               accessibilityViewIsModal
               style={{
+                position: "absolute",
+                top: anchor.top,
+                right: anchor.right,
                 minWidth: 208,
                 backgroundColor: colors.card,
                 borderRadius: 20,

@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 import { ActionService } from "../apps/server/src/actions.ts";
 import { createStore, type Store } from "../apps/server/src/db.ts";
+import { resolveTaskNotifications } from "../apps/server/src/notifications.ts";
+import type { AgentNotification } from "../packages/domain/src/agent.ts";
 import { type ActionProposal, eventDraftSchema } from "../packages/domain/src/index.ts";
 
 function deferred<T>() {
@@ -321,4 +323,73 @@ test("a task cancelled between claim and execution never reaches the provider", 
   assert.equal(calls, 0);
   const saved = await db.get<ActionProposal>("cancel-race", "actions", proposal.id);
   assert.equal(saved?.status, "awaiting_review");
+});
+
+test("a decided review clears the unread notification it raised", async () => {
+  const owner = "notice-user";
+  const service = new ActionService(db, {
+    execute: async () => "sent",
+    connected: async () => true,
+    decided: (actionOwner, action) => resolveTaskNotifications(db, actionOwner, action.taskId),
+  });
+  const notice: AgentNotification = {
+    id: "review-notice",
+    taskId: "review-task",
+    title: "Ready for your review",
+    body: "Send “Visit”",
+    createdAt: new Date().toISOString(),
+    read: false,
+  };
+  const otherTaskNotice: AgentNotification = {
+    ...notice,
+    id: "other-task-notice",
+    taskId: "other",
+  };
+  const workspaceNotice: AgentNotification = { ...notice, id: "workspace-notice" };
+  delete workspaceNotice.taskId;
+  await db.put(owner, "notifications", notice);
+  await db.put(owner, "notifications", otherTaskNotice);
+  await db.put(owner, "notifications", workspaceNotice);
+
+  const proposal = await service.propose(owner, email, "review-notice-key", notice.taskId);
+  await service.decide(owner, proposal.id, proposal.hash, "deny");
+
+  assert.equal((await db.get<AgentNotification>(owner, "notifications", notice.id))?.read, true);
+  assert.equal(
+    (await db.get<AgentNotification>(owner, "notifications", otherTaskNotice.id))?.read,
+    false,
+    "another task's notice stays unread",
+  );
+  assert.equal(
+    (await db.get<AgentNotification>(owner, "notifications", workspaceNotice.id))?.read,
+    false,
+    "a notice without a task stays unread",
+  );
+});
+
+test("a review past its expiry stops waiting for the person", async () => {
+  const owner = "stale-review";
+  let now = Date.now();
+  const opened = new ActionService(db, {
+    execute: async () => "sent",
+    connected: async () => true,
+    now: () => now,
+  });
+  const stale = await opened.propose(owner, email, "stale-review-key", "stale-task");
+  now += 31 * 60 * 1000;
+  const fresh = await opened.propose(owner, email, "fresh-review-key");
+
+  const swept = (await opened.expireStale()).filter((entry) => entry.owner === owner);
+  assert.deepEqual(
+    swept.map((entry) => entry.value.id),
+    [stale.id],
+    "only the review past its expiry is retired",
+  );
+  assert.equal(swept[0].value.taskId, "stale-task");
+  assert.equal((await db.get<ActionProposal>(owner, "actions", stale.id))?.status, "expired");
+  assert.equal(
+    (await db.get<ActionProposal>(owner, "actions", fresh.id))?.status,
+    "awaiting_review",
+    "a review still inside its window keeps waiting",
+  );
 });

@@ -20,7 +20,13 @@ import { LOCALE_TAGS, resolveLocale, setActiveLocale, translate } from "./transl
 import { LOCALE_STORAGE_KEY, LOCALES, type Locale, type TranslateParams } from "./types";
 
 export type { TranslationKey } from "./locales/en";
-export { activeLocaleTag, getActiveLocale, localizeAgentName, statusLabel } from "./translate";
+export {
+  activeLocaleTag,
+  getActiveLocale,
+  localizeAgentName,
+  runtimeLabel,
+  statusLabel,
+} from "./translate";
 export type { Locale, TranslateParams };
 export { LOCALE_STORAGE_KEY, LOCALES };
 export type TranslationFn = (key: TranslationKey, params?: TranslateParams) => string;

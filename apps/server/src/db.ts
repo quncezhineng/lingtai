@@ -144,6 +144,22 @@ export class Store {
       `UPDATE records SET data=data || '{"status":"outcome_unknown","error":"Server restarted during execution. Check the provider before creating another action."}'::jsonb WHERE kind='actions' AND data->>'status'='executing'`,
     );
   }
+  /**
+   * 复核只在一段时间内等你的答复。过期的复核不再等任何人，交回给调用方收尾，
+   * 免得它一直以「待确认」的身份点亮「通知」上的提示。
+   */
+  async expireStaleActions<T extends { taskId?: string }>(
+    now: string,
+  ): Promise<{ owner: string; value: T }[]> {
+    const result = await this.db.query(
+      `UPDATE records SET data=data || '{"status":"expired"}'::jsonb,updated_at=now()
+       WHERE kind='actions' AND data->>'status'='awaiting_review'
+       AND (data->>'expiresAt')::timestamptz <= $1::timestamptz
+       RETURNING jsonb_build_object('owner',owner,'value',data) AS data`,
+      [now],
+    );
+    return result.rows.map((row) => row.data as { owner: string; value: T });
+  }
   async take<T>(owner: string, kind: string, id: string): Promise<T | null> {
     const result = await this.db.query(
       "DELETE FROM records WHERE owner=$1 AND kind=$2 AND id=$3 RETURNING data",

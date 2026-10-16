@@ -6,6 +6,7 @@ import {
   useCopilotKit,
   useRenderTool,
   useRenderToolCall,
+  useThreads,
 } from "@copilotkit/react-native/headless";
 import { ArrowDown, ArrowUp, FileText, RotateCcw, Square, X } from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
@@ -216,6 +217,12 @@ function ServerToolCard({
     </Card>
   );
 }
+/** 从第一条用户消息生成对话标题：去掉附件说明、压缩空白，最多保留 24 个字符。 */
+function titleFrom(text: string): string {
+  const plain = text.split("\n\nAttached documents:")[0].replace(/\s+/g, " ").trim();
+  if (!plain) return "";
+  return plain.length > 24 ? `${plain.slice(0, 24)}…` : plain;
+}
 export function ChatScreen({
   prompt,
   thread,
@@ -233,6 +240,7 @@ export function ChatScreen({
   const threadId = richThreads ? selection.id : "local-main";
   const agentId = `lingtai-${threadId}`;
   const { agent, isReady } = useAgent({ agentId, runtimeAgentId: "default", threadId });
+  const { renameThread } = useThreads({ agentId: "default", enabled: richThreads });
   const { copilotkit } = useCopilotKit();
   const renderToolCall = useRenderToolCall();
   const [draft, setDraft] = useState("");
@@ -346,13 +354,20 @@ export function ChatScreen({
       queuedTurn.current = Boolean(message);
       setBusy(true);
       setError("");
-      if (message) agent.addMessage({ id: message.id, role: "user", content: message.text });
+      let firstTitle: string | null = null;
+      if (message) {
+        if (richThreads && !agent.messages.some((m) => m.role === "user"))
+          firstTitle = titleFrom(message.text);
+        agent.addMessage({ id: message.id, role: "user", content: message.text });
+      }
       try {
         await runConversationTurn(
           agentId,
           () => copilotkit.runAgent({ agent }),
           (onError) => copilotkit.subscribe({ onError }),
         );
+        // 线程由 runAgent 在平台上创建后才可命名；命名失败不影响主流程。
+        if (firstTitle) void renameThread(threadId, firstTitle).catch(() => {});
         await Promise.all([refresh(), refreshAgent()]);
       } catch (e) {
         if (message && e instanceof ConversationTurnError && e.code === threadLocked) {
@@ -388,6 +403,9 @@ export function ChatScreen({
       refreshAgent,
       saveHistory,
       queue,
+      richThreads,
+      renameThread,
+      threadId,
     ],
   );
   const runQueued = useCallback(

@@ -35,7 +35,7 @@ import type {
 } from "../../../packages/domain/src/agent";
 import { useAgentWorkspace } from "./agent-workspace";
 import { activeLocaleTag, useTranslation } from "./i18n";
-import { statusLabel, tr } from "./i18n/translate";
+import { runtimeLabel, statusLabel, tr } from "./i18n/translate";
 import { ActivityScreen, ConnectionsScreen } from "./screens";
 import {
   Button,
@@ -159,7 +159,9 @@ export function TaskCard({
         )}
         {(task.question || task.result || task.error || next?.title) && (
           <Text numberOfLines={compact ? 2 : 4} style={s.muted}>
-            {task.question || task.error || resultSummary(task.result || next?.title || "")}
+            {runtimeLabel(task.question) ||
+              task.error ||
+              resultSummary(runtimeLabel(task.result || next?.title || ""))}
           </Text>
         )}
         {waiting && (
@@ -471,7 +473,9 @@ export function TaskDetail({ taskId }: { taskId: string }) {
           )}
           {task.status === "waiting_input" && (
             <Card style={{ backgroundColor: colors.sky, gap: 10 }}>
-              <Text style={s.heading}>{task.question || t("agent.detailNeeded")}</Text>
+              <Text style={s.heading}>
+                {runtimeLabel(task.question) || t("agent.detailNeeded")}
+              </Text>
               {fieldNames.map((name) =>
                 missing.some(
                   (f) => typeof f === "object" && f && f.name === name && f.type === "checkbox",
@@ -543,7 +547,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
                     {step.status === "succeeded" ? "✓" : `${index + 1}.`}
                   </Text>
                   <View style={{ flex: 1, gap: 3 }}>
-                    <Text style={s.text}>{step.title}</Text>
+                    <Text style={s.text}>{runtimeLabel(step.title)}</Text>
                     <Text style={s.small}>
                       {statusLabel(step.status)}
                       {step.detail ? ` · ${step.detail}` : ""}
@@ -627,7 +631,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
               <Text style={s.small}>
                 {stamp(event.date)} · {statusLabel(event.kind)}
               </Text>
-              <Text style={s.text}>{event.title}</Text>
+              <Text style={s.text}>{runtimeLabel(event.title)}</Text>
               <Text selectable style={s.muted}>
                 {event.detail}
               </Text>

@@ -269,6 +269,39 @@ test("notification reads do not load the full agent workspace", async (t) => {
   assert.ok(Array.isArray(await response.json()));
 });
 
+test("handling a task clears the notification that was waiting on the person", async () => {
+  const owner = "local-user";
+  const task = await read<AgentTask>("/tasks", { prompt: "Book a table" }, 201);
+  const notice: AgentNotification = {
+    id: "answer-notice",
+    taskId: task.id,
+    title: "Your details are needed",
+    body: "Which day works?",
+    createdAt: new Date().toISOString(),
+    read: false,
+  };
+  await db.put(owner, "notifications", notice);
+  const waiting = {
+    ...(await server.agent.getTask(owner, task.id)),
+    status: "waiting_input" as const,
+    question: "Which day works?",
+  };
+  await db.put(owner, "tasks", waiting);
+
+  const answered = await read<AgentTask>(`/tasks/${task.id}/input`, { answer: "Friday" });
+  assert.notEqual(answered.status, "waiting_input");
+  assert.equal((await db.get<AgentNotification>(owner, "notifications", notice.id))?.read, true);
+
+  // Cancelling the task is the same kind of "already handled" and clears its notices too.
+  const cancelNotice: AgentNotification = { ...notice, id: "cancel-notice", read: false };
+  await db.put(owner, "notifications", cancelNotice);
+  await read(`/tasks/${task.id}/control`, { action: "cancel" });
+  assert.equal(
+    (await db.get<AgentNotification>(owner, "notifications", cancelNotice.id))?.read,
+    true,
+  );
+});
+
 test("sample monitor saves its baseline and deduplicates notifications for repeated changes", async () => {
   await read("/sample-page", { text: "No tables available" });
   const monitor = await read<Monitor>(

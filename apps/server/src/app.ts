@@ -25,6 +25,7 @@ import { AppError } from "./errors.ts";
 import { Files } from "./files.ts";
 import { GoogleAuth } from "./google-auth.ts";
 import { applyModel, isOfferedModel, modelChoices } from "./models.ts";
+import { resolveTaskNotifications } from "./notifications.ts";
 import { createRateLimitStore, rateLimit } from "./rate-limit.ts";
 import { createSupabaseAuth } from "./supabase-auth.ts";
 import { createSupabaseData } from "./supabase-data.ts";
@@ -50,6 +51,7 @@ export async function createApp(
     prepare: (owner, input, connectionId) => workspace.prepare(owner, input, connectionId),
     connected: (owner) => workspace.connected(owner),
     connection: (owner) => workspace.connection(owner),
+    decided: (owner, action) => resolveTaskNotifications(db, owner, action.taskId),
   });
   const browser = new BrowserService(db, config, auth, files);
   const computer = new ComputerService(db, config, options.docker);
