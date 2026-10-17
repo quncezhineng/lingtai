@@ -36,7 +36,14 @@ export class ConversationAgent extends AbstractAgent {
     super({ agentId: "default" });
   }
   clone(): ConversationAgent {
-    return new ConversationAgent(this.config, this.service, this.owner, this.jevAdapter);
+    // CopilotKit clones the registered agent for every request. Reusing the
+    // base clone preserves middleware such as the conversation-stream tap.
+    return Object.assign(super.clone() as ConversationAgent, {
+      config: this.config,
+      service: this.service,
+      owner: this.owner,
+      jevAdapter: this.jevAdapter,
+    });
   }
   run(input: RunAgentInput): Observable<BaseEvent> {
     return this.runInternal(input, false);

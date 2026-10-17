@@ -28,6 +28,7 @@ makeRuntime(
   {},
   { owner: async () => "local-user" },
   new CopilotKitIntelligence({ apiKey: "test-project-key-never-sent" }),
+  { observe: (_owner, _threadId, _runId, source) => source },
 );
 await new Promise(resolve => setImmediate(resolve));
 console.log(JSON.stringify(requests));

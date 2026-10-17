@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>对话模块核心业务逻辑与状态机</title>
+  <style>
+    :root {
+      --bg: #f6f3ec;
+      --paper: #fffdf7;
+      --ink: #1f2724;
+      --muted: #68716c;
+      --line: #d9d3c7;
+      --accent: #0f766e;
+      --accent-soft: #dff3ee;
+      --warn: #9a5b13;
+      --warn-soft: #fff0d7;
+      --shadow: 0 18px 50px rgba(43, 49, 44, .08);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #101715;
+        --paper: #17201d;
+        --ink: #edf2ef;
+        --muted: #a8b3ae;
+        --line: #33413c;
+        --accent: #66d6c9;
+        --accent-soft: #153e39;
+        --warn: #f0b96f;
+        --warn-soft: #3d2d17;
+        --shadow: 0 18px 50px rgba(0, 0, 0, .28);
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font: 16px/1.72 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 8% 4%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 30rem),
+        radial-gradient(circle at 92% 12%, color-mix(in srgb, var(--warn) 10%, transparent), transparent 24rem),
+        var(--bg);
+    }
+    a { color: var(--accent); text-underline-offset: 3px; }
+    a:hover { text-decoration-thickness: 2px; }
+    .shell { width: min(1120px, calc(100% - 36px)); margin: 0 auto; }
+    header { padding: 72px 0 34px; }
+    .eyebrow { margin: 0 0 12px; color: var(--accent); font-size: 13px; font-weight: 750; letter-spacing: .14em; text-transform: uppercase; }
+    h1 { margin: 0; max-width: 820px; font-size: clamp(36px, 7vw, 72px); line-height: 1.05; letter-spacing: -.045em; }
+    .lede { max-width: 780px; margin: 24px 0 0; color: var(--muted); font-size: clamp(17px, 2.2vw, 21px); }
+    .status { display: inline-flex; gap: 9px; align-items: center; margin-top: 24px; padding: 8px 13px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); font-size: 13px; font-weight: 650; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 5px var(--accent-soft); }
+    main { padding: 16px 0 76px; }
+    section { margin: 30px 0; }
+    .panel { border: 1px solid var(--line); border-radius: 24px; background: color-mix(in srgb, var(--paper) 94%, transparent); box-shadow: var(--shadow); }
+    .pad { padding: clamp(22px, 4vw, 38px); }
+    h2 { margin: 0 0 18px; font-size: clamp(23px, 3.2vw, 32px); line-height: 1.2; letter-spacing: -.025em; }
+    h3 { margin: 26px 0 8px; font-size: 18px; }
+    p { margin: 10px 0; }
+    .muted { color: var(--muted); }
+    .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 18px; }
+    .metric { padding: 17px; border-radius: 18px; background: var(--bg); border: 1px solid var(--line); }
+    .metric strong { display: block; font-size: 26px; line-height: 1.15; letter-spacing: -.03em; }
+    .metric span { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; }
+    .artifact-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+    .artifact { display: flex; min-height: 150px; flex-direction: column; padding: 22px; border: 1px solid var(--line); border-radius: 20px; background: var(--paper); color: var(--ink); text-decoration: none; transition: transform .18s ease, border-color .18s ease, background .18s ease; }
+    .artifact:hover { transform: translateY(-2px); border-color: var(--accent); background: var(--accent-soft); }
+    .artifact .num { color: var(--accent); font: 700 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .12em; }
+    .artifact strong { display: block; margin: 16px 0 8px; font-size: 19px; line-height: 1.35; }
+    .artifact span:last-child { margin-top: auto; color: var(--muted); font-size: 13px; }
+    .split { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
+    .note { padding: 17px 19px; border-left: 4px solid var(--warn); border-radius: 4px 14px 14px 4px; background: var(--warn-soft); }
+    ul, ol { margin: 10px 0; padding-left: 1.4em; }
+    li { margin: 7px 0; }
+    code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .9em; }
+    code { padding: .12em .36em; border-radius: 5px; background: color-mix(in srgb, var(--accent) 10%, transparent); }
+    .flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 18px; }
+    .step { position: relative; padding: 14px; border: 1px solid var(--line); border-radius: 15px; background: var(--bg); min-height: 100px; }
+    .step b { display: block; color: var(--accent); font-size: 12px; letter-spacing: .08em; }
+    .step span { display: block; margin-top: 8px; font-size: 13px; line-height: 1.45; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { padding: 12px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-size: 12px; letter-spacing: .04em; }
+    tr:last-child td { border-bottom: 0; }
+    footer { padding: 0 0 46px; color: var(--muted); font-size: 13px; }
+    @media (max-width: 720px) {
+      header { padding-top: 46px; }
+      .flow { grid-template-columns: 1fr 1fr; }
+      .pad { padding: 20px; }
+    }
+  
+    .hero { padding: 54px 0 24px; }
+    .hero h1 { font-size: clamp(32px, 5.5vw, 56px); }
+    .crumbs { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0 0; }
+    .crumbs a { padding: 7px 11px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); font-size: 12px; text-decoration: none; }
+    .crumbs a:hover { border-color: var(--accent); color: var(--accent); }
+    .pipeline { display: grid; gap: 0; margin: 20px 0; }
+    .stage { display: grid; grid-template-columns: 44px 1fr; gap: 15px; padding-bottom: 20px; position: relative; }
+    .stage:not(:last-child)::before { content: ""; position: absolute; left: 21px; top: 38px; bottom: 0; width: 2px; background: var(--line); }
+    .stage .n { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-weight: 800; position: relative; z-index: 1; }
+    .stage h3 { margin: 1px 0 4px; }
+    .stage p { margin: 4px 0; }
+    .statebox { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 16px 0; }
+    .state { padding: 16px 13px; border-radius: 16px; border: 1px solid var(--line); background: var(--bg); text-align: center; }
+    .state b { display: block; font: 700 13px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--accent); }
+    .state span { display: block; margin-top: 7px; color: var(--muted); font-size: 12px; }
+    .invariant { padding: 16px 18px; margin: 10px 0; border: 1px solid var(--line); border-radius: 15px; background: var(--paper); }
+    .invariant b { color: var(--accent); }
+    .warn-list li::marker { color: var(--warn); }
+    .code { overflow: auto; padding: 17px; border: 1px solid var(--line); border-radius: 15px; background: var(--bg); font: 12.5px/1.65 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre; }
+    @media (max-width: 680px) { .statebox { grid-template-columns: 1fr 1fr; } }
+</style>
+</head>
+<body>
+  <header class="shell hero">
+    <p class="eyebrow">Artifact 02 · Business logic</p>
+    <h1>核心业务逻辑与状态机</h1>
+    <p class="lede">对话模块真正的复杂度不在“调用模型”，而在发送前后的副作用排序：先可见、再排队、串行执行、增量展示、最终替换，以及失败、停止、清空和重启后的状态收口。</p>
+    <nav class="crumbs" aria-label="报告导航">
+      <a href="index.html" target="_blank" rel="noopener noreferrer">总览</a>
+      <a href="architecture.html" target="_blank" rel="noopener noreferrer">架构依赖</a>
+      <a href="interaction-flow.html" target="_blank" rel="noopener noreferrer">交互流程</a>
+      <a href="server-runtime.html" target="_blank" rel="noopener noreferrer">服务端运行时</a>
+      <a href="frontend-render.html" target="_blank" rel="noopener noreferrer">前端渲染</a>
+      <a href="rea-evidence.html" target="_blank" rel="noopener noreferrer">REA 证据</a>
+      <a href="analysis-data.json" target="_blank" rel="noopener noreferrer">分析数据</a>
+    </nav>
+  </header>
+
+  <main class="shell">
+    <section class="panel pad" aria-labelledby="send">
+      <h2 id="send">消息发送主链路</h2>
+      <p>入口为 <code>POST /api/threads/{id}/send</code>，最终落到 <code>MuseService.send()</code>。以下顺序是理解消息一致性的关键。</p>
+      <div class="pipeline">
+        <div class="stage"><div class="n">1</div><div><h3>校验与规范化</h3><p><code>text.strip()</code>；附件通过 <code>self.attachment(path)</code> 解析；文本和附件同时为空则抛出 <code>ValueError("empty message")</code>。</p></div></div>
+        <div class="stage"><div class="n">2</div><div><h3>解析一次性云端模型</h3><p><code>via="cloud"</code> 时调用 <code>cloud_once()</code>，把本轮使用的客户端和模型 id 绑定到 inbox 项；未登录会抛 <code>CloudError</code>。</p></div></div>
+        <div class="stage"><div class="n">3</div><div><h3>线程路由与语言记忆</h3><p>找到或创建线程；把客户端语言写入 <code>thread.agent.ui_language</code>。若线程绑定其他设备，则改走 <code>hub.run_remote()</code>，不在本进程运行模型。</p></div></div>
+        <div class="stage"><div class="n">4</div><div><h3>生成用户可见事件</h3><p>构造 <code>{"type":"user","text":...}</code>，附带附件、模型标识、设备来源等字段，通过 <code>ui.emit()</code> 写入时间线并广播。</p></div></div>
+        <div class="stage"><div class="n">5</div><div><h3>旁路拦截</h3><p>如果消息命中待回答问题，<code>answer_question()</code> 直接消费并返回；如果命中 avatar 工作室请求，也由对应卡片处理，不启动模型。</p></div></div>
+        <div class="stage"><div class="n">6</div><div><h3>线程元数据同步</h3><p>发布 <code>kind=thread</code> 更新侧栏时间；通过 <code>sync.message_sent()</code> 尽早同步到账号其他设备，而不是等整轮结束。</p></div></div>
+        <div class="stage"><div class="n">7</div><div><h3>进入 inbox</h3><p>把普通文本或 <code>Incoming</code> 对象放入 <code>thread.inbox</code>，随后 <code>_ensure_worker()</code> 确保仅有一个未完成的 worker。</p></div></div>
+        <div class="stage"><div class="n">8</div><div><h3>返回事件句柄</h3><p>API 返回 <code>{"event": event, "thread": thread.meta()}</code>；客户端立即拿到用户气泡 id，后续助手内容通过推送通道到达。</p></div></div>
+      </div>
+    </section>
+
+    <section class="panel pad" aria-labelledby="state">
+      <h2 id="state">线程状态机</h2>
+      <div class="statebox">
+        <div class="state"><b>idle</b><span>无执行中的 run</span></div>
+        <div class="state"><b>working</b><span>worker 正在执行模型或工具</span></div>
+        <div class="state"><b>waiting</b><span>等待审批或用户回答</span></div>
+        <div class="state"><b>stopping</b><span>已请求取消，等待收口</span></div>
+      </div>
+      <p><code>thread.busy</code> 是比 UI 状态更直接的门禁：worker 消费一条 inbox 项时置为 <code>true</code>，在 <code>finally</code> 中置回 <code>false</code> 并发布线程元数据。清空线程要求 <code>not thread.busy</code>，否则返回 false，由 API 映射为 409。</p>
+      <div class="code">while not thread.inbox.empty():
+    item = thread.inbox.get_nowait()
+    thread.busy = True
+    status = "working"
+    try:
+        final = await thread.agent.run(...)
+        finish_run(...)
+    except CancelledError:
+        settle_stopped(...)
+        raise
+    except Exception as exc:
+        emit(failure_notice(exc))
+    finally:
+        end_run()
+        release_llm()
+        thread.busy = False
+        status = "idle"
+        publish(thread.meta())</div>
+      <p class="muted">这套结构的核心不变量是：<strong>同一线程同一时刻最多一个 worker</strong>，但 inbox 可以继续接收排队消息；停止操作清空队列并取消当前 worker。</p>
+    </section>
+
+    <section class="panel pad" aria-labelledby="stream">
+      <h2 id="stream">流式回复的生成与收口</h2>
+      <p><code>WebUI.on_text_delta()</code> 是流生命周期的起点。第一次收到非空文本时创建 <code>stream_id</code>，并把 stream 事件直接发到 EventBus；这些增量不写入时间线。</p>
+      <div class="code">on_text_delta(text):
+    thread = current_thread()
+    sid = stream_ids.get(thread)
+    if sid is None:
+        sid = new_id("a")
+        stream_ids[thread] = sid
+        stream_buf[thread] = ""
+        publish({kind: "stream_start", thread, id: sid})
+    stream_buf[thread] += text
+    publish({kind: "delta", thread, id: sid, text})
+
+on_assistant_message(content, reasoning):
+    sid = stream_ids.pop(thread, None)
+    text = (content or "").strip()
+    if sid is not None:
+        publish({kind: "stream_end", thread, id: sid, discard: not text})
+    if text:
+        emit({id: sid or new_id("a"), type: "assistant", text})</div>
+      <h3>为什么最后要复用同一个 id</h3>
+      <p>前端把临时流维护为 <code>state.streams[thread]</code>。当持久化 assistant 事件以相同 id 到达时，reducer 可以在同一次更新中清除临时流并把正式消息插入事件列表，避免“先消失再出现”的闪烁。</p>
+      <h3><code>stream_end.discard</code> 的语义</h3>
+      <p>如果模型先流出了内容，但最终被判定为空（例如被解析器移除的提示模式工具调用、静默后台运行），服务端发送 <code>discard: true</code>，前端立即删除临时气泡，不把无效内容留在界面上。</p>
+      <h3>失败与取消</h3>
+      <p>异常路径不伪造 assistant 消息，而是发出 <code>notice</code> 事件。取消路径由 <code>_settle_stopped()</code> 清理未完成的工具调用、重建合法消息边界、把 agent 状态归零并写入 “Stopped.” 通知。</p>
+    </section>
+
+    <section class="panel pad" aria-labelledby="repair">
+      <h2 id="repair">停止、清空与重启修复</h2>
+      <div class="split">
+        <div>
+          <h3>停止正在执行的线程</h3>
+          <p><code>stop_thread()</code> 先清空 inbox，再把最近 50 条事件中仍为 <code>pending</code> 的审批/问题标记为 <code>expired</code>，设置 <code>thread.stopping = True</code> 并取消 worker。取消后的会话必须移除悬空 tool message，避免下一轮模型看到“没有结果的工具调用”。</p>
+          <h3>清空已完成的线程</h3>
+          <p><code>clear_thread()</code> 仅在空闲时执行：清空 timeline、重置 agent、保存 session、释放 holds、结束 sentinel 对话，并广播 <code>thread_cleared</code>。</p>
+        </div>
+        <div>
+          <h3>进程重启后的修复</h3>
+          <p><code>_make_thread()</code> 加载时间线后，把遗留状态统一收敛：pending 审批/问题改为 expired；running 工具改为 error 并标记 “interrupted by a restart”；live 浏览器/hands 改为 done；内存中的 hold 改为 off 且标记 stale。</p>
+          <p>这一点很重要：时间线是事实源，但“正在执行”属于进程内状态，重启后不能假装它仍在运行。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel pad" aria-labelledby="artifact">
+      <h2 id="artifact">文件产物业务链路</h2>
+      <ol>
+        <li>Agent 将文件写入线程工作区，并产生 <code>artifact</code> 事件，包含 <code>path</code>、<code>name</code>、<code>action</code>。</li>
+        <li>时间线持久化产物事件；前端在 <code>files</code> 集合中汇总当前线程所有产物路径。</li>
+        <li><code>ArtifactCard</code> 展示标题、路径和类型；HTML/图片显示缩略预览。</li>
+        <li>点击卡片调用 <code>onOpenFile(path)</code>，由 <code>FileViewer</code> 读取文件文本或 URL。</li>
+        <li>HTML 通过 <code>srcDoc</code> 进入 sandbox iframe，且不授予 <code>allow-same-origin</code>；脚本无法读取令牌或调用应用 API。</li>
+        <li>Markdown 回复中若提到该线程已有的文件路径，会渲染成内部按钮，而不是跳转到外部地址。</li>
+      </ol>
+      <div class="note">产物卡只保存路径，不把文件正文塞进 WebSocket 事件。这避免大文件放大每条实时消息，也把访问控制留在文件读取 API 与查看器边界。</div>
+    </section>
+
+    <section class="panel pad" aria-labelledby="invariants">
+      <h2 id="invariants">业务不变量</h2>
+      <div class="invariant"><b>I1 · 先可见，再执行。</b> 用户事件在 worker 启动前写入时间线，因此网络抖动或模型失败不会让用户的话消失。</div>
+      <div class="invariant"><b>I2 · 一条线程一个执行者。</b> <code>_ensure_worker()</code> 只创建一个未完成 worker，inbox 承担排队；避免两个 run 同时改写同一 session。</div>
+      <div class="invariant"><b>I3 · 临时流不落盘。</b> delta 仅广播，最终 assistant 事件才持久化；这使时间线保持较少记录，也意味着崩溃时不能恢复半截流。</div>
+      <div class="invariant"><b>I4 · 最终事件复用流 id。</b> 保证客户端能把“直播气泡”原子替换为“正式消息”。</div>
+      <div class="invariant"><b>I5 · 慢客户端被隔离。</b> EventBus 队列满即断开，恢复责任转交给客户端的历史重载。</div>
+      <div class="invariant"><b>I6 · 重启状态必须收敛。</b> pending/running/live/hold 在加载时转为终止态，不把进程内执行幻觉带入新进程。</div>
+    </section>
+
+    <section class="panel pad" aria-labelledby="failures">
+      <h2 id="failures">异常矩阵</h2>
+      <table>
+        <thead><tr><th>场景</th><th>上游行为</th><th>影响</th></tr></thead>
+        <tbody>
+          <tr><td>空消息</td><td><code>ValueError</code> → HTTP 400</td><td>不会创建时间线事件</td></tr>
+          <tr><td>附件路径非法</td><td><code>PermissionError</code> 或校验失败</td><td>API 映射为 400，消息不入队</td></tr>
+          <tr><td>线程忙时清空</td><td><code>clear_thread()</code> 返回 false → 409</td><td>不破坏当前 run</td></tr>
+          <tr><td>停止运行</td><td>取消 worker，队列清空，待审批过期</td><td>保留对话历史，补齐 tool 消息边界</td></tr>
+          <tr><td>模型异常</td><td>发 <code>notice</code>，finally 收敛 idle</td><td>流式气泡由已完成内容或空流规则处理</td></tr>
+          <tr><td>慢 WebSocket</td><td>队列满，移除订阅者</td><td>连接最终关闭，客户端重连并重载历史</td></tr>
+          <tr><td>服务重启</td><td>修复 pending/running/live/hold</td><td>历史可读，未完成执行被显式标记</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <footer class="shell"><p>逻辑顺序依据源码静态阅读；异常矩阵描述代码分支，不代表已在所有环境中触发验证。</p></footer>
+</body>
+</html>

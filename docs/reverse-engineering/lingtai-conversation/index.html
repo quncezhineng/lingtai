@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>LingTai 对话模块逆向工程总览</title>
+  <style>
+    :root {
+      --bg: #f6f3ec;
+      --paper: #fffdf7;
+      --ink: #1f2724;
+      --muted: #68716c;
+      --line: #d9d3c7;
+      --accent: #0f766e;
+      --accent-soft: #dff3ee;
+      --warn: #9a5b13;
+      --warn-soft: #fff0d7;
+      --shadow: 0 18px 50px rgba(43, 49, 44, .08);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #101715;
+        --paper: #17201d;
+        --ink: #edf2ef;
+        --muted: #a8b3ae;
+        --line: #33413c;
+        --accent: #66d6c9;
+        --accent-soft: #153e39;
+        --warn: #f0b96f;
+        --warn-soft: #3d2d17;
+        --shadow: 0 18px 50px rgba(0, 0, 0, .28);
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font: 16px/1.72 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 8% 4%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 30rem),
+        radial-gradient(circle at 92% 12%, color-mix(in srgb, var(--warn) 10%, transparent), transparent 24rem),
+        var(--bg);
+    }
+    a { color: var(--accent); text-underline-offset: 3px; }
+    a:hover { text-decoration-thickness: 2px; }
+    .shell { width: min(1120px, calc(100% - 36px)); margin: 0 auto; }
+    header { padding: 72px 0 34px; }
+    .eyebrow { margin: 0 0 12px; color: var(--accent); font-size: 13px; font-weight: 750; letter-spacing: .14em; text-transform: uppercase; }
+    h1 { margin: 0; max-width: 820px; font-size: clamp(36px, 7vw, 72px); line-height: 1.05; letter-spacing: -.045em; }
+    .lede { max-width: 780px; margin: 24px 0 0; color: var(--muted); font-size: clamp(17px, 2.2vw, 21px); }
+    .status { display: inline-flex; gap: 9px; align-items: center; margin-top: 24px; padding: 8px 13px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); font-size: 13px; font-weight: 650; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 5px var(--accent-soft); }
+    main { padding: 16px 0 76px; }
+    section { margin: 30px 0; }
+    .panel { border: 1px solid var(--line); border-radius: 24px; background: color-mix(in srgb, var(--paper) 94%, transparent); box-shadow: var(--shadow); }
+    .pad { padding: clamp(22px, 4vw, 38px); }
+    h2 { margin: 0 0 18px; font-size: clamp(23px, 3.2vw, 32px); line-height: 1.2; letter-spacing: -.025em; }
+    h3 { margin: 26px 0 8px; font-size: 18px; }
+    p { margin: 10px 0; }
+    .muted { color: var(--muted); }
+    .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 18px; }
+    .metric { padding: 17px; border-radius: 18px; background: var(--bg); border: 1px solid var(--line); }
+    .metric strong { display: block; font-size: 26px; line-height: 1.15; letter-spacing: -.03em; }
+    .metric span { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; }
+    .artifact-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+    .artifact { display: flex; min-height: 150px; flex-direction: column; padding: 22px; border: 1px solid var(--line); border-radius: 20px; background: var(--paper); color: var(--ink); text-decoration: none; transition: transform .18s ease, border-color .18s ease, background .18s ease; }
+    .artifact:hover { transform: translateY(-2px); border-color: var(--accent); background: var(--accent-soft); }
+    .artifact .num { color: var(--accent); font: 700 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .12em; }
+    .artifact strong { display: block; margin: 16px 0 8px; font-size: 19px; line-height: 1.35; }
+    .artifact span:last-child { margin-top: auto; color: var(--muted); font-size: 13px; }
+    .split { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
+    .note { padding: 17px 19px; border-left: 4px solid var(--warn); border-radius: 4px 14px 14px 4px; background: var(--warn-soft); }
+    ul, ol { margin: 10px 0; padding-left: 1.4em; }
+    li { margin: 7px 0; }
+    code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .9em; }
+    code { padding: .12em .36em; border-radius: 5px; background: color-mix(in srgb, var(--accent) 10%, transparent); }
+    .flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 18px; }
+    .step { position: relative; padding: 14px; border: 1px solid var(--line); border-radius: 15px; background: var(--bg); min-height: 100px; }
+    .step b { display: block; color: var(--accent); font-size: 12px; letter-spacing: .08em; }
+    .step span { display: block; margin-top: 8px; font-size: 13px; line-height: 1.45; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { padding: 12px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-size: 12px; letter-spacing: .04em; }
+    tr:last-child td { border-bottom: 0; }
+    footer { padding: 0 0 46px; color: var(--muted); font-size: 13px; }
+    @media (max-width: 720px) {
+      header { padding-top: 46px; }
+      .flow { grid-template-columns: 1fr 1fr; }
+      .pad { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="shell">
+    <p class="eyebrow">REA MCP · Static reverse engineering</p>
+    <h1>LingTai 对话模块<br>逆向工程总览</h1>
+    <p class="lede">从 Python 事件总线、持久化时间线、WebSocket 推送，到 React 端流式归并、滚动跟随、附件卡片与安全预览，完整还原一条对话回复从提交到呈现的全链路。</p>
+    <div class="status"><span class="dot" aria-hidden="true"></span><span>只读静态分析 · 不把它表述为运行时验证</span></div>
+  </header>
+
+  <main class="shell">
+    <section class="panel pad" aria-labelledby="scope">
+      <h2 id="scope">分析范围与结论</h2>
+      <p>目标项目为只读目录 <code>/Users/luffy/Code/Bayes/EconSwarm/LingTai</code>。分析对象覆盖服务端 <code>events.py</code>、<code>api.py</code>、<code>service.py</code>、<code>webui.py</code>，以及前端 <code>api.ts</code>、<code>store.tsx</code>、<code>ChatScreen.tsx</code>、<code>Cards.tsx</code>、<code>FileViewer.tsx</code>、<code>Markdown.tsx</code>。</p>
+      <div class="metrics">
+        <div class="metric"><strong>5</strong><span>REA 核心夹具文件</span></div>
+        <div class="metric"><strong>170,654</strong><span>文本字节</span></div>
+        <div class="metric"><strong>24,037</strong><span>AST 节点</span></div>
+        <div class="metric"><strong>328</strong><span>静态发现</span></div>
+        <div class="metric"><strong>183 / 338</strong><span>应用图节点 / 边</span></div>
+        <div class="metric"><strong>139 / 471</strong><span>观察事实 / 推断事实</span></div>
+      </div>
+      <div class="note"><strong>证据边界：</strong>REA 解析的是惰性源码。它证明符号、调用关系与代码路径存在，不证明这些路径已在真实浏览器、代理、移动网络或高并发生产环境中成功执行。</div>
+    </section>
+
+    <section aria-labelledby="artifacts">
+      <h2 id="artifacts">文件产物</h2>
+      <div class="artifact-grid">
+        <a class="artifact" href="architecture.html" target="_blank" rel="noopener noreferrer">
+          <span class="num">01 / ARCHITECTURE</span>
+          <strong>对话模块架构与依赖关系</strong>
+          <span>服务端分层、前端模块、事件模型、依赖图与源码坐标。</span>
+        </a>
+        <a class="artifact" href="business-logic.html" target="_blank" rel="noopener noreferrer">
+          <span class="num">02 / BUSINESS LOGIC</span>
+          <strong>核心业务逻辑与状态机</strong>
+          <span>发送队列、线程工作循环、流式分块、停止清理、重启修复。</span>
+        </a>
+        <a class="artifact" href="interaction-flow.html" target="_blank" rel="noopener noreferrer">
+          <span class="num">03 / INTERACTION</span>
+          <strong>端到端交互与流式协议</strong>
+          <span>REST、WebSocket 认证、历史分页、重连补偿、渲染与滚动。</span>
+        </a>
+        <a class="artifact" href="server-runtime.html" target="_blank" rel="noopener noreferrer">
+          <span class="num">04 / SERVER RUNTIME</span>
+          <strong>服务端运行时与会话恢复深潜</strong>
+          <span>WebSocket 命令面、文件票据、事件适配器、会话文件与重启收口。</span>
+        </a>
+        <a class="artifact" href="frontend-render.html" target="_blank" rel="noopener noreferrer">
+          <span class="num">05 / FRONTEND RENDER</span>
+          <strong>前端渲染与交互状态深潜</strong>
+          <span>传输回退、事件归并、流式 reducer、滚动与安全产物预览。</span>
+        </a>
+        <a class="artifact" href="rea-evidence.html" target="_blank" rel="noopener noreferrer">
+          <span class="num">06 / EVIDENCE</span>
+          <strong>REA 证据、事实与未知项</strong>
+          <span>Evidence ID、图规模、观察/推断分层、复现条件与限制。</span>
+        </a>
+        <a class="artifact" href="analysis-data.json" target="_blank" rel="noopener noreferrer">
+          <span class="num">07 / DATA</span>
+          <strong>机器可读分析数据</strong>
+          <span>JSON 格式的模块、协议、流程、风险与当前项目映射。</span>
+        </a>
+      </div>
+    </section>
+
+    <section class="panel pad" aria-labelledby="summary">
+      <h2 id="summary">一句话还原技术方案</h2>
+      <div class="flow">
+        <div class="step"><b>01 · SUBMIT</b><span>HTTP 发送消息，先写入用户时间线事件，再入线程 inbox。</span></div>
+        <div class="step"><b>02 · RUN</b><span>每线程单 worker 串行执行，busy 状态阻止并发覆盖。</span></div>
+        <div class="step"><b>03 · STREAM</b><span>首次文本增量发 stream_start，后续发 delta，结束发 stream_end。</span></div>
+        <div class="step"><b>04 · RECONCILE</b><span>持久化 assistant 事件替换临时气泡，前端重连后重载时间线。</span></div>
+      </div>
+      <h3>关键设计判断</h3>
+      <ul>
+        <li><strong>事件溯源优先：</strong>对话不直接以“消息数组”驱动，而是以线程时间线事件为事实源，用户、助手、工具、审批、问题、产物都统一成事件。</li>
+        <li><strong>推送与持久化双通道：</strong>WebSocket 负责低延迟广播，JSON 时间线负责刷新、重连和重启后的恢复。</li>
+        <li><strong>流式气泡与最终气泡分离：</strong>临时流只用于增量显示，最终 assistant 事件复用流 ID 完成原子替换。</li>
+        <li><strong>慢消费者隔离：</strong>每个 WebSocket 客户端独立队列，队列满即移除订阅者，避免服务端内存无界增长。</li>
+        <li><strong>安全预览：</strong>HTML 产物在无 <code>allow-same-origin</code> 的 sandbox iframe 中渲染，脚本无法读取应用令牌或调用同源 API。</li>
+      </ul>
+    </section>
+
+    <section class="panel pad" aria-labelledby="tradeoffs">
+      <h2 id="tradeoffs">上游方案的优势与缺口</h2>
+      <div class="split">
+        <div>
+          <h3>可复用优势</h3>
+          <ul>
+            <li>按线程隔离，天然避免不同对话的流互相污染。</li>
+            <li>时间线有 2000 事件上限与合并写盘，兼顾积压与磁盘开销。</li>
+            <li>WebSocket 首帧认证，避免令牌进入访问日志。</li>
+            <li>前端在重连后刷新当前线程，能补齐断线期间已持久化的内容。</li>
+            <li>滚动跟随使用 120px/400px 双阈值与 <code>ResizeObserver</code>，能处理气泡高度后增长。</li>
+          </ul>
+        </div>
+        <div>
+          <h3>静态分析发现的缺口</h3>
+          <ul>
+            <li>上游 delta 没有独立序号，断线后无法只请求“缺失后缀”，只能重载整段时间线。</li>
+            <li><code>onopen</code> 即重置重试次数；若服务端打开后立即关闭，会形成高频重连。</li>
+            <li>广播是进程内的；多实例部署缺少共享 pub/sub 与跨实例顺序保证。</li>
+            <li>流式增量未持久化，持久化的是完成后的 assistant 事件；进程崩溃时的半截回复不可恢复。</li>
+            <li>附件与对话流共享时间线，但大文件本体不在事件内，只保存工作区路径。</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel pad" aria-labelledby="current">
+      <h2 id="current">当前项目的落地映射</h2>
+      <p>当前工作区已经沿“可重放 SSE 账本”方向完成系统性改造：以 AG-UI 事件作为上游事实，镜像到带序号的 SSE 流；客户端按序号去重、补洞、重连，并以持久化消息完成完整性校验。</p>
+      <table>
+        <thead><tr><th>能力</th><th>上游方案</th><th>当前项目实现</th></tr></thead>
+        <tbody>
+          <tr><td>实时传输</td><td>WebSocket 广播 <code>stream_start</code>/<code>delta</code>/<code>stream_end</code></td><td>SSE <code>agui</code> 帧，带单调序号与 <code>Last-Event-ID</code></td></tr>
+          <tr><td>断点恢复</td><td>重连后重载整段时间线</td><td>按序号精确回放缺失后缀；越界触发 <code>ready.reset</code></td></tr>
+          <tr><td>慢消费者</td><td>1000 条队列满后断开订阅</td><td>按字节预算断开，客户端从账本续传</td></tr>
+          <tr><td>渲染归并</td><td>按 <code>messageId</code> 累积临时流</td><td>序号门禁 + draft reducer + 持久化消息核验</td></tr>
+          <tr><td>异常处理</td><td>指数退避、4401/4404 终止</td><td>抖动退避、心跳看门狗、代际隔离、资源释放</td></tr>
+        </tbody>
+      </table>
+      <p class="muted">实现细节与验证边界另见仓库文档 <code>docs/conversation-streaming.md</code>；本报告专注于上游逆向结论与可复用设计。</p>
+    </section>
+  </main>
+
+  <footer class="shell">
+    <p>生成日期：2026-10-17 · 目标项目保持只读 · 页面为自包含 HTML5，不依赖外部脚本或样式。</p>
+  </footer>
+</body>
+</html>

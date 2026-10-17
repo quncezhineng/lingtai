@@ -26,6 +26,12 @@ const chat = {
   "chat.recentResults": "Recent results",
   "chat.agentWorking": "Agent is working",
   "chat.retryResponse": "Retry response",
+  "chat.streamingReply": "LingTai is writing a reply",
+  "chat.streamReplyComplete": "Reply complete",
+  "chat.reconnectingLiveReply": "Reconnecting the live reply…",
+  "chat.retryLiveReply": "Reconnect live reply",
+  "chat.streamIntegrityWarning":
+    "The saved reply differed from the live text. Showing the saved version.",
   "chat.latestMessages": "Latest messages",
   "chat.retrySavingConversation": "Retry saving conversation",
   "chat.messagesOnHold": "Messages on hold",

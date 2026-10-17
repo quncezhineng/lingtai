@@ -68,6 +68,14 @@ const app = {
   "app.sideChat": "侧边对话",
   "app.retryMainChat": "重试主对话",
   "app.dismissNotification": "关闭提示",
+  "app.navMore": "更多",
+  "app.chatsColumnTitle": "对话",
+  "app.searchChatsPlaceholder": "搜索",
+  "app.mainChatsHeading": "主要聊天",
+  "app.sideChatsHeading": "旁聊",
+  "app.newSideChatPlaceholder": "新建旁聊",
+  "app.createSideChatLabel": "新建",
+  "app.menuNotifications": "通知",
 } satisfies Dictionary;
 
 export default app;

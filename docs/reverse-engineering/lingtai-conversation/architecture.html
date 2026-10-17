@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>对话模块架构与依赖关系</title>
+  <style>
+    :root {
+      --bg: #f6f3ec;
+      --paper: #fffdf7;
+      --ink: #1f2724;
+      --muted: #68716c;
+      --line: #d9d3c7;
+      --accent: #0f766e;
+      --accent-soft: #dff3ee;
+      --warn: #9a5b13;
+      --warn-soft: #fff0d7;
+      --shadow: 0 18px 50px rgba(43, 49, 44, .08);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #101715;
+        --paper: #17201d;
+        --ink: #edf2ef;
+        --muted: #a8b3ae;
+        --line: #33413c;
+        --accent: #66d6c9;
+        --accent-soft: #153e39;
+        --warn: #f0b96f;
+        --warn-soft: #3d2d17;
+        --shadow: 0 18px 50px rgba(0, 0, 0, .28);
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font: 16px/1.72 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 8% 4%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 30rem),
+        radial-gradient(circle at 92% 12%, color-mix(in srgb, var(--warn) 10%, transparent), transparent 24rem),
+        var(--bg);
+    }
+    a { color: var(--accent); text-underline-offset: 3px; }
+    a:hover { text-decoration-thickness: 2px; }
+    .shell { width: min(1120px, calc(100% - 36px)); margin: 0 auto; }
+    header { padding: 72px 0 34px; }
+    .eyebrow { margin: 0 0 12px; color: var(--accent); font-size: 13px; font-weight: 750; letter-spacing: .14em; text-transform: uppercase; }
+    h1 { margin: 0; max-width: 820px; font-size: clamp(36px, 7vw, 72px); line-height: 1.05; letter-spacing: -.045em; }
+    .lede { max-width: 780px; margin: 24px 0 0; color: var(--muted); font-size: clamp(17px, 2.2vw, 21px); }
+    .status { display: inline-flex; gap: 9px; align-items: center; margin-top: 24px; padding: 8px 13px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); font-size: 13px; font-weight: 650; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 5px var(--accent-soft); }
+    main { padding: 16px 0 76px; }
+    section { margin: 30px 0; }
+    .panel { border: 1px solid var(--line); border-radius: 24px; background: color-mix(in srgb, var(--paper) 94%, transparent); box-shadow: var(--shadow); }
+    .pad { padding: clamp(22px, 4vw, 38px); }
+    h2 { margin: 0 0 18px; font-size: clamp(23px, 3.2vw, 32px); line-height: 1.2; letter-spacing: -.025em; }
+    h3 { margin: 26px 0 8px; font-size: 18px; }
+    p { margin: 10px 0; }
+    .muted { color: var(--muted); }
+    .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 18px; }
+    .metric { padding: 17px; border-radius: 18px; background: var(--bg); border: 1px solid var(--line); }
+    .metric strong { display: block; font-size: 26px; line-height: 1.15; letter-spacing: -.03em; }
+    .metric span { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; }
+    .artifact-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+    .artifact { display: flex; min-height: 150px; flex-direction: column; padding: 22px; border: 1px solid var(--line); border-radius: 20px; background: var(--paper); color: var(--ink); text-decoration: none; transition: transform .18s ease, border-color .18s ease, background .18s ease; }
+    .artifact:hover { transform: translateY(-2px); border-color: var(--accent); background: var(--accent-soft); }
+    .artifact .num { color: var(--accent); font: 700 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .12em; }
+    .artifact strong { display: block; margin: 16px 0 8px; font-size: 19px; line-height: 1.35; }
+    .artifact span:last-child { margin-top: auto; color: var(--muted); font-size: 13px; }
+    .split { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
+    .note { padding: 17px 19px; border-left: 4px solid var(--warn); border-radius: 4px 14px 14px 4px; background: var(--warn-soft); }
+    ul, ol { margin: 10px 0; padding-left: 1.4em; }
+    li { margin: 7px 0; }
+    code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .9em; }
+    code { padding: .12em .36em; border-radius: 5px; background: color-mix(in srgb, var(--accent) 10%, transparent); }
+    .flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 18px; }
+    .step { position: relative; padding: 14px; border: 1px solid var(--line); border-radius: 15px; background: var(--bg); min-height: 100px; }
+    .step b { display: block; color: var(--accent); font-size: 12px; letter-spacing: .08em; }
+    .step span { display: block; margin-top: 8px; font-size: 13px; line-height: 1.45; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { padding: 12px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-size: 12px; letter-spacing: .04em; }
+    tr:last-child td { border-bottom: 0; }
+    footer { padding: 0 0 46px; color: var(--muted); font-size: 13px; }
+    @media (max-width: 720px) {
+      header { padding-top: 46px; }
+      .flow { grid-template-columns: 1fr 1fr; }
+      .pad { padding: 20px; }
+    }
+  
+    .hero { padding: 54px 0 24px; }
+    .hero h1 { font-size: clamp(32px, 5.5vw, 56px); }
+    .crumbs { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0 0; }
+    .crumbs a { padding: 7px 11px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); font-size: 12px; text-decoration: none; }
+    .crumbs a:hover { border-color: var(--accent); color: var(--accent); }
+    .layers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 18px; }
+    .layer { padding: 18px; border: 1px solid var(--line); border-radius: 18px; background: var(--bg); }
+    .layer b { color: var(--accent); font-size: 12px; letter-spacing: .1em; }
+    .layer h3 { margin: 12px 0 6px; font-size: 16px; }
+    .layer p { margin: 0; color: var(--muted); font-size: 13px; }
+    .graph { overflow: auto; padding: 20px; border: 1px solid var(--line); border-radius: 18px; background: var(--bg); font: 12.5px/1.65 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .pill { display: inline-block; padding: 2px 7px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 11px; font-weight: 700; }
+    .tag { display: inline-block; margin: 2px 4px 2px 0; padding: 2px 7px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); font-size: 11px; }
+    .module { border-left: 3px solid var(--accent); padding: 2px 0 2px 15px; margin: 20px 0; }
+    .module h3 { margin: 0 0 3px; }
+    .module .path { color: var(--muted); font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    @media (max-width: 860px) { .layers { grid-template-columns: 1fr 1fr; } .two-col { grid-template-columns: 1fr; } }
+    @media (max-width: 520px) { .layers { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+  <header class="shell hero">
+    <p class="eyebrow">Artifact 01 · Architecture</p>
+    <h1>对话模块架构与依赖关系</h1>
+    <p class="lede">上游 LingTai 将对话实现为“事件时间线 + 线程串行执行器 + 实时广播”的三层结构：业务状态在服务端收敛，浏览器只消费事件并维护短期渲染状态。</p>
+    <nav class="crumbs" aria-label="报告导航">
+      <a href="index.html" target="_blank" rel="noopener noreferrer">总览</a>
+      <a href="business-logic.html" target="_blank" rel="noopener noreferrer">业务逻辑</a>
+      <a href="interaction-flow.html" target="_blank" rel="noopener noreferrer">交互流程</a>
+      <a href="server-runtime.html" target="_blank" rel="noopener noreferrer">服务端运行时</a>
+      <a href="frontend-render.html" target="_blank" rel="noopener noreferrer">前端渲染</a>
+      <a href="rea-evidence.html" target="_blank" rel="noopener noreferrer">REA 证据</a>
+      <a href="analysis-data.json" target="_blank" rel="noopener noreferrer">分析数据</a>
+    </nav>
+  </header>
+
+  <main class="shell">
+    <section class="panel pad" aria-labelledby="system">
+      <h2 id="system">系统分层</h2>
+      <div class="layers">
+        <div class="layer"><b>TRANSPORT</b><h3>REST + WebSocket</h3><p>REST 负责状态、历史、发送与审批；WebSocket 负责实时事件、增量文本和线程状态。</p></div>
+        <div class="layer"><b>DOMAIN</b><h3>MuseService</h3><p>线程注册、消息校验、附件、inbox、worker、停止、清理、重启修复与状态快照。</p></div>
+        <div class="layer"><b>EVENT</b><h3>Timeline + EventBus</h3><p>Timeline 持久化有序事件；EventBus 向每个 WebSocket 客户端扇出 JSON 消息。</p></div>
+        <div class="layer"><b>PRESENTATION</b><h3>React Store + ChatScreen</h3><p>WebSocket 消息归并到 reducer，临时流独立渲染，完成后由持久化消息替换。</p></div>
+      </div>
+    </section>
+
+    <section class="panel pad" aria-labelledby="graph">
+      <h2 id="graph">依赖关系图</h2>
+      <pre class="graph">Browser / Mobile UI
+  ├─ api.ts
+  │   ├─ REST: /api/state, /api/threads/:id/events, /api/threads/:id/send
+  │   └─ WebSocket: /ws  (first frame auth)
+  ├─ store.tsx
+  │   ├─ WsMessage reducer
+  │   ├─ streams: thread → { id, text, ended }
+  │   └─ reconnect → reload timeline
+  └─ ChatScreen.tsx
+      ├─ EventView → user / assistant / tool / approval / artifact / ...
+      ├─ AssistantBubble(streaming) + LiveReply
+      └─ Files → FileViewer / Markdown
+
+FastAPI server
+  ├─ api.py
+  │   ├─ send_message → MuseService.send
+  │   ├─ thread_events → Timeline.tail
+  │   └─ /ws → EventBus.subscribe + hello snapshot
+  ├─ service.py
+  │   ├─ Thread { timeline, agent, inbox, worker, busy }
+  │   ├─ _ensure_worker → _worker → agent.run
+  │   └─ stop / clear / restart repair
+  ├─ webui.py
+  │   ├─ emit → Timeline.add + EventBus.publish
+  │   └─ on_text_delta → stream_start / delta / stream_end
+  └─ events.py
+      ├─ Timeline: ordered, bounded, JSON persisted
+      └─ EventBus: per-client asyncio.Queue(maxsize=1000)</pre>
+    </section>
+
+    <section class="panel pad" aria-labelledby="server">
+      <h2 id="server">服务端模块</h2>
+
+      <div class="module">
+        <h3>Timeline：线程事实日志</h3>
+        <div class="path">lingtai/server/events.py:39-158</div>
+        <p>每个线程拥有独立的 <code>Timeline</code>。事件由 <code>add()</code> 追加并自动生成 <code>id</code> 与 <code>ts</code>；超过 2000 条时从头部淘汰。持久化使用临时文件写入后 <code>replace()</code>，避免读者看到半写文件。写入合并延迟为 0.3 秒，并在线程池中执行磁盘 I/O。</p>
+        <p><span class="tag">有序</span><span class="tag">有界</span><span class="tag">JSON</span><span class="tag">合并写盘</span><span class="tag">原子替换</span></p>
+      </div>
+
+      <div class="module">
+        <h3>EventBus：实时扇出</h3>
+        <div class="path">lingtai/server/events.py:161-184</div>
+        <p>每个订阅者获得一个 <code>asyncio.Queue(maxsize=1000)</code>。发布使用 <code>put_nowait()</code>；队列满时直接移除该订阅者，形成“慢客户端断开而非无限缓冲”的背压策略。</p>
+      </div>
+
+      <div class="module">
+        <h3>API：REST 与 WebSocket 边界</h3>
+        <div class="path">lingtai/server/api.py:609-619, 1961-2003, 2070-2084</div>
+        <p><code>GET /api/threads/:id/events</code> 支持 <code>limit</code> 与 <code>before</code> 游标，返回 <code>has_more</code>。WebSocket <code>/ws</code> 先 accept，再要求首帧 <code>{"kind":"auth","token":"..."}</code>；认证失败关闭码为 4401，成功则订阅事件队列并发送包含完整状态的 <code>hello</code> 消息。</p>
+      </div>
+
+      <div class="module">
+        <h3>MuseService：线程编排</h3>
+        <div class="path">lingtai/server/service.py:376-455, 800-880, 1072-1173, 1238-1295</div>
+        <p>服务聚合线程表、时间线、代理、审批、记忆、目标、日历、云端同步与设备 hub。发送路径先生成用户可见事件，再投递到线程 inbox；worker 以线程为单位串行消费，保证同一对话不会并发运行两轮模型。</p>
+      </div>
+
+      <div class="module">
+        <h3>Web UI 适配器：业务回调转事件</h3>
+        <div class="path">lingtai/server/webui.py:330-404</div>
+        <p><code>emit()</code> 统一写时间线并通过 <code>EventBus</code> 发布 <code>kind=event</code>。<code>patch()</code> 发布 <code>kind=update</code>，用于审批状态、工具状态、浏览器帧等原地更新。<code>on_text_delta()</code> 负责临时流的开始与增量。</p>
+      </div>
+    </section>
+
+    <section class="panel pad" aria-labelledby="frontend">
+      <h2 id="frontend">前端模块</h2>
+      <div class="two-col">
+        <div>
+          <h3>api.ts：连接与错误分类</h3>
+          <p><code>connectWs()</code> 使用同源 WebSocket，在 <code>onopen</code> 发送首帧认证。关闭码分为三类：4401 需要重新认证，4404 表示运行时已结束且不再重试，其余使用 500ms 起、15s 封顶的指数退避。</p>
+          <h3>store.tsx：事件归并</h3>
+          <p><code>applyWs()</code> 处理 <code>hello</code>、<code>event</code>、<code>update</code>、<code>stream_start</code>、<code>delta</code>、<code>stream_end</code>、<code>status</code> 等消息。页面把同一事件循环到达的帧微批处理为一次渲染；断线重连后重新加载当前线程历史。</p>
+        </div>
+        <div>
+          <h3>ChatScreen.tsx：渲染与滚动</h3>
+          <p>事件按类型分派到用户气泡、助手气泡、工具芯片、审批卡、问题卡、通知、产物卡、浏览器卡、hands 卡与 hold 卡。混合流气泡在最后一块显示闪烁光标。</p>
+          <p>滚动策略使用 120px 跟随阈值和 400px “Latest” 按钮阈值；<code>ResizeObserver</code> 同时监听列表与内容高度，处理图片、代码块或字体加载后的布局增长。</p>
+          <h3>Cards / FileViewer / Markdown</h3>
+          <p>产物卡显示标题、路径与类型；HTML 和图片提供缩略预览，点击进入查看器。Markdown 会把回复中的工作区文件路径转成可点击按钮；外链统一 <code>target="_blank" rel="noreferrer noopener"</code>。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel pad" aria-labelledby="model">
+      <h2 id="model">事件与消息模型</h2>
+      <table>
+        <thead><tr><th>类型</th><th>作用</th><th>关键字段</th></tr></thead>
+        <tbody>
+          <tr><td><code>TimelineEvent</code></td><td>线程时间线事实</td><td><code>id</code>, <code>ts</code>, <code>thread</code>, <code>type</code></td></tr>
+          <tr><td><code>user</code> / <code>assistant</code></td><td>对话内容</td><td><code>text</code>, <code>files</code>, <code>reasoning</code>, <code>model_used</code></td></tr>
+          <tr><td><code>tool</code> / <code>approval</code> / <code>question</code></td><td>执行过程与人工介入</td><td><code>status</code>, <code>risk</code>, <code>args</code>, <code>summary</code></td></tr>
+          <tr><td><code>artifact</code></td><td>Agent 生成的文件</td><td><code>path</code>, <code>name</code>, <code>action</code></td></tr>
+          <tr><td><code>browser</code> / <code>hands</code> / <code>hold</code></td><td>外部执行面状态</td><td>URL、帧、动作、步骤、持有状态</td></tr>
+          <tr><td><code>WsMessage</code></td><td>实时传输信封</td><td><code>kind</code>; <code>event</code>; <code>thread</code>; 流 <code>id</code> 与 <code>text</code></td></tr>
+        </tbody>
+      </table>
+      <p class="muted">流式文本不是独立持久化实体：它是时间线的“进行中视图”。完成后，<code>on_assistant_message()</code> 先发 <code>stream_end</code>，再把同一 <code>id</code> 的 assistant 事件写入时间线。</p>
+    </section>
+
+    <section class="panel pad" aria-labelledby="coordinates">
+      <h2 id="coordinates">关键源码坐标</h2>
+      <table>
+        <thead><tr><th>职责</th><th>位置</th><th>静态观察</th></tr></thead>
+        <tbody>
+          <tr><td>时间线持久化</td><td><code>lingtai/server/events.py:39-126</code></td><td>2000 事件上限、0.3s 合并、临时文件替换</td></tr>
+          <tr><td>广播背压</td><td><code>lingtai/server/events.py:161-184</code></td><td>每客户端 1000 条队列，满则移除</td></tr>
+          <tr><td>历史分页</td><td><code>lingtai/server/api.py:609-619</code></td><td><code>limit</code>/<code>before</code>/<code>has_more</code></td></tr>
+          <tr><td>WebSocket 握手</td><td><code>lingtai/server/api.py:1961-2003</code></td><td>首帧认证、<code>hello</code>、独立 pump、finally 清理</td></tr>
+          <tr><td>发送与 worker</td><td><code>lingtai/server/service.py:1072-1173, 1238-1295</code></td><td>事件 → inbox → 单线程串行执行</td></tr>
+          <tr><td>流片段</td><td><code>lingtai/server/webui.py:373-404</code></td><td><code>stream_start</code> → <code>delta</code> → <code>stream_end</code> → assistant</td></tr>
+          <tr><td>前端重连</td><td><code>web/src/api.ts:463-522</code></td><td>4401/4404 终止，其余指数退避</td></tr>
+          <tr><td>前端归并</td><td><code>web/src/store.tsx:433-452, 607-620</code></td><td>流 reducer 与消息微批处理</td></tr>
+          <tr><td>滚动与预览</td><td><code>web/src/screens/ChatScreen.tsx:119-157</code></td><td>120px/400px 阈值与 <code>ResizeObserver</code></td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <footer class="shell"><p>所有源码行为均为静态逆向结论；未在上游项目执行写入、测试或网络请求。</p></footer>
+</body>
+</html>

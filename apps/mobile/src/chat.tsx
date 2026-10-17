@@ -36,6 +36,7 @@ import {
   showsRunError,
   threadLocked,
 } from "./conversation-run";
+import { type ConversationDraft, useConversationStream, verifyDrafts } from "./conversation-stream";
 import { DesktopToolCard } from "./desktop-tool-card";
 import { type TranslationKey, useTranslation } from "./i18n";
 import { confirmedJevSelection, displayJevUserMessage, latestJevPanelId } from "./jev-actions";
@@ -43,7 +44,7 @@ import { JevInteractionContext, JevToolCard } from "./jev-tool-card";
 import { MailToolCard } from "./mail-tool-card";
 import { SearchToolCard } from "./search-tool-card";
 import { FileThreadCard, TaskThreadCard } from "./thread-artifacts";
-import { type Selection, useMuseThread } from "./threads";
+import { type Selection, useLingTaiThread } from "./threads";
 import { Button, Card, CheckRow, colors, ErrorNotice, s } from "./ui";
 import { useWorkspace } from "./workspace";
 
@@ -235,11 +236,15 @@ export function ChatScreen({
   const { api, workspace: w, refresh, navigate } = useWorkspace();
   const { t } = useTranslation();
   const { data: agentWorkspace, refresh: refreshAgent } = useAgentWorkspace();
-  const { enabled: richThreads, mainId, claimPrompt } = useMuseThread();
+  const { enabled: richThreads, mainId, claimPrompt } = useLingTaiThread();
   const selection = thread || { id: "local", existing: false };
   const threadId = richThreads ? selection.id : "local-main";
   const agentId = `lingtai-${threadId}`;
   const { agent, isReady } = useAgent({ agentId, runtimeAgentId: "default", threadId });
+  // A replayable mirror of the runtime's text events. The direct runtime transport
+  // remains authoritative while attached; this channel repairs gaps and restores
+  // an in-flight reply after a reload or a dropped connection.
+  const stream = useConversationStream({ api, threadId, enabled: true });
   const { renameThread } = useThreads({ agentId: "default", enabled: richThreads });
   const { copilotkit } = useCopilotKit();
   const renderToolCall = useRenderToolCall();
@@ -271,6 +276,10 @@ export function ChatScreen({
   // Set while a queued message is being sent, so a lock refusal holds it instead of failing.
   const queuedTurn = useRef(false);
   const [keyboardPadding, setKeyboardPadding] = useState(0);
+  const [streamAnnouncement, setStreamAnnouncement] = useState("");
+  const streamWasActive = useRef(false);
+  const streamNeedsHistoryRefresh = useRef(false);
+  const streamGaps = useRef(0);
 
   useEffect(() => {
     if (Platform.OS !== "android") return;
@@ -516,25 +525,98 @@ export function ChatScreen({
       ? messages[latestUserIndex].content
       : null;
   const visible = messages.filter((m) => m.role === "user" || m.role === "assistant");
+  const integrity = verifyDrafts(stream.state.drafts, messages);
+  const mismatchedDraftIds = new Set(integrity.mismatched.map((item) => item.id));
+  const matchedByTextDraftIds = new Set(integrity.matchedByText.map((item) => item.id));
+  const persistedMessageIds = new Set(messages.map((message) => message.id));
+  const streamDrafts: ConversationDraft[] = stream.state.order
+    .map((id) => stream.state.drafts[id])
+    .filter((draft): draft is ConversationDraft => Boolean(draft));
+  // A matching event message is already rendered by the runtime transport; its
+  // text is overlaid below. Only drafts without any matching message need their
+  // own bubble (for example after a reload that could not replay the runtime).
+  const extraDrafts = streamDrafts.filter(
+    (draft) => !persistedMessageIds.has(draft.id) && !matchedByTextDraftIds.has(draft.id),
+  );
+  const messageText = (message: (typeof messages)[number]) => {
+    const content = typeof message.content === "string" ? message.content : "";
+    if (message.role !== "assistant") return content;
+    const live = stream.state.drafts[message.id];
+    // On an integrity failure the saved message wins. Otherwise use whichever
+    // copy is further ahead, so a lagging or dropped runtime stream cannot rewind
+    // text that the replayable SSE channel already delivered.
+    if (!live || mismatchedDraftIds.has(live.id)) return content;
+    return live.text.length > content.length ? live.text : content;
+  };
   const latestDesktop = messages
     .flatMap((m) => ("toolCalls" in m ? m.toolCalls || [] : []))
     .filter((call) => call.function.name === "use_desktop")
     .at(-1)?.id;
   const replying = busy || agent.isRunning;
+  const renderedCount = visible.length + extraDrafts.length;
+  const latestVisible = visible[visible.length - 1];
+  const latestVisibleText = latestVisible ? messageText(latestVisible) : "";
+  const showingStreamText =
+    streamDrafts.some((draft) => !draft.done && draft.text.length > 0) ||
+    (replying && latestVisible?.role === "assistant" && latestVisibleText.length > 0);
+  const liveError = stream.state.phase === "error" ? stream.state.error || "" : "";
+  const primaryError = error || liveError;
+  const integrityWarning = integrity.mismatched.length ? t("chat.streamIntegrityWarning") : "";
+  const streamActive =
+    streamDrafts.some((draft) => !draft.done && draft.text.length > 0) ||
+    (replying && stream.state.phase !== "error");
+
+  useEffect(() => {
+    if (streamActive && !streamWasActive.current) setStreamAnnouncement(t("chat.streamingReply"));
+    else if (!streamActive && streamWasActive.current)
+      setStreamAnnouncement(t("chat.streamReplyComplete"));
+    streamWasActive.current = streamActive;
+  }, [streamActive, t]);
+
+  useEffect(() => {
+    streamWasActive.current = false;
+    setStreamAnnouncement("");
+  }, [threadId]);
+
+  useEffect(() => {
+    if (stream.state.gaps > streamGaps.current) streamNeedsHistoryRefresh.current = true;
+    streamGaps.current = stream.state.gaps;
+    if (stream.state.phase === "reconnecting") streamNeedsHistoryRefresh.current = true;
+    // Tool cards and other non-text events also live in thread history. Wait for the
+    // active run to settle before reconnecting the runtime, so the refresh cannot
+    // detach a reply that is still streaming.
+    if (
+      streamNeedsHistoryRefresh.current &&
+      stream.state.phase === "live" &&
+      stream.state.activeRunId === null &&
+      !agent.isRunning
+    ) {
+      streamNeedsHistoryRefresh.current = false;
+      setHistoryAttempt((attempt) => attempt + 1);
+    }
+  }, [agent.isRunning, stream.state.activeRunId, stream.state.gaps, stream.state.phase]);
+
   return (
     <View style={{ flex: 1 }}>
+      <View
+        accessibilityLiveRegion="polite"
+        style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", opacity: 0 }}
+      >
+        <Text>{streamAnnouncement}</Text>
+      </View>
       <ScrollView
         ref={list}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ gap: 13, paddingTop: 15, paddingBottom: 20, flexGrow: 1 }}
         onScroll={({ nativeEvent: { contentOffset, contentSize, layoutMeasurement } }) => {
-          const nearEnd = contentSize.height - contentOffset.y - layoutMeasurement.height < 100;
+          const gap = contentSize.height - contentOffset.y - layoutMeasurement.height;
+          const nearEnd = gap < 120;
           followLatest.current = nearEnd;
-          setAwayFromLatest(visible.length > 0 && !nearEnd);
+          setAwayFromLatest(renderedCount > 0 && gap > 400);
         }}
         scrollEventThrottle={100}
         onContentSizeChange={() => {
-          if (active && visible.length > 0 && followLatest.current)
+          if (active && renderedCount > 0 && followLatest.current)
             list.current?.scrollToEnd({ animated: false });
         }}
         keyboardShouldPersistTaps="handled"
@@ -547,7 +629,7 @@ export function ChatScreen({
             </Button>
           </>
         )}
-        {!visible.length ? (
+        {!renderedCount ? (
           <View
             style={{
               flexGrow: 1,
@@ -594,14 +676,12 @@ export function ChatScreen({
           visible.map((message) => {
             const user = message.role === "user";
             const text =
-              typeof message.content === "string"
-                ? user
-                  ? displayJevUserMessage(
-                      message.content,
-                      messages.slice(0, messages.indexOf(message)),
-                    )
-                  : message.content
-                : "";
+              user && typeof message.content === "string"
+                ? displayJevUserMessage(
+                    message.content,
+                    messages.slice(0, messages.indexOf(message)),
+                  )
+                : messageText(message);
             const toolCalls = "toolCalls" in message ? message.toolCalls || [] : [];
             return (
               <View
@@ -684,6 +764,24 @@ export function ChatScreen({
             );
           })
         )}
+        {extraDrafts.map((draft) => (
+          <View
+            key={`live-${draft.id}`}
+            style={{ alignSelf: "flex-start", maxWidth: "95%", width: "95%" }}
+          >
+            <View
+              style={{
+                paddingHorizontal: 16,
+                paddingVertical: 13,
+                borderRadius: 22,
+                borderBottomLeftRadius: 7,
+                backgroundColor: "#EEEEF0",
+              }}
+            >
+              <AssistantResponse content={draft.text} />
+            </View>
+          </View>
+        ))}
         {!!latestDesktop && (
           <DesktopToolCard
             live
@@ -741,7 +839,17 @@ export function ChatScreen({
           </>
         )}
         {(!richThreads || selection.id === mainId) && <BackgroundUpdates />}
-        {(busy || agent.isRunning) && (
+        {stream.state.phase === "reconnecting" && (
+          <Text accessibilityLiveRegion="polite" style={[s.small, { alignSelf: "flex-start" }]}>
+            {t("chat.reconnectingLiveReply")}
+          </Text>
+        )}
+        {integrityWarning && (
+          <Text accessibilityLiveRegion="polite" style={[s.small, { alignSelf: "flex-start" }]}>
+            {integrityWarning}
+          </Text>
+        )}
+        {(busy || agent.isRunning) && !showingStreamText && (
           <View
             accessibilityLabel={t("chat.agentWorking")}
             style={[
@@ -770,13 +878,17 @@ export function ChatScreen({
             ))}
           </View>
         )}
-        <ErrorNotice error={error} />
-        {!!error && (
+        <ErrorNotice error={primaryError} />
+        {!!primaryError && (
           <Button
             style={{ alignSelf: "flex-start" }}
             icon={RotateCcw}
-            disabled={busy || agent.isRunning || !loaded || syncing || !isReady}
+            disabled={error ? busy || agent.isRunning || !loaded || syncing || !isReady : !isReady}
             onPress={() => {
+              if (!error && liveError) {
+                stream.retry();
+                return;
+              }
               void run()
                 .then(() => {
                   if (!queue.getSnapshot().paused) flush();
@@ -784,7 +896,7 @@ export function ChatScreen({
                 .catch((e) => setError(e instanceof Error ? e.message : String(e)));
             }}
           >
-            {t("chat.retryResponse")}
+            {error ? t("chat.retryResponse") : t("chat.retryLiveReply")}
           </Button>
         )}
       </ScrollView>

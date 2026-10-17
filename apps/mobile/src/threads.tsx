@@ -32,7 +32,8 @@ const ThreadContext = createContext<{
   error: string;
   retry: () => void;
   select: (selection: Selection) => void;
-  start: () => void;
+  /** 新建一个侧边对话并选中它，返回新对话的 id（用于外部立即引用）。 */
+  start: () => string;
   claimPrompt: (id: number) => boolean;
 } | null>(null);
 export function ThreadsProvider({ children }: { children: ReactNode }) {
@@ -88,14 +89,18 @@ export function ThreadsProvider({ children }: { children: ReactNode }) {
         retry: () => setAttempt((n) => n + 1),
         selection,
         select,
-        start: () => select({ id: newThreadId(), existing: false }),
+        start: () => {
+          const id = newThreadId();
+          select({ id, existing: false });
+          return id;
+        },
       }}
     >
       {children}
     </ThreadContext.Provider>
   );
 }
-export function useMuseThread() {
+export function useLingTaiThread() {
   const context = useContext(ThreadContext);
   if (!context) throw new Error("Threads provider is unavailable");
   return context;
@@ -112,7 +117,7 @@ export function ThreadsSheet({ onClose }: { onClose: () => void }) {
     retry,
     select,
     start,
-  } = useMuseThread();
+  } = useLingTaiThread();
   const { workspace, open, navigate, refresh } = useWorkspace();
   const threads = useThreads({ agentId: "default", enabled, includeArchived: true, limit: 20 });
   const [editing, setEditing] = useState<string>();

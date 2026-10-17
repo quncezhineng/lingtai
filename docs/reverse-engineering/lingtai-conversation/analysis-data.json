@@ -1,0 +1,510 @@
+{
+  "schemaVersion": "1.0",
+  "generatedAt": "2026-10-17",
+  "generatedFor": "LingTai conversation module reverse engineering",
+  "target": {
+    "repository": "/Users/luffy/Code/Bayes/EconSwarm/LingTai",
+    "access": "read-only",
+    "stack": {
+      "server": "Python FastAPI, asyncio",
+      "client": "React, TypeScript",
+      "transport": "REST plus WebSocket",
+      "persistence": "per-thread JSON timeline plus agent session files"
+    }
+  },
+  "rea": {
+    "tool": "REA MCP 6.3.0",
+    "directMcpRegistration": "not available in this Codex runtime",
+    "advertisedTools": 139,
+    "fixture": "/private/tmp/rea-lingtai-conversation",
+    "fixtureFiles": ["ChatScreen.tsx", "api.ts", "store.tsx", "types.ts", "api.test.ts"],
+    "durationSeconds": 4.6,
+    "textBytes": 170654,
+    "astNodes": 24037,
+    "findings": 328,
+    "parseFailures": 0,
+    "integrityContradictions": 0,
+    "applicationGraph": {
+      "nodes": 183,
+      "edges": 338
+    },
+    "semanticGraph": {
+      "nodes": 11333,
+      "unknowns": 2946
+    },
+    "trace": {
+      "seeds": 2,
+      "nodes": 183,
+      "edges": 338,
+      "terminalPaths": 89,
+      "observedFacts": 139,
+      "inferredFacts": 471
+    },
+    "evidenceIds": {
+      "parent": "ev_74b40034b90bee5a94e3a37b622c167f65330193102c317f10dbd15f481d7d61",
+      "summaryProjection": "ev_59a58301216e0b1a38e149b8fa96a269e54108fd0b0c3ecdef7ea93a9d050011",
+      "featureTrace": "ev_b1120ba492cbf77e5c433b7b8163a7a20a8b0f95ff81673a290baf6f84010cd0"
+    },
+    "evidenceFiles": [
+      "/private/tmp/rea-lingtai-conversation.analysis.json",
+      "/private/tmp/rea-lingtai-conversation.evidence.json",
+      "/private/tmp/rea-lingtai-api-trace.result.json"
+    ],
+    "limitation": "Static source evidence only; it does not prove runtime execution, network behavior, concurrency, or deployment correctness."
+  },
+  "architecture": {
+    "serverModules": [
+      {
+        "path": "lingtai/server/events.py",
+        "lines": "39-158",
+        "role": "Timeline: ordered per-thread event log, 2000-event retention, JSON persistence, 0.3s write coalescing, atomic temp-file replace."
+      },
+      {
+        "path": "lingtai/server/events.py",
+        "lines": "161-184",
+        "role": "EventBus: per-client asyncio.Queue(maxsize=1000); slow subscriber is discarded when full."
+      },
+      {
+        "path": "lingtai/server/api.py",
+        "lines": "609-619",
+        "role": "GET thread events with limit, before cursor, and has_more."
+      },
+      {
+        "path": "lingtai/server/api.py",
+        "lines": "1961-2003",
+        "role": "WebSocket endpoint: first-frame auth, hello snapshot, dedicated pump, 4401 auth close, finally cleanup."
+      },
+      {
+        "path": "lingtai/server/api.py",
+        "lines": "2070-2084",
+        "role": "Ten-second WebSocket authentication deadline."
+      },
+      {
+        "path": "lingtai/server/service.py",
+        "lines": "376-455",
+        "role": "MuseService composition and thread loading."
+      },
+      {
+        "path": "lingtai/server/service.py",
+        "lines": "800-880",
+        "role": "Thread path validation and restart repair of pending approvals, questions, running tools, browser/hands, and holds."
+      },
+      {
+        "path": "lingtai/server/service.py",
+        "lines": "1022-1069",
+        "role": "Stop and clear behavior."
+      },
+      {
+        "path": "lingtai/server/service.py",
+        "lines": "1072-1173",
+        "role": "Message validation, attachments, device routing, cloud-once, question/avatar interception, timeline event, inbox queue, and worker start."
+      },
+      {
+        "path": "lingtai/server/service.py",
+        "lines": "1238-1295",
+        "role": "Per-thread worker loop, busy state, run execution, finish/error handling, and cleanup."
+      },
+      {
+        "path": "lingtai/server/service.py",
+        "lines": "2612-2640",
+        "role": "Complete state snapshot sent in hello."
+      },
+      {
+        "path": "lingtai/server/webui.py",
+        "lines": "330-404",
+        "role": "UI adapter: emit/patch/status and stream_start, delta, stream_end, persisted assistant event."
+      }
+    ],
+    "clientModules": [
+      {
+        "path": "web/src/api.ts",
+        "lines": "463-522",
+        "role": "WebSocket reconnect, 4401/4404 handling, 500ms exponential backoff capped at 15s."
+      },
+      {
+        "path": "web/src/store.tsx",
+        "lines": "433-452",
+        "role": "Stream reducer for start, delta, end, and discard semantics."
+      },
+      {
+        "path": "web/src/store.tsx",
+        "lines": "607-620",
+        "role": "Micro-batching of WebSocket bursts into one render."
+      },
+      {
+        "path": "web/src/store.tsx",
+        "lines": "669-674",
+        "role": "Reload active timeline after a reconnect."
+      },
+      {
+        "path": "web/src/screens/ChatScreen.tsx",
+        "lines": "119-157",
+        "role": "120px follow threshold, 400px Latest threshold, and ResizeObserver pinning."
+      },
+      {
+        "path": "web/src/screens/ChatScreen.tsx",
+        "lines": "287-291",
+        "role": "Streaming assistant bubble, live reply announcement, and typing indicator."
+      },
+      {
+        "path": "web/src/screens/ChatScreen.tsx",
+        "lines": "340-390",
+        "role": "Timeline event dispatch by event type."
+      },
+      {
+        "path": "web/src/components/Cards.tsx",
+        "lines": "800-834",
+        "role": "Artifact card with title, path, and open action."
+      },
+      {
+        "path": "web/src/components/Cards.tsx",
+        "lines": "837-853",
+        "role": "HTML and image artifact previews."
+      },
+      {
+        "path": "web/src/components/FileViewer.tsx",
+        "lines": "9-16,104-116",
+        "role": "In-app file viewer; HTML is rendered via fetched text in a sandboxed iframe without same-origin."
+      },
+      {
+        "path": "web/src/components/Markdown.tsx",
+        "lines": "96-146",
+        "role": "Thread file references become internal buttons; external links open with target blank and noopener."
+      }
+    ],
+    "dependencySummary": [
+      "ChatScreen -> store/api/Cards/FileViewer/Markdown",
+      "store -> api.connectWs and REST events/state",
+      "FastAPI api.py -> MuseService -> MuseAgent and WebUI adapter",
+      "WebUI adapter -> Timeline + EventBus",
+      "WebSocket handler -> EventBus subscribe and state snapshot"
+    ]
+  },
+  "eventModel": {
+    "timelineEventBase": [
+      "id",
+      "ts",
+      "thread",
+      "updated_ts?",
+      "source?",
+      "about?",
+      "via?",
+      "synced?",
+      "mid?"
+    ],
+    "timelineEventTypes": [
+      "user",
+      "assistant",
+      "tool",
+      "approval",
+      "question",
+      "notice",
+      "artifact",
+      "browser",
+      "hands",
+      "hold",
+      "avatar"
+    ],
+    "websocketKinds": [
+      "hello",
+      "event",
+      "update",
+      "stream_start",
+      "delta",
+      "stream_end",
+      "status",
+      "thread",
+      "thread_deleted",
+      "thread_cleared",
+      "event_removed",
+      "working",
+      "goals",
+      "memory",
+      "reminders",
+      "triggers",
+      "calendar",
+      "feed_posts",
+      "ideas",
+      "profile",
+      "settings",
+      "phone",
+      "hub",
+      "hands_state",
+      "hands",
+      "studio",
+      "connections",
+      "firstrun",
+      "skills",
+      "approvals_reset",
+      "coding",
+      "error",
+      "pong"
+    ],
+    "streamFrames": {
+      "stream_start": ["thread", "id", "ts"],
+      "delta": ["thread", "id", "text"],
+      "stream_end": ["thread", "id", "discard?"]
+    },
+    "finalization": "The final assistant event reuses the stream id, so the client can replace the transient stream in one reducer update."
+  },
+  "flows": {
+    "send": [
+      "POST /api/threads/{id}/send",
+      "MuseService.send validates text and attachments",
+      "cloud_once resolves optional one-turn cloud model",
+      "thread lookup or creation; language persisted",
+      "device-targeted thread routes to hub.run_remote instead of local model",
+      "ui.emit creates persisted user event and broadcasts it",
+      "question/avatar interception can complete the turn without a model call",
+      "thread metadata is published and sync.message_sent fans out early",
+      "message enters thread.inbox",
+      "_ensure_worker starts exactly one worker for the thread",
+      "HTTP returns the user event and thread metadata without waiting for model completion"
+    ],
+    "worker": [
+      "claim inbox item",
+      "set thread.busy true and publish working status",
+      "run thread.agent.run",
+      "finish normal run or emit failure notice",
+      "end run, release temporary LLM client, clear busy, publish idle state"
+    ],
+    "stream": [
+      "first non-empty on_text_delta creates a stream id and publishes stream_start",
+      "each chunk appends to the buffer and publishes delta without persisting it",
+      "on_assistant_message emits stream_end and optionally discard",
+      "non-empty final text is persisted as an assistant timeline event with the same id",
+      "client stream reducer replaces the draft when that assistant event arrives"
+    ],
+    "reconnect": [
+      "socket closes",
+      "4401 stops for authentication; 4404 stops because the runtime is gone",
+      "other closes use exponential backoff from 500ms to 15s",
+      "client reconnects, authenticates in the first frame, receives hello state",
+      "client reloads the active thread timeline to recover persisted events",
+      "deltas not yet persisted before disconnect cannot be recovered exactly"
+    ],
+    "history": [
+      "GET /api/threads/{id}/events?limit=200&before=<eventId>",
+      "Timeline.tail finds the before event and slices events before it",
+      "server returns up to limit events and has_more",
+      "client prepends the page and uses event ids for deduplication"
+    ],
+    "artifacts": [
+      "agent writes a file in the thread workspace",
+      "artifact event records path, name, and action",
+      "client indexes paths for the active thread",
+      "ArtifactCard shows metadata and optional thumbnail",
+      "FileViewer reads text or URL",
+      "HTML uses srcDoc in a sandbox without allow-same-origin"
+    ]
+  },
+  "invariants": [
+    "User-visible event is emitted before the worker runs.",
+    "At most one worker runs per thread; inbox provides queueing.",
+    "Streaming deltas are live-only; only the final assistant message is persisted.",
+    "Final assistant event reuses the stream id.",
+    "Slow subscribers are dropped instead of growing an unbounded queue.",
+    "Restart repairs pending, running, live, and hold states before the thread is reused."
+  ],
+  "failureHandling": [
+    {
+      "failure": "empty message",
+      "behavior": "ValueError to HTTP 400; no timeline event"
+    },
+    {
+      "failure": "invalid attachment",
+      "behavior": "validation or PermissionError to HTTP 400"
+    },
+    {
+      "failure": "clear while busy",
+      "behavior": "false to HTTP 409"
+    },
+    {
+      "failure": "stop",
+      "behavior": "clear inbox, expire pending approvals/questions, cancel worker, settle tool boundary"
+    },
+    {
+      "failure": "model exception",
+      "behavior": "notice event, finally clears busy and restores idle"
+    },
+    {
+      "failure": "slow WebSocket consumer",
+      "behavior": "EventBus removes subscriber; reconnect and history reload required"
+    },
+    {
+      "failure": "authentication close 4401",
+      "behavior": "client marks auth error and stops retry"
+    },
+    {
+      "failure": "runtime gone 4404",
+      "behavior": "client stops reconnecting"
+    },
+    {
+      "failure": "process restart",
+      "behavior": "repair stale running/live/pending/hold states from timeline"
+    }
+  ],
+  "risks": [
+    "WebSocket onopen resets retry attempt, allowing fast retry loops for open-then-close failures.",
+    "Deltas have no sequence numbers in the upstream protocol, so exact suffix replay is impossible.",
+    "Timeline fan-out is process-local and lacks shared pub/sub or cross-instance sequence allocation.",
+    "Unpersisted partial text is lost if the process stops before the final assistant event.",
+    "Before cursor outside the 2000-event retention window degrades to a tail page and may produce duplicates.",
+    "The five-file REA fixture does not cover the Python server modules; those findings come from direct source reading."
+  ],
+  "currentProjectMapping": {
+    "implementationDoc": "docs/conversation-streaming.md",
+    "transport": "SSE with agui envelopes and monotonic sequence ids",
+    "replay": "Last-Event-ID or after cursor restores the exact retained suffix",
+    "reset": "ready.reset clears drafts when the cursor is stale or invalid",
+    "backpressure": "byte-bounded slow-consumer disconnect plus client resume",
+    "clientIntegrity": "sequence gate, draft reducer, heartbeat watchdog, and persisted-message verification",
+    "verificationCaveat": "The report does not claim staging proxy, real-device weak-network, or production concurrency validation."
+  },
+  "evidenceClassification": {
+    "observed": [
+      "WebSocket request in api.ts line 492",
+      "fetch calls in api.ts lines 137 and 318",
+      "non-retryable close codes 4401 and 4404 in api.ts lines 463 and 465",
+      "stream reducer in store.tsx lines 433-452 and reconnect reload at 669-674",
+      "scroll thresholds and ResizeObserver in ChatScreen.tsx lines 119-157",
+      "sandboxed HTML rendering in FileViewer.tsx lines 104-116"
+    ],
+    "inferred": [
+      "timeline is the server-side source of truth",
+      "client store is a reconstructible projection",
+      "open-then-close reconnect pathology from attempt reset in onopen",
+      "single-process EventBus limits multi-instance correctness",
+      "artifact preview security boundary prevents same-origin token access"
+    ],
+    "unknown": [
+      "runtime latency under real network conditions",
+      "reverse-proxy buffering behavior",
+      "mobile weak-network recovery behavior",
+      "concurrency and memory behavior at production scale",
+      "multi-instance deployment behavior",
+      "dynamic paths hidden by 2946 semantic unknowns"
+    ]
+  },
+  "artifacts": [
+    "index.html",
+    "architecture.html",
+    "business-logic.html",
+    "interaction-flow.html",
+    "server-runtime.html",
+    "frontend-render.html",
+    "rea-evidence.html",
+    "analysis-data.json"
+  ],
+  "deepDive": {
+    "server": {
+      "auth": {
+        "http": "Authorization: Bearer token; legacy ?token is rejected with 401",
+        "websocket": "first-frame auth within 10 seconds; failure closes 4401",
+        "signedFiles": "HMAC-SHA256 over exp newline path, 128-bit truncated signature, expiry bounded to about 13 hours"
+      },
+      "websocketCommands": ["device", "device_result", "send", "approval", "ping", "auth"],
+      "sendLimits": {
+        "textCharacters": 20000,
+        "files": 10,
+        "languageCharacters": 20,
+        "viaCharacters": 20
+      },
+      "eventAdapter": {
+        "runLifecycle": "begin_run resets per-run stream, artifact, browser and model state; end_run closes live browser cards",
+        "toolUpdates": "tool call creates running chip; tool result patches ok/error/blocked with output preview capped at 600 characters",
+        "artifacts": "workspace mtime diff before and after non-read-only tools; same path reuses the same card",
+        "browser": "bounded in-memory frame set; one card per run updated by patch",
+        "approvals": "future registered before card emission; timeout patches expired; resolve wakes the waiting run",
+        "questions": "one future per thread; next matching user message resolves it without starting a model run"
+      },
+      "persistence": {
+        "timeline": "UI event log per thread",
+        "session": "model Message history and turn count per thread",
+        "restartRepair": "pending cards become expired, running tools become error, live browser/hands become done, holds become stale off, orphan tool calls receive synthetic results"
+      },
+      "recoveryMatrix": [
+        {
+          "state": "worker task",
+          "storage": "asyncio.Task in memory",
+          "afterRestart": "gone"
+        },
+        {
+          "state": "inbox queue",
+          "storage": "asyncio.Queue in memory",
+          "afterRestart": "gone; not replayed"
+        },
+        {
+          "state": "pending approval/question",
+          "storage": "Future plus timeline card",
+          "afterRestart": "card expired"
+        },
+        {
+          "state": "running tool",
+          "storage": "timeline plus session",
+          "afterRestart": "tool error; synthetic tool result"
+        },
+        {
+          "state": "browser/hands card",
+          "storage": "timeline plus in-memory frames",
+          "afterRestart": "live becomes done"
+        },
+        {
+          "state": "hold",
+          "storage": "timeline plus memory",
+          "afterRestart": "off and stale"
+        }
+      ],
+      "risks": [
+        "EventBus capacity is measured in messages, not bytes.",
+        "Timeline and session writes are separate and can diverge on a crash between them.",
+        "Inbox items are not durable and are lost on restart.",
+        "Workspace artifact detection depends on mtime resolution and external file changes.",
+        "Signed file URLs remain bearer-like capabilities until expiry.",
+        "WebSocket send commands have no idempotency key."
+      ]
+    },
+    "frontend": {
+      "sendPaths": [
+        "No attachments and writable WebSocket: send command over WebSocket.",
+        "Attachments or unavailable WebSocket: POST send over REST.",
+        "Cloud-once send: always REST so refusal is synchronously returned."
+      ],
+      "approvalPaths": [
+        "WebSocket approval command when available",
+        "REST fallback POST /api/approvals/{id}"
+      ],
+      "reducer": {
+        "upsert": "replace by event id; append otherwise",
+        "syncedOrdering": "insert older synced events by timestamp",
+        "hello": "clears transient streams and rebuilds global cards/state",
+        "streamStart": "creates or replaces the thread stream",
+        "delta": "append only for the matching stream id",
+        "streamEnd": "mark ended; discard empty or explicitly discarded streams",
+        "assistantEvent": "clear stream when the final event id matches"
+      },
+      "reconnect": {
+        "baseDelayMs": 500,
+        "capMs": 15000,
+        "nonRetryable": [4401, 4404],
+        "historyReload": "active thread reloaded after reconnect",
+        "defect": "attempt resets in onopen before any valid data is received"
+      },
+      "rendering": {
+        "followThresholdPx": 120,
+        "latestThresholdPx": 400,
+        "accessibility": "live region announces start and completed reply, not every token",
+        "artifactPreview": "HTML srcDoc iframe without allow-same-origin",
+        "markdown": "thread file references become internal buttons; external links use target blank and noopener"
+      },
+      "risks": [
+        "No stream sequence id upstream; exact suffix replay is impossible.",
+        "Reconnect reloads the whole active timeline rather than only the missing suffix.",
+        "No idempotency key for send commands.",
+        "Event retention has no byte budget on the client.",
+        "No explicit half-open connection watchdog upstream.",
+        "Artifact HTML can still run scripts, open popups and consume CPU inside the sandbox."
+      ]
+    }
+  }
+}

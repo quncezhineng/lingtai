@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>REA 证据、事实与未知项</title>
+  <style>
+    :root {
+      --bg: #f6f3ec;
+      --paper: #fffdf7;
+      --ink: #1f2724;
+      --muted: #68716c;
+      --line: #d9d3c7;
+      --accent: #0f766e;
+      --accent-soft: #dff3ee;
+      --warn: #9a5b13;
+      --warn-soft: #fff0d7;
+      --shadow: 0 18px 50px rgba(43, 49, 44, .08);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #101715;
+        --paper: #17201d;
+        --ink: #edf2ef;
+        --muted: #a8b3ae;
+        --line: #33413c;
+        --accent: #66d6c9;
+        --accent-soft: #153e39;
+        --warn: #f0b96f;
+        --warn-soft: #3d2d17;
+        --shadow: 0 18px 50px rgba(0, 0, 0, .28);
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font: 16px/1.72 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 8% 4%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 30rem),
+        radial-gradient(circle at 92% 12%, color-mix(in srgb, var(--warn) 10%, transparent), transparent 24rem),
+        var(--bg);
+    }
+    a { color: var(--accent); text-underline-offset: 3px; }
+    a:hover { text-decoration-thickness: 2px; }
+    .shell { width: min(1120px, calc(100% - 36px)); margin: 0 auto; }
+    header { padding: 72px 0 34px; }
+    .eyebrow { margin: 0 0 12px; color: var(--accent); font-size: 13px; font-weight: 750; letter-spacing: .14em; text-transform: uppercase; }
+    h1 { margin: 0; max-width: 820px; font-size: clamp(36px, 7vw, 72px); line-height: 1.05; letter-spacing: -.045em; }
+    .lede { max-width: 780px; margin: 24px 0 0; color: var(--muted); font-size: clamp(17px, 2.2vw, 21px); }
+    .status { display: inline-flex; gap: 9px; align-items: center; margin-top: 24px; padding: 8px 13px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); font-size: 13px; font-weight: 650; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 5px var(--accent-soft); }
+    main { padding: 16px 0 76px; }
+    section { margin: 30px 0; }
+    .panel { border: 1px solid var(--line); border-radius: 24px; background: color-mix(in srgb, var(--paper) 94%, transparent); box-shadow: var(--shadow); }
+    .pad { padding: clamp(22px, 4vw, 38px); }
+    h2 { margin: 0 0 18px; font-size: clamp(23px, 3.2vw, 32px); line-height: 1.2; letter-spacing: -.025em; }
+    h3 { margin: 26px 0 8px; font-size: 18px; }
+    p { margin: 10px 0; }
+    .muted { color: var(--muted); }
+    .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 18px; }
+    .metric { padding: 17px; border-radius: 18px; background: var(--bg); border: 1px solid var(--line); }
+    .metric strong { display: block; font-size: 26px; line-height: 1.15; letter-spacing: -.03em; }
+    .metric span { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; }
+    .artifact-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+    .artifact { display: flex; min-height: 150px; flex-direction: column; padding: 22px; border: 1px solid var(--line); border-radius: 20px; background: var(--paper); color: var(--ink); text-decoration: none; transition: transform .18s ease, border-color .18s ease, background .18s ease; }
+    .artifact:hover { transform: translateY(-2px); border-color: var(--accent); background: var(--accent-soft); }
+    .artifact .num { color: var(--accent); font: 700 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .12em; }
+    .artifact strong { display: block; margin: 16px 0 8px; font-size: 19px; line-height: 1.35; }
+    .artifact span:last-child { margin-top: auto; color: var(--muted); font-size: 13px; }
+    .split { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
+    .note { padding: 17px 19px; border-left: 4px solid var(--warn); border-radius: 4px 14px 14px 4px; background: var(--warn-soft); }
+    ul, ol { margin: 10px 0; padding-left: 1.4em; }
+    li { margin: 7px 0; }
+    code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .9em; }
+    code { padding: .12em .36em; border-radius: 5px; background: color-mix(in srgb, var(--accent) 10%, transparent); }
+    .flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 18px; }
+    .step { position: relative; padding: 14px; border: 1px solid var(--line); border-radius: 15px; background: var(--bg); min-height: 100px; }
+    .step b { display: block; color: var(--accent); font-size: 12px; letter-spacing: .08em; }
+    .step span { display: block; margin-top: 8px; font-size: 13px; line-height: 1.45; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { padding: 12px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-size: 12px; letter-spacing: .04em; }
+    tr:last-child td { border-bottom: 0; }
+    footer { padding: 0 0 46px; color: var(--muted); font-size: 13px; }
+    @media (max-width: 720px) {
+      header { padding-top: 46px; }
+      .flow { grid-template-columns: 1fr 1fr; }
+      .pad { padding: 20px; }
+    }
+  
+    .hero { padding: 54px 0 24px; }
+    .hero h1 { font-size: clamp(32px, 5.5vw, 56px); }
+    .crumbs { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0 0; }
+    .crumbs a { padding: 7px 11px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); font-size: 12px; text-decoration: none; }
+    .crumbs a:hover { border-color: var(--accent); color: var(--accent); }
+    .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+    .evidence { padding: 15px 17px; border: 1px solid var(--line); border-radius: 15px; background: var(--bg); margin: 10px 0; }
+    .evidence .label { display: block; color: var(--muted); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+    .evidence code { display: block; margin-top: 6px; overflow-wrap: anywhere; }
+    .fact { display: grid; grid-template-columns: 105px 1fr; gap: 12px; padding: 13px 0; border-bottom: 1px solid var(--line); }
+    .fact:last-child { border-bottom: 0; }
+    .fact b { color: var(--accent); font-size: 12px; letter-spacing: .04em; }
+    .unknown { padding: 15px 17px; margin: 10px 0; border-left: 4px solid var(--warn); border-radius: 4px 14px 14px 4px; background: var(--warn-soft); }
+    .code { overflow: auto; padding: 17px; border: 1px solid var(--line); border-radius: 15px; background: var(--bg); font: 12.5px/1.65 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre; }
+    @media (max-width: 600px) { .fact { grid-template-columns: 1fr; gap: 4px; } }
+</style>
+</head>
+<body>
+  <header class="shell hero">
+    <p class="eyebrow">Artifact 04 · Evidence</p>
+    <h1>REA 证据、事实与未知项</h1>
+    <p class="lede">本页把“工具确实产出的静态证据”和“基于源码阅读的工程判断”分开记录。技术名称统一写作 <strong>REA MCP</strong>，不写成长串拼写变体。</p>
+    <nav class="crumbs" aria-label="报告导航">
+      <a href="index.html" target="_blank" rel="noopener noreferrer">总览</a>
+      <a href="architecture.html" target="_blank" rel="noopener noreferrer">架构依赖</a>
+      <a href="business-logic.html" target="_blank" rel="noopener noreferrer">业务逻辑</a>
+      <a href="interaction-flow.html" target="_blank" rel="noopener noreferrer">交互流程</a>
+      <a href="server-runtime.html" target="_blank" rel="noopener noreferrer">服务端运行时</a>
+      <a href="frontend-render.html" target="_blank" rel="noopener noreferrer">前端渲染</a>
+      <a href="analysis-data.json" target="_blank" rel="noopener noreferrer">分析数据</a>
+    </nav>
+  </header>
+
+  <main class="shell">
+    <section class="panel pad" aria-labelledby="method">
+      <h2 id="method">方法与工具状态</h2>
+      <p>该 Codex 运行时没有注册可调用的 <code>mcp__rea__*</code> 工具；直接调用会返回 unsupported call。因此使用 REA 6.3.0 的独立 stdio MCP 服务进行静态分析。服务暴露了 139 个工具，其中本次用到：</p>
+      <ul>
+        <li><code>analyze_javascript_application</code>：分析文件集合并构建应用图。</li>
+        <li><code>inspect_analysis_view</code>：在完整响应超过 stdio 预算时投影摘要证据。</li>
+        <li><code>trace_application_feature</code>：从入口种子追踪调用路径与终端路径。</li>
+        <li><code>export_evidence_bundle</code>：导出可复核的证据包。</li>
+      </ul>
+      <p>整个项目与 <code>web/src</code> 的全量分析都超过 300 秒期限；因此创建只读的五文件夹具，聚焦对话链路。这不是对全仓库的完整覆盖，但对前端对话核心路径具有直接证据价值。</p>
+      <pre class="code">/private/tmp/rea-lingtai-conversation/
+  ChatScreen.tsx
+  api.ts
+  store.tsx
+  types.ts
+  api.test.ts</pre>
+    </section>
+
+    <section class="panel pad" aria-labelledby="metrics">
+      <h2 id="metrics">核心指标</h2>
+      <div class="metric-grid">
+        <div class="metric"><strong>4.6s</strong><span>分析耗时</span></div>
+        <div class="metric"><strong>170,654</strong><span>文本字节</span></div>
+        <div class="metric"><strong>24,037</strong><span>AST 节点</span></div>
+        <div class="metric"><strong>328</strong><span>发现</span></div>
+        <div class="metric"><strong>0 / 0</strong><span>解析失败 / 完整性矛盾</span></div>
+        <div class="metric"><strong>183 / 338</strong><span>应用图节点 / 边</span></div>
+        <div class="metric"><strong>11,333</strong><span>语义图节点</span></div>
+        <div class="metric"><strong>2,946</strong><span>语义未知项</span></div>
+        <div class="metric"><strong>89</strong><span>终端路径</span></div>
+        <div class="metric"><strong>139 / 471</strong><span>观察 / 推断事实</span></div>
+      </div>
+      <p class="muted">“观察事实”指证据包中直接记录的符号、调用或文本；“推断事实”指由图遍历和代码路径推导出的关系。两者都不等于运行时执行记录。</p>
+    </section>
+
+    <section class="panel pad" aria-labelledby="ids">
+      <h2 id="ids">Evidence ID 与证据包</h2>
+      <div class="evidence"><span class="label">Parent evidence</span><code>ev_74b40034b90bee5a94e3a37b622c167f65330193102c317f10dbd15f481d7d61</code></div>
+      <div class="evidence"><span class="label">Summary projection</span><code>ev_59a58301216e0b1a38e149b8fa96a269e54108fd0b0c3ecdef7ea93a9d050011</code></div>
+      <div class="evidence"><span class="label">Feature trace</span><code>ev_b1120ba492cbf77e5c433b7b8163a7a20a8b0f95ff81673a290baf6f84010cd0</code></div>
+      <p>完整 MCP 响应超过 10 MiB stdio 预算；摘要投影保留结论，完整证据由 <code>export_evidence_bundle</code> 写入约 21 MB 的 bundle。该 bundle 含 2 条记录，用于后续复核。</p>
+      <h3>现有证据文件</h3>
+      <ul>
+        <li><code>/private/tmp/rea-lingtai-conversation.analysis.json</code></li>
+        <li><code>/private/tmp/rea-lingtai-conversation.evidence.json</code></li>
+        <li><code>/private/tmp/rea-lingtai-api-trace.result.json</code></li>
+      </ul>
+    </section>
+
+    <section class="panel pad" aria-labelledby="observations">
+      <h2 id="observations">明确观察</h2>
+      <div class="fact"><b>传输</b><div>REA 在 <code>api.ts</code> 定位到 <code>WebSocket</code> 请求：第 492 行；两条 <code>fetch</code> 调用位于第 137 和 318 行。</div></div>
+      <div class="fact"><b>关闭码</b><div>不可重试关闭码 4401 与 4404 位于 <code>api.ts:463</code> 与 <code>api.ts:465</code>。</div></div>
+      <div class="fact"><b>流归并</b><div><code>store.tsx:433-452</code> 明确处理 <code>stream_start</code>、<code>delta</code>、<code>stream_end</code>；<code>stream_end</code> 保留非空流直到正式事件替换。</div></div>
+      <div class="fact"><b>批处理</b><div><code>store.tsx:607-620</code> 把同一轮到达的 WebSocket 消息排入队列，用 0ms 定时器一次性 dispatch。</div></div>
+      <div class="fact"><b>重连补偿</b><div><code>store.tsx:669-674</code> 在重连且已加载时重新拉取当前线程事件。</div></div>
+      <div class="fact"><b>滚动阈值</b><div><code>ChatScreen.tsx:119-138</code> 使用 120px 跟随阈值和 400px Latest 阈值；<code>156-157</code> 使用 <code>ResizeObserver</code>。</div></div>
+      <div class="fact"><b>产物路径</b><div><code>ChatScreen.tsx:199-201</code> 汇总当前线程 artifact 路径；<code>383-384</code> 渲染 <code>ArtifactCard</code>。</div></div>
+      <div class="fact"><b>安全预览</b><div><code>FileViewer.tsx:104-116</code> 用 <code>srcDoc</code> 和 sandbox iframe 渲染 HTML；sandbox 不含 <code>allow-same-origin</code>。</div></div>
+      <div class="fact"><b>外链策略</b><div><code>Markdown.tsx:96-146</code> 将线程文件引用转成内部按钮，其余外链使用 <code>target="_blank"</code> 与 <code>rel="noreferrer noopener"</code>。</div></div>
+    </section>
+
+    <section class="panel pad" aria-labelledby="inferences">
+      <h2 id="inferences">工程推断</h2>
+      <ul>
+        <li>时间线是服务端的事实源，前端 store 是可重建的投影；这从 <code>hello.state</code>、历史分页和重连重载三条路径可以相互印证。</li>
+        <li>流式临时文本只存在于广播层，因为持久化事件只在 <code>on_assistant_message()</code> 中写入；因此崩溃恢复不包含半截 delta。</li>
+        <li><code>onopen</code> 重置 attempt 会产生 open-then-close 高频重连风险；这是代码路径推断，不是实际网络观测。</li>
+        <li>单进程 EventBus 不支持跨实例顺序与共享游标；多实例部署需要额外 pub/sub 和序列分配层。</li>
+        <li>HTML artifact 的 sandbox 设计把“渲染”与“同源权限”分离，属于明确的安全边界，不是仅靠 CSP 的装饰性配置。</li>
+      </ul>
+    </section>
+
+    <section class="panel pad" aria-labelledby="unknowns">
+      <h2 id="unknowns">未知项与未覆盖范围</h2>
+      <div class="unknown"><strong>语义未知：</strong>语义图保留 2,946 个未知节点，说明部分动态分派、跨文件别名或运行时构造无法静态解析。不能把未知节点当作“不存在”。</div>
+      <div class="unknown"><strong>运行时未验证：</strong>没有在真实浏览器中测量首帧延迟、断线恢复时间、代理缓冲、弱网重连或高并发内存曲线。</div>
+      <div class="unknown"><strong>部署未验证：</strong>没有验证反向代理、TLS 终止、HTTP/2、跨区域网络和多实例一致性。</div>
+      <div class="unknown"><strong>全仓库未覆盖：</strong>只对五文件夹具做了 REA 图分析；服务端结论来自直接源码阅读与行号定位，不是 REA 对 Python 文件的 AST 分析。</div>
+      <div class="unknown"><strong>行为未触发：</strong>没有向目标项目发送消息、上传附件、执行工具或写入数据；所有结论均为只读静态分析。</div>
+    </section>
+
+    <section class="panel pad" aria-labelledby="repro">
+      <h2 id="repro">复现与复核建议</h2>
+      <ol>
+        <li>在允许启动 stdio MCP 的环境中运行 REA 6.3.0，并确认工具清单包含 139 个工具。</li>
+        <li>重新分析五文件夹具，核对 parent evidence 的 AST 节点数、发现数与完整性计数。</li>
+        <li>用 <code>inspect_analysis_view</code> 读取摘要证据，再用 <code>export_evidence_bundle</code> 导出完整 bundle。</li>
+        <li>从 <code>api.ts</code> 重新执行 feature trace，核对 183 节点、338 边、89 终端路径与 139/471 事实计数。</li>
+        <li>运行时验证应另建测试环境，覆盖 WebSocket 首帧认证、4401/4404、断线重载、慢消费者与 HTML artifact 隔离。</li>
+      </ol>
+      <p class="muted">静态证据只能证明“代码中存在这些路径”。任何“稳定运行”“高并发可用”“弱网可恢复”的结论都必须由独立运行测试支撑。</p>
+    </section>
+  </main>
+
+  <footer class="shell"><p>REA MCP 静态证据 · 目标项目未修改 · 证据 ID 可在原始 bundle 中复核。</p></footer>
+</body>
+</html>

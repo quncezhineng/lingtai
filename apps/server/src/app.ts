@@ -21,6 +21,8 @@ import { assertApiDeploymentConfig, type Config } from "./config.ts";
 import type { Store } from "./db.ts";
 import { agentRoutes } from "./engine/routes.ts";
 import { AgentService } from "./engine/service.ts";
+import { ConversationStream } from "./engine/stream.ts";
+import { conversationStreamRoutes } from "./engine/stream-routes.ts";
 import { AppError } from "./errors.ts";
 import { Files } from "./files.ts";
 import { GoogleAuth } from "./google-auth.ts";
@@ -57,7 +59,8 @@ export async function createApp(
   const computer = new ComputerService(db, config, options.docker);
   const agent = new AgentService(db, config, workspace, files, actions, browser, computer);
   const intelligence = new CopilotKitIntelligence({ apiKey: config.intelligenceApiKey });
-  const runtime = makeRuntime(config, agent, auth, intelligence);
+  const conversationStream = new ConversationStream(db);
+  const runtime = makeRuntime(config, agent, auth, intelligence, conversationStream);
   // 启动时恢复上一次在 App 里选中的模型，让选择跨重启保留。
   // 若该厂商的密钥已被移除，则回退到 .env 的 MODEL，避免指向不可用的模型。
   const savedModel = await db.get<{ model?: string }>("system", "settings", "model");
@@ -77,7 +80,7 @@ export async function createApp(
     "*",
     cors({
       origin: (origin) => (origins.has(origin) ? origin : undefined),
-      allowHeaders: ["Content-Type", "Authorization"],
+      allowHeaders: ["Content-Type", "Authorization", "Accept", "Last-Event-ID"],
       allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
       credentials: true,
     }),
@@ -351,6 +354,7 @@ export async function createApp(
     return c.json({ model: config.model });
   });
   app.route("/api/agent", agentRoutes(agent));
+  app.route("/api/conversation/stream", conversationStreamRoutes(conversationStream));
   app.route("/api/computer", computerRoutes(computer, files));
   app.get("/api/calendars", async (c) => c.json(await workspace.calendars(c.get("owner"))));
   app.get("/api/calendar/events", async (c) => {
@@ -544,5 +548,5 @@ export async function createApp(
   app.get("/", (c) =>
     c.json({ name: "LingTai", app: "http://localhost:8081", health: "/api/health" }),
   );
-  return { app, auth, files, actions, workspace, agent, computer };
+  return { app, auth, files, actions, workspace, agent, computer, conversationStream };
 }

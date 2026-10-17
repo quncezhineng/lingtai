@@ -1,12 +1,15 @@
 import { Platform } from "react-native";
 import { readApiPayload } from "./api-response";
 
+// 默认指向本机后端。这里用 127.0.0.1 而不是 localhost，是因为部分环境的 DNS 或系统代理
+// 会把 localhost 解析成 ::1（IPv6）或代理虚拟地址，而后端默认只监听 IPv4 的 127.0.0.1，
+// 导致浏览器请求时报 "Failed to fetch"。显式用 IPv4 loopback 可稳定连上本机后端。
 export const API_URL = (
   process.env.EXPO_PUBLIC_API_URL ||
-  (Platform.OS === "android" ? "http://10.0.2.2:8787" : "http://localhost:8787")
+  (Platform.OS === "android" ? "http://10.0.2.2:8787" : "http://127.0.0.1:8787")
 ).replace(/\/$/, "");
 
-export class MuseApi {
+export class LingTaiApi {
   constructor(readonly token: string) {}
   async request<T>(path: string, body?: unknown, method?: string): Promise<T> {
     const response = await fetch(`${API_URL}${path}`, {

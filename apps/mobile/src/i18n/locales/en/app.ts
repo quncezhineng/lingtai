@@ -69,6 +69,14 @@ const app = {
   "app.sideChat": "Side chat",
   "app.retryMainChat": "Retry main chat",
   "app.dismissNotification": "Dismiss notification",
+  "app.navMore": "More",
+  "app.chatsColumnTitle": "Chats",
+  "app.searchChatsPlaceholder": "Search",
+  "app.mainChatsHeading": "Main chat",
+  "app.sideChatsHeading": "Side chats",
+  "app.newSideChatPlaceholder": "New side chat",
+  "app.createSideChatLabel": "New",
+  "app.menuNotifications": "Notifications",
 } satisfies Dictionary;
 
 export default app;

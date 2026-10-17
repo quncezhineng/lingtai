@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>服务端运行时与会话恢复深潜</title>
+  <style>
+    :root {
+      --bg: #f6f3ec;
+      --paper: #fffdf7;
+      --ink: #1f2724;
+      --muted: #68716c;
+      --line: #d9d3c7;
+      --accent: #0f766e;
+      --accent-soft: #dff3ee;
+      --warn: #9a5b13;
+      --warn-soft: #fff0d7;
+      --shadow: 0 18px 50px rgba(43, 49, 44, .08);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #101715;
+        --paper: #17201d;
+        --ink: #edf2ef;
+        --muted: #a8b3ae;
+        --line: #33413c;
+        --accent: #66d6c9;
+        --accent-soft: #153e39;
+        --warn: #f0b96f;
+        --warn-soft: #3d2d17;
+        --shadow: 0 18px 50px rgba(0, 0, 0, .28);
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font: 16px/1.72 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 8% 4%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 30rem),
+        radial-gradient(circle at 92% 12%, color-mix(in srgb, var(--warn) 10%, transparent), transparent 24rem),
+        var(--bg);
+    }
+    a { color: var(--accent); text-underline-offset: 3px; }
+    a:hover { text-decoration-thickness: 2px; }
+    .shell { width: min(1120px, calc(100% - 36px)); margin: 0 auto; }
+    header { padding: 72px 0 34px; }
+    .eyebrow { margin: 0 0 12px; color: var(--accent); font-size: 13px; font-weight: 750; letter-spacing: .14em; text-transform: uppercase; }
+    h1 { margin: 0; max-width: 820px; font-size: clamp(36px, 7vw, 72px); line-height: 1.05; letter-spacing: -.045em; }
+    .lede { max-width: 780px; margin: 24px 0 0; color: var(--muted); font-size: clamp(17px, 2.2vw, 21px); }
+    .status { display: inline-flex; gap: 9px; align-items: center; margin-top: 24px; padding: 8px 13px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); font-size: 13px; font-weight: 650; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 5px var(--accent-soft); }
+    main { padding: 16px 0 76px; }
+    section { margin: 30px 0; }
+    .panel { border: 1px solid var(--line); border-radius: 24px; background: color-mix(in srgb, var(--paper) 94%, transparent); box-shadow: var(--shadow); }
+    .pad { padding: clamp(22px, 4vw, 38px); }
+    h2 { margin: 0 0 18px; font-size: clamp(23px, 3.2vw, 32px); line-height: 1.2; letter-spacing: -.025em; }
+    h3 { margin: 26px 0 8px; font-size: 18px; }
+    p { margin: 10px 0; }
+    .muted { color: var(--muted); }
+    .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 18px; }
+    .metric { padding: 17px; border-radius: 18px; background: var(--bg); border: 1px solid var(--line); }
+    .metric strong { display: block; font-size: 26px; line-height: 1.15; letter-spacing: -.03em; }
+    .metric span { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; }
+    .artifact-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+    .artifact { display: flex; min-height: 150px; flex-direction: column; padding: 22px; border: 1px solid var(--line); border-radius: 20px; background: var(--paper); color: var(--ink); text-decoration: none; transition: transform .18s ease, border-color .18s ease, background .18s ease; }
+    .artifact:hover { transform: translateY(-2px); border-color: var(--accent); background: var(--accent-soft); }
+    .artifact .num { color: var(--accent); font: 700 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .12em; }
+    .artifact strong { display: block; margin: 16px 0 8px; font-size: 19px; line-height: 1.35; }
+    .artifact span:last-child { margin-top: auto; color: var(--muted); font-size: 13px; }
+    .split { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
+    .note { padding: 17px 19px; border-left: 4px solid var(--warn); border-radius: 4px 14px 14px 4px; background: var(--warn-soft); }
+    ul, ol { margin: 10px 0; padding-left: 1.4em; }
+    li { margin: 7px 0; }
+    code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .9em; }
+    code { padding: .12em .36em; border-radius: 5px; background: color-mix(in srgb, var(--accent) 10%, transparent); }
+    .flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 18px; }
+    .step { position: relative; padding: 14px; border: 1px solid var(--line); border-radius: 15px; background: var(--bg); min-height: 100px; }
+    .step b { display: block; color: var(--accent); font-size: 12px; letter-spacing: .08em; }
+    .step span { display: block; margin-top: 8px; font-size: 13px; line-height: 1.45; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { padding: 12px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-size: 12px; letter-spacing: .04em; }
+    tr:last-child td { border-bottom: 0; }
+    footer { padding: 0 0 46px; color: var(--muted); font-size: 13px; }
+    @media (max-width: 720px) {
+      header { padding-top: 46px; }
+      .flow { grid-template-columns: 1fr 1fr; }
+      .pad { padding: 20px; }
+    }
+  
+    .hero { padding: 54px 0 24px; }
+    .hero h1 { font-size: clamp(32px, 5.5vw, 56px); }
+    .crumbs { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0 0; }
+    .crumbs a { padding: 7px 11px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); font-size: 12px; text-decoration: none; }
+    .crumbs a:hover { border-color: var(--accent); color: var(--accent); }
+    .route { display: grid; grid-template-columns: 135px 1fr; gap: 16px; padding: 15px 0; border-bottom: 1px solid var(--line); }
+    .route:last-child { border-bottom: 0; }
+    .route .verb { align-self: start; display: inline-block; width: fit-content; padding: 3px 8px; border-radius: 7px; background: var(--accent-soft); color: var(--accent); font: 700 11px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .route h3 { margin: 0 0 4px; font-size: 16px; }
+    .route p { margin: 3px 0; }
+    .route code { overflow-wrap: anywhere; }
+    .code { overflow: auto; padding: 17px; border: 1px solid var(--line); border-radius: 15px; background: var(--bg); font: 12.5px/1.65 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre; }
+    .warning { padding: 15px 17px; margin: 10px 0; border-left: 4px solid var(--warn); border-radius: 4px 14px 14px 4px; background: var(--warn-soft); }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+    .card { padding: 17px; border: 1px solid var(--line); border-radius: 17px; background: var(--bg); }
+    .card b { display: block; color: var(--accent); font-size: 12px; letter-spacing: .06em; }
+    .card h3 { margin: 8px 0 5px; font-size: 16px; }
+    .card p { margin: 0; color: var(--muted); font-size: 13px; }
+    .two { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    @media (max-width: 720px) { .two { grid-template-columns: 1fr; } .route { grid-template-columns: 1fr; gap: 7px; } }
+</style>
+</head>
+<body>
+  <header class="shell hero">
+    <p class="eyebrow">Artifact 06 · Server runtime</p>
+    <h1>服务端运行时与会话恢复深潜</h1>
+    <p class="lede">继续向下钻取 FastAPI 路由、WebSocket 命令、文件票据、事件适配器、Agent 会话文件与重启修复。重点不是列出全部 API，而是还原“一个线程如何安全地持续存在”。</p>
+    <nav class="crumbs" aria-label="报告导航">
+      <a href="index.html" target="_blank" rel="noopener noreferrer">总览</a>
+      <a href="architecture.html" target="_blank" rel="noopener noreferrer">架构依赖</a>
+      <a href="business-logic.html" target="_blank" rel="noopener noreferrer">业务逻辑</a>
+      <a href="interaction-flow.html" target="_blank" rel="noopener noreferrer">交互流程</a>
+      <a href="frontend-render.html" target="_blank" rel="noopener noreferrer">前端渲染</a>
+      <a href="rea-evidence.html" target="_blank" rel="noopener noreferrer">REA 证据</a>
+      <a href="analysis-data.json" target="_blank" rel="noopener noreferrer">分析数据</a>
+    </nav>
+  </header>
+
+  <main class="shell">
+    <section class="panel pad" aria-labelledby="contracts">
+      <h2 id="contracts">线程与 API 契约</h2>
+      <div class="route"><span class="verb">GET</span><div><h3><code>/api/state</code></h3><p>返回 profile、status、threads、pending approvals、goals、settings、phone、hub、hands、holds、working 与 firstrun。它是 WebSocket <code>hello</code> 的快照来源。</p></div></div>
+      <div class="route"><span class="verb">GET</span><div><h3><code>/api/threads/{id}/events</code></h3><p>默认 200 条，<code>limit</code> 最大 1000；<code>before</code> 是事件 id，不是时间戳；返回 <code>thread</code>、<code>events</code>、<code>has_more</code>。</p></div></div>
+      <div class="route"><span class="verb">POST</span><div><h3><code>/api/threads/{id}/send</code></h3><p><code>text</code> 最长 20,000；最多 10 个附件路径；<code>language</code> 与 <code>via</code> 最长 20。发送只入队，不等待模型完成。</p></div></div>
+      <div class="route"><span class="verb">POST</span><div><h3><code>/api/threads/{id}/stop</code></h3><p>返回 <code>{"ok": bool}</code>。线程不存在为 404；没有正在运行的 worker 时 <code>ok=false</code>，而不是错误。</p></div></div>
+      <div class="route"><span class="verb">POST</span><div><h3><code>/api/threads/{id}/clear</code></h3><p>仅空闲线程可清空；busy 时返回 409 <code>thread is busy</code>。</p></div></div>
+      <div class="route"><span class="verb">GET</span><div><h3><code>/api/files/{path}</code> 与 <code>/api/files/upload</code></h3><p>下载支持 Bearer 或签名票据；上传使用原始字节 body，文件名走查询参数，避免 multipart 依赖。</p></div></div>
+      <div class="route"><span class="verb">WS</span><div><h3><code>/ws</code></h3><p>首帧认证；支持 <code>send</code>、<code>approval</code>、<code>device</code>、<code>device_result</code>、<code>ping</code>；未知 kind 返回 error 而不是断开。</p></div></div>
+      <p class="muted">源码入口：<code>lingtai/server/api.py:1-65</code> 的路由说明，<code>500-620</code> 的认证与线程路由，<code>1880-1970</code> 的文件接口，<code>2060-2145</code> 的 WebSocket。</p>
+    </section>
+
+    <section class="panel pad" aria-labelledby="auth">
+      <h2 id="auth">认证与文件票据</h2>
+      <div class="two">
+        <div>
+          <h3>HTTP 认证</h3>
+          <p>除健康检查等公开路径外，所有 API 依赖 <code>Authorization: Bearer &lt;token&gt;</code>。若请求仍携带旧的 <code>?token=</code> 查询参数，会直接返回 401，并提示改用头部。</p>
+          <h3>WebSocket 首帧认证</h3>
+          <p>连接先 accept，再在 10 秒内等待 <code>{"kind":"auth","token":"..."}</code>；错误、超时、非 JSON 或错误字段都会关闭 4401。令牌不出现在 URL 中。</p>
+        </div>
+        <div>
+          <h3>签名文件链接</h3>
+          <p><code>img</code>/<code>iframe</code>/<code>video</code> 无法附加 Authorization 头，因此前端用持有令牌生成 HMAC 签名：<code>?exp=&amp;sig=</code>。签名绑定具体路径与过期时间，最多允许约 13 小时。</p>
+          <p><code>tickets.py</code> 的 MAC 输入是 <code>exp + "\n" + path</code>，signature 截取 128 位十六进制；这样链接不会泄露原令牌，也不能跨路径复用。</p>
+        </div>
+      </div>
+      <div class="warning"><strong>安全边界：</strong>签名 URL 仍然会在浏览器缓存、历史和代理日志中留下“可访问一段时间”的能力链接。过期窗口与绑定路径限制了影响，但不等于短期令牌不可见。</div>
+    </section>
+
+    <section class="panel pad" aria-labelledby="ws">
+      <h2 id="ws">WebSocket 命令面</h2>
+      <div class="cards">
+        <div class="card"><b>SEND</b><h3>发送消息</h3><p>把文本截断到 20,000 字符，文件列表最多 10 个，语言和 via 截断到 20。异常会回 <code>error</code>，不关闭整个 socket。</p></div>
+        <div class="card"><b>APPROVAL</b><h3>审批决定</h3><p>支持本机审批与远端设备审批。远端审批失败返回 <code>the device did not take the answer</code>。</p></div>
+        <div class="card"><b>DEVICE</b><h3>设备自报</h3><p>手机通过 <code>device</code> 帧注册，服务端返回 <code>device_ack</code> 和手机状态，可用于后续屏幕操作。</p></div>
+        <div class="card"><b>PING</b><h3>心跳</h3><p>返回 <code>pong</code> 与当前整体状态，让客户端能区分“连接活着”和“线程在做什么”。</p></div>
+      </div>
+      <pre class="code">{"kind":"auth","token":"…"}
+{"kind":"hello","state":{…}}
+{"kind":"send","thread":"main","text":"你好","files":["attachments/2026-10-17/a.png"],"language":"zh-CN"}
+{"kind":"approval","id":"ap_ab12cd34ef","approved":true,"scope":"once","reason":"…"}
+{"kind":"ping"}
+{"kind":"pong","status":{"state":"working","detail":"…","thread":"main"}}</pre>
+      <p>一个独立的 pump 任务从 <code>EventBus</code> 队列读取消息并写入 socket；客户端命令也走同一把 <code>asyncio.Lock</code>，防止两个协程同时写 WebSocket 帧。</p>
+    </section>
+
+    <section class="panel pad" aria-labelledby="attachments">
+      <h2 id="attachments">附件与产物链路</h2>
+      <ol>
+        <li><code>POST /api/files/upload?name=</code> 逐块读取 body，累计超过配置上限立即返回 413；空文件返回 400。</li>
+        <li>文件名只保留工作区安全字符，落到 <code>attachments/YYYY-MM-DD/</code>；同名文件自动加 <code>(2)</code>、<code>(3)</code> 后缀。</li>
+        <li>返回的 <code>path</code> 放入发送消息的 <code>files</code>；<code>attachment()</code> 再校验文件存在并补齐 name、size、kind、mime。</li>
+        <li>Agent 的工具调用前会扫描工作区 mtime；非只读工具结束后再扫描，新增或变化文件变成 <code>artifact</code> 事件。</li>
+        <li>扫描超过 3000 个文件时放弃 diff，退化为只针对 <code>files</code> 工具的 write/append 参数播报产物。</li>
+        <li>同一轮里同一路径只创建一个 artifact 卡片，后续更新用 <code>patch()</code> 刷新，避免堆叠。</li>
+      </ol>
+      <p><code>resolve_workspace_path()</code> 对拼接结果执行 <code>resolve()</code>，并验证目标仍在工作区根目录内；越界抛 <code>PermissionError</code>，API 映射为 403。</p>
+    </section>
+
+    <section class="panel pad" aria-labelledby="events">
+      <h2 id="events">事件适配器的隐藏工作</h2>
+      <div class="cards">
+        <div class="card"><b>RUN</b><h3>begin_run / end_run</h3><p>清理上一轮的 stream、artifact、browser 卡片和模型标记；结束运行会把仍为 live 的浏览器卡片改为 done。</p></div>
+        <div class="card"><b>STREAM</b><h3>临时流状态</h3><p>按线程维护 stream id、buffer、last assistant text 与 event id；第一次 delta 才创建流，避免空回复产生气泡。</p></div>
+        <div class="card"><b>TOOL</b><h3>工具芯片</h3><p>工具调用创建 running chip，结果更新为 ok/error/blocked，并截断输出到 600 字符；tool id 映射保证原位更新。</p></div>
+        <div class="card"><b>ARTIFACT</b><h3>工作区 diff</h3><p>按 mtime 判断新文件或更新文件；产物事件只携带路径、文件名和动作，不把文件正文塞进时间线。</p></div>
+        <div class="card"><b>BROWSER</b><h3>帧更新</h3><p>最近帧保存在内存；同一轮复用一张 browser 卡片，通过 patch 更新 URL、标题、动作与帧 id。</p></div>
+        <div class="card"><b>HANDS/HOLD</b><h3>外部执行状态</h3><p>hands 任务按步骤 patch；hold 事件按 id 创建或更新，关闭时从活跃列表移除。</p></div>
+      </div>
+      <p>每条持久化事件会经过 <code>Timeline.add()</code>，随后 <code>EventBus.publish()</code>。如果 <code>on_event</code> 已注册，还会触发推送通知；hook 异常只记录日志，不阻断主事件流。</p>
+    </section>
+
+    <section class="panel pad" aria-labelledby="approvals">
+      <h2 id="approvals">审批与用户问答</h2>
+      <p>审批不是前端弹窗的局部状态，而是服务端 Future：</p>
+      <ol>
+        <li><code>ask_approval()</code> 先注册 <code>pending_approvals[approval_id]</code>，再发出带 <code>pending</code> 状态的卡片，避免推送钩子读到“卡片存在但 Future 未注册”。</li>
+        <li>等待超时后自动生成拒绝决定，并把卡片 patch 为 <code>expired</code>。</li>
+        <li><code>resolve_approval()</code> 在时间线中找到卡片，写入 approved/denied、scope、decided_ts，再唤醒 Future。</li>
+        <li><code>ask_user()</code> 以线程为键维护一个问题 Future；用户下一条消息若命中 <code>answer_question()</code>，直接唤醒而不启动模型。</li>
+      </ol>
+      <p>这解释了为什么审批卡片在刷新后仍能显示最终状态：运行中的等待由内存 Future 承担，展示与审计由时间线事件承担。</p>
+    </section>
+
+    <section class="panel pad" aria-labelledby="session">
+      <h2 id="session">Agent 会话文件与重启修复</h2>
+      <div class="two">
+        <div>
+          <h3>双层持久化</h3>
+          <p><strong>时间线</strong>面向 UI：用户、助手、工具、审批、产物。<br><strong>session 文件</strong>面向模型：完整 Message 数组、turns、附件与工具调用结果。</p>
+          <p>两者不能互相替代：时间线可展示但不能直接作为模型上下文；session 保存模型历史但不包含全部 UI 卡片。</p>
+        </div>
+        <div>
+          <h3>悬空工具调用修复</h3>
+          <p><code>load_session()</code> 会扫描 assistant 的 tool_calls，并补齐缺失的 tool 结果：“the app was restarted before this call finished”。否则很多模型提供商会拒绝整段历史。</p>
+          <p><code>stop_thread()</code> 的取消路径也做同样收口：删除尾部未回答 tool 消息，或为每个工具调用补一条“Stopped by the user”结果。</p>
+        </div>
+      </div>
+      <pre class="code">{
+  "saved_at": "2026-10-17T08:00:00+08:00",
+  "turns": 12,
+  "messages": [
+    {"role": "user", "content": "…"},
+    {"role": "assistant", "content": "…", "tool_calls": ["…"]},
+    {"role": "tool", "tool_call_id": "…", "content": "…"}
+  ]
+}</pre>
+    </section>
+
+    <section class="panel pad" aria-labelledby="recovery">
+      <h2 id="recovery">进程内状态与磁盘事实的边界</h2>
+      <table>
+        <thead><tr><th>状态</th><th>存放位置</th><th>重启后处理</th></tr></thead>
+        <tbody>
+          <tr><td>运行中 worker</td><td>内存 <code>asyncio.Task</code></td><td>消失；线程重新加载为空闲</td></tr>
+          <tr><td>inbox 排队消息</td><td>内存 <code>asyncio.Queue</code></td><td>消失；未持久化消息不会重放</td></tr>
+          <tr><td>待审批 / 待回答</td><td>Future + 时间线卡片</td><td>卡片改为 expired</td></tr>
+          <tr><td>运行中工具</td><td>时间线事件 + session</td><td>状态改 error，session 补 tool 结果</td></tr>
+          <tr><td>浏览器 / hands</td><td>内存帧 + 时间线卡片</td><td>live 改为 done</td></tr>
+          <tr><td>hold</td><td>内存 + 时间线</td><td>改为 off，标记 stale</td></tr>
+          <tr><td>完整对话</td><td>时间线 JSON + session JSON</td><td>重新加载，可继续发送</td></tr>
+        </tbody>
+      </table>
+      <div class="warning"><strong>恢复缺口：</strong>发送后、进入 inbox 前若进程崩溃，用户事件可能已经写盘但消息不会自动重新执行；重启不会重放未完成 turn，只保证历史可读与工具边界合法。</div>
+    </section>
+
+    <section class="panel pad" aria-labelledby="backpressure">
+      <h2 id="backpressure">背压、并发与资源释放</h2>
+      <ul>
+        <li>每个 WebSocket 订阅者独立队列，容量 1000；满时直接取消订阅，不等待消费。</li>
+        <li>每个线程一个 worker，inbox 可排队；停止会清空队列并取消当前任务。</li>
+        <li>WebSocket 断开时 finally 取消 pump、退订队列、分离设备连接。</li>
+        <li>时间线写盘通过 <code>run_in_executor</code> 执行，0.3 秒合并；关闭时 <code>flush()</code> 强制写盘。</li>
+        <li>浏览器帧只保留最近若干个，避免无限增长；完整文件不在事件中。</li>
+        <li>模型客户端在 turn 结束后释放；临时 Cloud 客户端在无其他线程引用时关闭。</li>
+      </ul>
+      <p class="muted">这些机制保证单实例内资源有界，但不提供跨实例广播、跨实例线程锁或共享序列号。</p>
+    </section>
+
+    <section class="panel pad" aria-labelledby="risks">
+      <h2 id="risks">服务端风险清单</h2>
+      <ol>
+        <li>广播队列按条数而非字节计，单条事件很大时仍可能占用显著内存。</li>
+        <li>时间线事件和 session 可短暂不一致：一个写完、另一个尚未写完时崩溃，会造成历史与模型上下文分叉。</li>
+        <li>inbox 不持久化，进程重启会丢失已入队但未执行的用户消息。</li>
+        <li>工作区 diff 通过 mtime 判断，文件系统时间精度或外部同步工具可能造成漏报/误报。</li>
+        <li>签名文件链接在过期前可被转发；安全依赖短窗口和路径绑定。</li>
+        <li>HTML 响应使用 CSP sandbox，而应用内查看器另有 iframe sandbox；两处策略需同步审查，避免一处放宽。</li>
+        <li>WebSocket 命令没有显式请求序号；客户端重发 <code>send</code> 可能造成重复用户消息，除非上层有幂等键。</li>
+      </ol>
+    </section>
+  </main>
+
+  <footer class="shell"><p>服务端深潜基于只读源码静态阅读；不包含真实并发压测、崩溃注入或生产代理验证。</p></footer>
+</body>
+</html>
