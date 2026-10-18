@@ -1387,11 +1387,6 @@ export function ConnectionsScreen({ query = "" }: { query?: string }) {
           {selected === "google" ? (
             <View style={{ gap: 18 }}>
               <Text style={s.muted}>{t("screens.connectionsGoogleDescription")}</Text>
-              <View style={[s.row, { gap: 7, flexWrap: "wrap" }]}>
-                {google?.capabilities.map((cap) => (
-                  <Chip key={cap}>{capabilityLabel(cap)}</Chip>
-                ))}
-              </View>
               <ErrorNotice error={error} />
               <Button busy={busy} primary icon={Link2} onPress={() => void connect("read")}>
                 {t("screens.connectionsConnectGoogle")}
@@ -1501,17 +1496,4 @@ function SettingsLine({ label, value }: { label: string; value: string }) {
 /** `deepseek/deepseek-chat` reads better as the model id alone inside the picker. */
 function shortModel(spec: string) {
   return spec.split("/").slice(1).join("/") || spec;
-}
-
-function capabilityLabel(value: string) {
-  const scope = value.split("/").at(-1) || value;
-  const names: Record<string, string> = {
-    "gmail.readonly": tr("screens.capabilityReadGmail"),
-    "gmail.send": tr("screens.capabilitySendGmail"),
-    "calendar.events.readonly": tr("screens.capabilityReadCalendarEvents"),
-    "calendar.calendarlist.readonly": tr("screens.capabilityReadCalendarList"),
-    "calendar.events": tr("screens.capabilityManageCalendarEvents"),
-    "calendar.readonly": tr("screens.capabilityReadCalendars"),
-  };
-  return names[scope] || scope;
 }

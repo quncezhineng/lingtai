@@ -75,6 +75,8 @@ const app = {
   "app.sideChatsHeading": "旁聊",
   "app.newSideChatPlaceholder": "新建旁聊",
   "app.createSideChatLabel": "新建",
+  "app.renameChatPlaceholder": "重命名对话",
+  "app.renameChatLabel": "重命名 {{name}}",
   "app.menuNotifications": "通知",
 } satisfies Dictionary;
 

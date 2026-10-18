@@ -59,6 +59,17 @@ services:
         generateValue: true
       - key: DEEPSEEK_API_KEY
         sync: false
+      - key: DEEPSEEK_BASE_URL
+        sync: false
+      # Live Google workspace (Gmail/Calendar): enable the OAuth consent screen and
+      # set the redirect URI to PUBLIC_API_URL + /api/google/callback (PUBLIC_API_URL
+      # is already the live Render URL above).
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: WEB_SEARCH_ENABLED
+        value: "true"
       - key: CPK_INTELLIGENCE_API_KEY
         sync: false
       # Use the CLI-issued identity for the same Intelligence project as the key.

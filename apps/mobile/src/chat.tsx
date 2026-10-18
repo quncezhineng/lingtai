@@ -658,13 +658,19 @@ export function ChatScreen({
               {[
                 {
                   text: t("chat.suggestionHackerNews"),
-                  action: () => enqueue("Analyze a stock's recent trend"),
+                  action: () => enqueue(t("chat.suggestionHackerNews")),
                 },
                 {
                   text: t("chat.suggestionSummarize"),
-                  action: () => enqueue("Summarize the key points of an earnings report"),
+                  action: () => enqueue(t("chat.suggestionSummarize")),
                 },
-                { text: t("chat.suggestionWatchWebsite"), action: () => navigate("goals") },
+                {
+                  text: t("chat.suggestionWatchWebsite"),
+                  action: () => {
+                    enqueue(t("chat.suggestionWatchWebsite"));
+                    navigate("goals");
+                  },
+                },
               ].map((item) => (
                 <Button key={item.text} onPress={item.action}>
                   {item.text}

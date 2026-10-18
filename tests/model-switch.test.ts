@@ -111,14 +111,14 @@ test("switching a model applies immediately and reaches the workspace snapshot",
 });
 
 test("a hand-written MODEL stays selectable next to the curated list", async () => {
-  const custom = { ...baseConfig(), model: "deepseek/deepseek-v4-preview" };
+  const custom = { ...baseConfig(), model: "deepseek/deepseek-flash" };
   const app = await createApp(db, custom);
   try {
     const options = await (
       await app.app.request("/api/models", { headers: await tokenFor(app) })
     ).json();
     assert.deepEqual(options.options[0].models, [
-      "deepseek/deepseek-v4-preview",
+      "deepseek/deepseek-flash",
       "deepseek/deepseek-chat",
       "deepseek/deepseek-reasoner",
     ]);

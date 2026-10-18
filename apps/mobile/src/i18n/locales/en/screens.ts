@@ -151,14 +151,6 @@ const screens = {
     "The OpenBot adapter is available in this open-source project. A live OpenBot backend has not been configured.",
   "screens.connectionsOpenBotDetail":
     "Your current computer uses LingTai’s persistent Chromium worker. OpenBot integration will expand the execution backend while keeping this interface.",
-
-  // 权限能力标签
-  "screens.capabilityReadGmail": "Read Gmail",
-  "screens.capabilitySendGmail": "Send Gmail",
-  "screens.capabilityReadCalendarEvents": "Read calendar events",
-  "screens.capabilityReadCalendarList": "Read calendar list",
-  "screens.capabilityManageCalendarEvents": "Manage calendar events",
-  "screens.capabilityReadCalendars": "Read calendars",
 } satisfies Dictionary;
 
 export default screens;

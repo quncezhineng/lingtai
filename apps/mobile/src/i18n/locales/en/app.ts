@@ -76,6 +76,8 @@ const app = {
   "app.sideChatsHeading": "Side chats",
   "app.newSideChatPlaceholder": "New side chat",
   "app.createSideChatLabel": "New",
+  "app.renameChatPlaceholder": "Rename chat",
+  "app.renameChatLabel": "Rename {{name}}",
   "app.menuNotifications": "Notifications",
 } satisfies Dictionary;
 

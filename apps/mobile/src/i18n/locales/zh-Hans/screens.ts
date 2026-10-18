@@ -147,14 +147,6 @@ const screens = {
     "这个开源项目中已经提供了 OpenBot 适配器，但尚未配置可用的 OpenBot 后端。",
   "screens.connectionsOpenBotDetail":
     "你当前使用的电脑运行在灵台的持久化 Chromium 工作进程上。接入 OpenBot 将扩展执行后端，同时保留当前界面。",
-
-  // 权限能力标签
-  "screens.capabilityReadGmail": "读取 Gmail",
-  "screens.capabilitySendGmail": "发送 Gmail",
-  "screens.capabilityReadCalendarEvents": "读取日历日程",
-  "screens.capabilityReadCalendarList": "读取日历列表",
-  "screens.capabilityManageCalendarEvents": "管理日历日程",
-  "screens.capabilityReadCalendars": "读取日历",
 } satisfies Dictionary;
 
 export default screens;

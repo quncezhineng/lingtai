@@ -231,18 +231,31 @@ function ThreadRow({
   detail,
   active,
   onPress,
+  editing,
+  draft,
+  onDraftChange,
+  onStartEdit,
+  onCommitEdit,
+  onCancelEdit,
 }: {
   title: string;
   detail: string;
   active: boolean;
   onPress: () => void;
+  editing?: boolean;
+  draft?: string;
+  onDraftChange?: (value: string) => void;
+  onStartEdit?: () => void;
+  onCommitEdit?: () => void;
+  onCancelEdit?: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={title}
+      accessibilityLabel={editing ? t("app.renameChatPlaceholder") : title}
       accessibilityState={{ selected: active }}
-      onPress={onPress}
+      onPress={editing ? undefined : onPress}
       style={({ pressed }) => ({
         paddingHorizontal: 12,
         paddingVertical: 8,
@@ -250,9 +263,36 @@ function ThreadRow({
         backgroundColor: active ? colors.sky : pressed ? colors.line : "transparent",
       })}
     >
-      <Text numberOfLines={1} style={{ fontSize: 13.5, fontWeight: "500", color: colors.text }}>
-        {title}
-      </Text>
+      {editing ? (
+        <TextInput
+          value={draft}
+          onChangeText={onDraftChange}
+          onSubmitEditing={onCommitEdit}
+          onBlur={onCancelEdit}
+          autoFocus
+          selectTextOnFocus
+          returnKeyType="done"
+          accessibilityLabel={t("app.renameChatPlaceholder")}
+          style={{
+            fontSize: 13.5,
+            fontWeight: "500",
+            color: colors.text,
+            paddingVertical: 0,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.blueDark,
+          }}
+        />
+      ) : (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t("app.renameChatLabel", { name: title })}
+          onPress={onStartEdit}
+        >
+          <Text numberOfLines={1} style={{ fontSize: 13.5, fontWeight: "500", color: colors.text }}>
+            {title}
+          </Text>
+        </Pressable>
+      )}
       <Text numberOfLines={1} style={{ fontSize: 11.5, lineHeight: 16, color: colors.muted }}>
         {detail}
       </Text>
@@ -274,6 +314,9 @@ export function ChatsColumn() {
   const [query, setQuery] = useState("");
   const [title, setTitle] = useState("");
   const [draftNames, setDraftNames] = useState<Record<string, string>>({});
+  // 内联重命名：editingId 为当前正在改名的线程（服务端已存在的旁聊才算数）。
+  const [editingId, setEditingId] = useState<string>();
+  const [draft, setDraft] = useState("");
 
   // 侧边对话懒创建：名字先留在本地，等它第一次出现在服务端列表里再改名。
   const renameThread = threads.renameThread;
@@ -292,6 +335,16 @@ export function ChatsColumn() {
       void renameThread(id, name).catch((e) => notify(errorText(e)));
     }
   }, [draftNames, enabled, notify, renameThread, threads.threads]);
+
+  // 提交内联重命名；名字为空则视为取消。
+  const commitRename = (id: string) => {
+    const name = draft.trim();
+    setEditingId(undefined);
+    if (!name || threads.isMutating) return;
+    void renameThread(id, name)
+      .then(() => setEditingId(undefined))
+      .catch((e) => notify(errorText(e)));
+  };
 
   const q = query.trim().toLowerCase();
   const matches = (name: string) => !q || name.toLowerCase().includes(q);
@@ -428,6 +481,15 @@ export function ChatsColumn() {
                 detail={relativeDate(thread.lastRunAt ?? thread.updatedAt)}
                 active={selection.id === thread.id}
                 onPress={() => select({ id: thread.id, existing: true })}
+                editing={editingId === thread.id}
+                draft={draft}
+                onDraftChange={setDraft}
+                onStartEdit={() => {
+                  setEditingId(thread.id);
+                  setDraft(thread.name || "");
+                }}
+                onCommitEdit={() => commitRename(thread.id)}
+                onCancelEdit={() => setEditingId(undefined)}
               />
             ))}
             {pendingThreads.map((item, index) => (
