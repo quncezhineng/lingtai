@@ -3,7 +3,7 @@ import type { Dictionary } from "../../types";
 /** 详情面板文案（命名空间：details）。 */
 const details = {
   // Workspace sheet.
-  "details.workspaceSubtitle": "A little room for everything.",
+  "details.workspaceSubtitle": "Your personal inverstment research agent.",
   "details.connections": "Connections",
 
   // Mail thread.

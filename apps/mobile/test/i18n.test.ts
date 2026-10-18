@@ -94,7 +94,7 @@ test("formatTemplate 支持命名占位符并保留未知占位符", () => {
 test("translate 按「目标语言 -> 英文 -> 原始 key」回退且永不抛错", () => {
   assert.equal(translate("zh-Hans", "common.agentName"), "灵台");
   assert.equal(translate("en", "common.agentName"), "LingTai");
-  assert.equal(translate("zh-Hans", "app.welcomeTitle"), "欢迎使用灵台。");
+  assert.equal(translate("zh-Hans", "app.welcomeTitle"), "欢迎使用灵台，你的个人投研智能体。");
   assert.equal(translate("en", "not.a.real.key"), "not.a.real.key");
 });
 

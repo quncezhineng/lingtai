@@ -5,7 +5,7 @@
  *
  *   [ 图标栏 76 ] [ 对话列表 248，仅「对话」页 ] [ 主内容区 ]
  *
- * 图标栏顶部是智能体头像与状态，中间是五个主页面，底部是「我的」与「更多」菜单；
+ * 图标栏顶部是智能体头像与状态，中间是五个主页面，底部是通知、语言与「我的」；
  * 对话列表栏把会话分成「主要聊天」与「旁聊」两组，底部可以直接新建旁聊。
  * 窄屏仍沿用底部标签栏，两套外壳共用同一份状态与页面组件，不存在第二套实现。
  */
@@ -16,23 +16,19 @@ import {
   Lightbulb,
   type LucideIcon,
   MessageCircle,
-  MoreHorizontal,
   PanelsTopLeft,
   Plus,
-  RefreshCw,
   Search,
   Shapes,
   SquareCheck,
   X,
 } from "lucide-react-native";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
-  Modal,
   Pressable,
   ScrollView,
   Text,
   TextInput,
-  useWindowDimensions,
   View,
 } from "react-native";
 import type { Section } from "../../../packages/domain/src";
@@ -138,24 +134,12 @@ function RailItem({
 
 /**
  * 左侧图标栏。头像与名字来自工作区身份，状态行与窄屏顶部一致；
- * 底部「更多」展开通知、刷新与语言三个入口（宽屏没有顶部栏，语言按钮收纳在这里）。
+ * 底部依次是通知、语言与「我的」入口（宽屏没有顶部栏，语言按钮收纳在这里）。
  */
-export function Rail({ name, status, pending }: { name: string; status: string; pending: number }) {
-  const { section, navigate, open, refresh } = useWorkspace();
+export function Rail({ name, pending }: { name: string; pending: number }) {
+  const { section, navigate, open } = useWorkspace();
   const { t } = useTranslation();
   const { data } = useAgentWorkspace();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [anchor, setAnchor] = useState<{ left: number; bottom: number } | null>(null);
-  const trigger = useRef<View>(null);
-  const { height: windowHeight } = useWindowDimensions();
-
-  // 菜单贴着按钮展开：先量出按钮位置，再按它的左沿与下沿定位。
-  const showMenu = () => {
-    trigger.current?.measureInWindow((x, y, _width, height) => {
-      setAnchor({ left: x, bottom: Math.max(12, windowHeight - (y + height) - 4) });
-      setMenuOpen(true);
-    });
-  };
 
   return (
     <View
@@ -171,8 +155,8 @@ export function Rail({ name, status, pending }: { name: string; status: string; 
     >
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={t("app.openActivity", { name })}
-        onPress={() => navigate("activity")}
+        accessibilityLabel={t("agent.personalityMemory")}
+        onPress={() => open({ type: "personality" })}
         style={({ pressed }) => ({
           alignItems: "center",
           gap: 4,
@@ -180,29 +164,7 @@ export function Rail({ name, status, pending }: { name: string; status: string; 
           opacity: pressed ? 0.7 : 1,
         })}
       >
-        <View style={{ position: "relative" }}>
-          <Mascot size={44} variant={data?.identity.avatar} />
-          {pending > 0 && (
-            <View
-              style={{
-                position: "absolute",
-                top: -2,
-                right: -3,
-                minWidth: 18,
-                height: 18,
-                borderRadius: 9,
-                paddingHorizontal: 4,
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: "#F43F5E",
-                borderWidth: 2,
-                borderColor: "#FBFBFC",
-              }}
-            >
-              <Text style={{ fontSize: 10, fontWeight: "700", color: "#FFFFFF" }}>{pending}</Text>
-            </View>
-          )}
-        </View>
+        <Mascot size={44} variant={data?.identity.avatar} />
         <Text
           numberOfLines={1}
           style={{
@@ -214,18 +176,6 @@ export function Rail({ name, status, pending }: { name: string; status: string; 
           }}
         >
           {name}
-        </Text>
-        <Text
-          numberOfLines={1}
-          style={{
-            maxWidth: 68,
-            fontSize: 10.5,
-            lineHeight: 13,
-            textAlign: "center",
-            color: colors.muted,
-          }}
-        >
-          {status}
         </Text>
       </Pressable>
 
@@ -255,96 +205,24 @@ export function Rail({ name, status, pending }: { name: string; status: string; 
           paddingTop: 6,
         }}
       >
+        {/* 通知与语言从「更多」菜单移出，直接放在「我的」上方，减少一级菜单。 */}
+        <RailItem
+          icon={Bell}
+          label={t("app.menuNotifications")}
+          active={false}
+          badge={pending}
+          onPress={() => open({ type: "notifications" })}
+        />
+        <LanguageSwitcher vertical />
         <RailItem
           icon={ACCOUNT_NAV.icon}
           label={t(ACCOUNT_NAV.labelKey)}
           active={section === ACCOUNT_NAV.id}
           onPress={() => navigate(ACCOUNT_NAV.id)}
         />
-        <View ref={trigger} collapsable={false}>
-          <RailItem
-            icon={MoreHorizontal}
-            label={t("app.navMore")}
-            active={menuOpen}
-            onPress={() => (menuOpen ? setMenuOpen(false) : showMenu())}
-          />
-        </View>
       </View>
-
-      {menuOpen && anchor && (
-        <Modal transparent animationType="fade" visible onRequestClose={() => setMenuOpen(false)}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t("common.close")}
-            onPress={() => setMenuOpen(false)}
-            style={{ flex: 1, backgroundColor: "rgba(17,25,28,0.12)" }}
-          >
-            <View
-              accessibilityViewIsModal
-              style={{
-                position: "absolute",
-                left: anchor.left,
-                bottom: anchor.bottom,
-                minWidth: 236,
-                backgroundColor: colors.card,
-                borderRadius: 20,
-                borderWidth: 1,
-                borderColor: colors.line,
-                padding: 8,
-                gap: 2,
-                shadowColor: "#312E81",
-                shadowOffset: { width: 0, height: 6 },
-                shadowOpacity: 0.12,
-                shadowRadius: 20,
-                elevation: 6,
-              }}
-            >
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => {
-                  setMenuOpen(false);
-                  open({ type: "notifications" });
-                }}
-                style={({ pressed }) => menuRow(pressed)}
-              >
-                <Bell size={17} strokeWidth={1.8} color={colors.muted} />
-                <Text style={s.text}>{t("app.menuNotifications")}</Text>
-                <Text style={s.small}>{pending || ""}</Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => {
-                  setMenuOpen(false);
-                  void refresh().catch(() => undefined);
-                }}
-                style={({ pressed }) => menuRow(pressed)}
-              >
-                <RefreshCw size={17} strokeWidth={1.8} color={colors.muted} />
-                <Text style={s.text}>{t("threads.refreshWorkspace")}</Text>
-              </Pressable>
-              <View style={{ height: 1, backgroundColor: colors.line, marginVertical: 6 }} />
-              <View style={[s.between, { paddingHorizontal: 12, paddingVertical: 4 }]}>
-                <Text style={s.text}>{t("common.language")}</Text>
-                <LanguageSwitcher compact />
-              </View>
-            </View>
-          </Pressable>
-        </Modal>
-      )}
     </View>
   );
-}
-
-function menuRow(pressed: boolean) {
-  return {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    gap: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 11,
-    borderRadius: 14,
-    backgroundColor: pressed ? colors.canvas : "transparent",
-  };
 }
 
 /** 对话列表里的一行：名字一行、说明一行，选中时用品牌浅紫底。 */
@@ -512,7 +390,7 @@ export function ChatsColumn() {
 
         <Text style={columnHeading}>{mainName}</Text>
         <ThreadRow
-          title={mainName}
+          title={t("app.mainChatName")}
           detail={
             mainThread
               ? relativeDate(mainThread.lastRunAt ?? mainThread.updatedAt)

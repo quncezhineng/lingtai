@@ -1,5 +1,5 @@
 import { ArrowUpRight, Check, ChevronRight, type LucideIcon, X } from "lucide-react-native";
-import type { ReactNode } from "react";
+import { type ReactNode } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -143,6 +143,7 @@ export function Button({
   style?: ViewStyle;
 }) {
   const color = danger ? colors.danger : primary ? colors.onPrimary : colors.text;
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -153,9 +154,8 @@ export function Button({
         s.button,
         primary ? s.primary : s.secondary,
         small && { minHeight: 38, paddingVertical: 7, paddingHorizontal: 13 },
-        (disabled || busy) && { opacity: 0.5 },
-        pressed && { transform: [{ scale: 0.98 }] },
         style,
+        { opacity: disabled ? 0.4 : busy ? 0.75 : pressed ? 0.85 : 1 },
       ]}
     >
       {busy ? (

@@ -9,7 +9,7 @@
     "newArchEnabled": true,
     "ios": { "supportsTablet": true, "bundleIdentifier": "app.lingtai.mobile" },
     "android": { "package": "app.lingtai.mobile" },
-    "web": { "bundler": "metro", "name": "LingTai — a little room for everything" },
+    "web": { "bundler": "metro", "name": "LingTai — your personal inverstment research agent" },
     "plugins": [
       "expo-document-picker",
       "@config-plugins/react-native-blob-util",

@@ -658,11 +658,11 @@ export function ChatScreen({
               {[
                 {
                   text: t("chat.suggestionHackerNews"),
-                  action: () => enqueue("Check out Hacker News for cool stuff"),
+                  action: () => enqueue("Analyze a stock's recent trend"),
                 },
                 {
                   text: t("chat.suggestionSummarize"),
-                  action: () => enqueue("Summarize copilotkit.ai"),
+                  action: () => enqueue("Summarize the key points of an earnings report"),
                 },
                 { text: t("chat.suggestionWatchWebsite"), action: () => navigate("goals") },
               ].map((item) => (
@@ -844,7 +844,7 @@ export function ChatScreen({
             {t("chat.reconnectingLiveReply")}
           </Text>
         )}
-        {integrityWarning && (
+        {!!integrityWarning && (
           <Text accessibilityLiveRegion="polite" style={[s.small, { alignSelf: "flex-start" }]}>
             {integrityWarning}
           </Text>

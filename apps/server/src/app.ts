@@ -80,7 +80,7 @@ export async function createApp(
     "*",
     cors({
       origin: (origin) => (origins.has(origin) ? origin : undefined),
-      allowHeaders: ["Content-Type", "Authorization", "Accept", "Last-Event-ID"],
+      allowHeaders: ["Content-Type", "Authorization", "Accept", "Last-Event-ID", "Cache-Control"],
       allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
       credentials: true,
     }),

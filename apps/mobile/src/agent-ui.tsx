@@ -1754,41 +1754,7 @@ export function NotificationsSheet() {
 export function AppsScreen() {
   const { t } = useTranslation();
   const { navigate, open } = useWorkspace();
-  const { data, mutate } = useAgentWorkspace();
   const [query, setQuery] = useState("");
-  const [settings, setSettings] = useState(false);
-  const [name, setName] = useState(data?.identity.name || t("common.agentName"));
-  const [tone, setTone] = useState(data?.identity.tone || "warm");
-  const [avatar, setAvatar] = useState(data?.identity.avatar || "sky");
-  const [showChatUpdates, setShowChatUpdates] = useState(data?.identity.showChatUpdates !== false);
-  const [memory, setMemory] = useState("");
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-  useEffect(() => {
-    if (data?.identity) {
-      setName(data.identity.name);
-      setTone(data.identity.tone);
-      setAvatar(data.identity.avatar || "sky");
-      setShowChatUpdates(data.identity.showChatUpdates !== false);
-    }
-  }, [
-    data?.identity.name,
-    data?.identity.tone,
-    data?.identity.avatar,
-    data?.identity.showChatUpdates,
-  ]);
-  async function save(path: string, body: unknown) {
-    setBusy(true);
-    setError("");
-    try {
-      await mutate(path, body);
-      if (path === "/memories") setMemory("");
-    } catch (e) {
-      setError(errorText(e));
-    } finally {
-      setBusy(false);
-    }
-  }
   const shortcuts = [
     {
       section: "mail" as const,
@@ -1843,84 +1809,121 @@ export function AppsScreen() {
             />
           ))}
       </Card>
-      <Button onPress={() => setSettings(!settings)}>
-        {settings ? t("agent.closeAgentSettings") : t("agent.personalityMemory")}
-      </Button>
-      {settings && (
-        <>
-          <Card style={{ gap: 10 }}>
-            <SectionHeading title={t("agent.yourAgent")} />
-            <View style={[s.row, { gap: 16, justifyContent: "center", marginBottom: 12 }]}>
-              {(["sky", "sand", "lilac"] as const).map((item) => (
-                <Pressable
-                  key={item}
-                  accessibilityRole="radio"
-                  accessibilityLabel={t("agent.avatarLabel", { name: statusLabel(item) })}
-                  accessibilityState={{ checked: avatar === item }}
-                  onPress={() => setAvatar(item)}
-                  style={{
-                    padding: 7,
-                    borderRadius: 24,
-                    backgroundColor: avatar === item ? colors.sky : colors.canvas,
-                  }}
-                >
-                  <Mascot size={62} variant={item} />
-                </Pressable>
-              ))}
-            </View>
-            <Field label={t("agent.nameLabel")} value={name} onChangeText={setName} />
-            <View style={[s.row, { gap: 8 }]}>
-              {(["warm", "concise", "thoughtful"] as const).map((item) => (
-                <Button key={item} small primary={tone === item} onPress={() => setTone(item)}>
-                  {statusLabel(item)}
-                </Button>
-              ))}
-            </View>
-            <CheckRow
-              label={t("agent.showBackgroundUpdates")}
-              checked={showChatUpdates}
-              onPress={() => setShowChatUpdates(!showChatUpdates)}
-            />
-            <Text style={s.small}>{t("agent.activityFullRecord")}</Text>
-            <Button
-              busy={busy}
-              disabled={!name.trim()}
-              onPress={() =>
-                void save("/identity", { name: name.trim(), tone, avatar, showChatUpdates })
-              }
-            >
-              {t("agent.savePreferences")}
-            </Button>
-          </Card>
-          <Card style={{ gap: 12 }}>
-            <SectionHeading title={t("agent.memory")} />
-            <Text style={s.muted}>{t("agent.memoryDetail")}</Text>
-            {data?.memories.map((item) => (
-              <MemoryRow key={item.id} memory={item} />
-            ))}
-            <Field
-              label={t("agent.rememberAboutMe")}
-              value={memory}
-              onChangeText={setMemory}
-              placeholder={t("agent.rememberPlaceholder")}
-            />
-            <Button
-              busy={busy}
-              disabled={!memory.trim()}
-              onPress={() =>
-                void save("/memories", {
-                  text: memory.trim(),
-                  source: t("agent.memorySourceUserAdded"),
-                })
-              }
-            >
-              {t("agent.remember")}
-            </Button>
-          </Card>
-        </>
-      )}
-      <ErrorNotice error={error} />
     </View>
+  );
+}
+export function AgentPersonalitySheet() {
+  const { t } = useTranslation();
+  const { close, notify } = useWorkspace();
+  const { data, mutate } = useAgentWorkspace();
+  const [name, setName] = useState(data?.identity.name || t("common.agentName"));
+  const [tone, setTone] = useState(data?.identity.tone || "warm");
+  const [avatar, setAvatar] = useState(data?.identity.avatar || "sky");
+  const [showChatUpdates, setShowChatUpdates] = useState(data?.identity.showChatUpdates !== false);
+  const [memory, setMemory] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    if (data?.identity) {
+      setName(data.identity.name);
+      setTone(data.identity.tone);
+      setAvatar(data.identity.avatar || "sky");
+      setShowChatUpdates(data.identity.showChatUpdates !== false);
+    }
+  }, [
+    data?.identity.name,
+    data?.identity.tone,
+    data?.identity.avatar,
+    data?.identity.showChatUpdates,
+  ]);
+  async function save(path: string, body: unknown) {
+    setBusy(true);
+    setError("");
+    try {
+      await mutate(path, body);
+      if (path === "/memories") setMemory("");
+      notify(t("agent.saved"));
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <Sheet title={t("agent.personalityMemory")} onClose={close}>
+      <View style={{ gap: 22 }}>
+        <Card style={{ gap: 10 }}>
+          <SectionHeading title={t("agent.yourAgent")} />
+          <View style={[s.row, { gap: 16, justifyContent: "center", marginBottom: 12 }]}>
+            {(["sky", "sand", "lilac"] as const).map((item) => (
+              <Pressable
+                key={item}
+                accessibilityRole="radio"
+                accessibilityLabel={t("agent.avatarLabel", { name: statusLabel(item) })}
+                accessibilityState={{ checked: avatar === item }}
+                onPress={() => setAvatar(item)}
+                style={{
+                  padding: 7,
+                  borderRadius: 24,
+                  backgroundColor: avatar === item ? colors.sky : colors.canvas,
+                }}
+              >
+                <Mascot size={62} variant={item} />
+              </Pressable>
+            ))}
+          </View>
+          <Field label={t("agent.nameLabel")} value={name} onChangeText={setName} />
+          <View style={[s.row, { gap: 8 }]}>
+            {(["warm", "concise", "thoughtful"] as const).map((item) => (
+              <Button key={item} small primary={tone === item} onPress={() => setTone(item)}>
+                {statusLabel(item)}
+              </Button>
+            ))}
+          </View>
+          <CheckRow
+            label={t("agent.showBackgroundUpdates")}
+            checked={showChatUpdates}
+            onPress={() => setShowChatUpdates(!showChatUpdates)}
+          />
+          <Text style={s.small}>{t("agent.activityFullRecord")}</Text>
+          <Button
+            busy={busy}
+            disabled={!name.trim()}
+            onPress={() =>
+              void save("/identity", { name: name.trim(), tone, avatar, showChatUpdates })
+            }
+          >
+            {t("agent.savePreferences")}
+          </Button>
+        </Card>
+        <Card style={{ gap: 12 }}>
+          <SectionHeading title={t("agent.memory")} />
+          <Text style={s.muted}>{t("agent.memoryDetail")}</Text>
+          {data?.memories.map((item) => (
+            <MemoryRow key={item.id} memory={item} />
+          ))}
+          <Field
+            label={t("agent.rememberAboutMe")}
+            value={memory}
+            onChangeText={setMemory}
+            placeholder={t("agent.rememberPlaceholder")}
+          />
+          <Button
+            busy={busy}
+            disabled={!memory.trim()}
+            onPress={() =>
+              void save("/memories", {
+                text: memory.trim(),
+                source: t("agent.memorySourceUserAdded"),
+              })
+            }
+          >
+            {t("agent.remember")}
+          </Button>
+        </Card>
+        <ErrorNotice error={error} />
+      </View>
+    </Sheet>
   );
 }
 function MemoryRow({ memory }: { memory: AgentMemory }) {

@@ -32,7 +32,7 @@ import {
   type Mail,
   type ProposalInput,
 } from "../../../packages/domain/src";
-import { DelegateSheet, NotificationsSheet, TaskDetail } from "./agent-ui";
+import { AgentPersonalitySheet, DelegateSheet, NotificationsSheet, TaskDetail } from "./agent-ui";
 import BrowserConsole from "./BrowserConsole";
 import { browserAddress, browserSite } from "./browser-address";
 import { ComputerSheet } from "./computer";
@@ -73,6 +73,7 @@ export function Details({ detail }: { detail: Detail }) {
       />
     );
   if (detail.type === "notifications") return <NotificationsSheet />;
+  if (detail.type === "personality") return <AgentPersonalitySheet />;
   if (detail.type === "mail") return <MailDetail mail={detail.mail} />;
   if (detail.type === "email") return <EmailEditor draft={detail.draft} />;
   if (detail.type === "event")

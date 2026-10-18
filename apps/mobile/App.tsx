@@ -433,7 +433,7 @@ function WorkspaceShell({
         {/* 宽屏（>= 900）是「图标栏 + 对话列表栏 + 主内容区」，窄屏是单列加底部标签栏；
             两套外壳下面是同一个主内容区，页面组件不做第二份实现。 */}
         <View style={{ flex: 1, flexDirection: desktop ? "row" : "column" }}>
-          {desktop && <Rail name={agentName} status={status} pending={pending} />}
+          {desktop && <Rail name={agentName} pending={pending} />}
           {desktop && section === "chat" && <ChatsColumn />}
           <View style={{ flex: 1, minWidth: 0 }}>
             <View
@@ -462,8 +462,8 @@ function WorkspaceShell({
                   <View pointerEvents="box-none" style={{ alignItems: "center", gap: 1 }}>
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel={t("app.openActivity", { name: agentName })}
-                      onPress={() => navigate("activity")}
+                      accessibilityLabel={t("agent.personalityMemory")}
+                      onPress={() => open({ type: "personality" })}
                       style={({ pressed }) => ({
                         alignItems: "center",
                         maxWidth: "70%",

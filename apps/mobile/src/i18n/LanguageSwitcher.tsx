@@ -11,11 +11,22 @@ import { colors } from "../ui";
 import { useTranslation } from "./index";
 import { LOCALE_LABELS, type Locale } from "./types";
 
-export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
+export function LanguageSwitcher({
+  compact = false,
+  vertical = false,
+}: {
+  compact?: boolean;
+  vertical?: boolean;
+}) {
   const { locale, locales, setLocale, t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const [anchor, setAnchor] = useState<{ top: number; right: number } | null>(null);
-  const { width: windowWidth } = useWindowDimensions();
+  const [anchor, setAnchor] = useState<{
+    top?: number;
+    right?: number;
+    left?: number;
+    bottom?: number;
+  } | null>(null);
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const trigger = useRef<View>(null);
   const current = LOCALE_LABELS[locale];
 
@@ -27,16 +38,23 @@ export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
     [setLocale],
   );
 
-  // 弹窗要贴着按钮的下方：先量出按钮在窗口里的位置，再按它的下沿和右沿定位。
+  // 弹窗要贴着按钮展开：横排时在按钮右下方；竖排（左侧图标栏）时按钮在左下角，改为向右上方展开。
   const show = useCallback(() => {
     trigger.current?.measureInWindow((x, y, width, height) => {
-      setAnchor({
-        top: y + height + 6,
-        right: Math.max(12, windowWidth - (x + width)),
-      });
+      if (vertical) {
+        setAnchor({
+          left: x + width + 6,
+          bottom: Math.max(12, windowHeight - y),
+        });
+      } else {
+        setAnchor({
+          top: y + height + 6,
+          right: Math.max(12, windowWidth - (x + width)),
+        });
+      }
       setOpen(true);
     });
-  }, [windowWidth]);
+  }, [vertical, windowWidth, windowHeight]);
 
   return (
     <>
@@ -46,20 +64,47 @@ export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
         accessibilityLabel={t("common.currentLanguage", { language: current.english })}
         accessibilityHint={t("common.changeLanguage")}
         onPress={show}
-        style={({ pressed }) => ({
-          height: 38,
-          paddingHorizontal: compact ? 9 : 11,
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 6,
-          borderRadius: 19,
-          borderWidth: 1,
-          borderColor: colors.line,
-          backgroundColor: pressed ? colors.line : "#FFFFFF",
-        })}
+        style={({ pressed }) =>
+          vertical
+            ? {
+                width: 60,
+                alignItems: "center",
+                gap: 3,
+                paddingVertical: 6,
+                borderRadius: 12,
+                backgroundColor: pressed ? colors.line : "transparent",
+              }
+            : {
+                height: 38,
+                paddingHorizontal: compact ? 9 : 11,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                borderRadius: 19,
+                borderWidth: 1,
+                borderColor: colors.line,
+                backgroundColor: pressed ? colors.line : "#FFFFFF",
+              }
+        }
       >
-        <Languages size={15} strokeWidth={1.8} color={colors.text} />
-        <Text style={{ fontSize: 12, fontWeight: "600", color: colors.text }}>{current.short}</Text>
+        {vertical ? (
+          <>
+            <Languages size={21} strokeWidth={1.7} color={colors.muted} />
+            <Text
+              numberOfLines={1}
+              style={{ fontSize: 10.5, lineHeight: 13, fontWeight: "500", color: colors.muted }}
+            >
+              {t("common.language")}
+            </Text>
+          </>
+        ) : (
+          <>
+            <Languages size={15} strokeWidth={1.8} color={colors.text} />
+            <Text style={{ fontSize: 12, fontWeight: "600", color: colors.text }}>
+              {current.short}
+            </Text>
+          </>
+        )}
       </Pressable>
       {open && anchor && (
         <Modal transparent animationType="fade" visible onRequestClose={() => setOpen(false)}>
@@ -78,6 +123,8 @@ export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
                 position: "absolute",
                 top: anchor.top,
                 right: anchor.right,
+                left: anchor.left,
+                bottom: anchor.bottom,
                 minWidth: 208,
                 backgroundColor: colors.card,
                 borderRadius: 20,
@@ -134,9 +181,6 @@ export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
                       >
                         {meta.native}
                       </Text>
-                      {meta.native !== meta.english && (
-                        <Text style={{ fontSize: 11, color: colors.muted }}>{meta.english}</Text>
-                      )}
                     </View>
                     {selected && <Check size={15} color={colors.blueDark} />}
                   </Pressable>

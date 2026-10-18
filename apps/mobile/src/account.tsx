@@ -150,7 +150,6 @@ export function AccountScreen({ onSignOut }: { onSignOut: () => void }) {
         <Button danger icon={LogOut} onPress={onSignOut}>
           {t("app.signOutLabel")}
         </Button>
-        <Text style={[s.small, { textAlign: "center" }]}>{t("app.signOutHint")}</Text>
       </View>
     </View>
   );
