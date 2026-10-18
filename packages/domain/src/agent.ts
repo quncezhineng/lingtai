@@ -118,7 +118,7 @@ export interface AgentNotification {
 export interface AgentIdentity {
   name: string;
   tone: "warm" | "concise" | "thoughtful";
-  avatar?: "sky" | "sand" | "lilac";
+  avatar?: "avatar1" | "avatar2" | "avatar3" | "avatar4" | "avatar5" | "avatar6";
   showChatUpdates?: boolean;
 }
 export interface AgentWorkspace {

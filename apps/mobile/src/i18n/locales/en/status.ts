@@ -63,13 +63,16 @@ const status = {
   "status.interrupted": "Interrupted",
   "status.idle": "Idle",
   "status.closed": "Closed",
-  // 语气与头像配色
+  // 语气与头像
   "status.warm": "Warm",
   "status.concise": "Concise",
   "status.thoughtful": "Thoughtful",
-  "status.sky": "Sky",
-  "status.sand": "Sand",
-  "status.lilac": "Lilac",
+  "status.avatar1": "Avatar 1",
+  "status.avatar2": "Avatar 2",
+  "status.avatar3": "Avatar 3",
+  "status.avatar4": "Avatar 4",
+  "status.avatar5": "Avatar 5",
+  "status.avatar6": "Avatar 6",
 } satisfies Dictionary;
 
 export default status;

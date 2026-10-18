@@ -2,7 +2,7 @@ import type { Dictionary } from "../../types";
 
 /** 应用外壳文案（命名空间：app）：导航、标题、欢迎页与顶部状态栏。 */
 const app = {
-  "app.webTitle": "LingTai — your personal investment research agent",
+  "app.webTitle": "LingTai — Your personal investment research agent",
   "app.welcomeTitle": "Welcome to LingTai, your personal investment research agent.",
   "app.welcomeSubtitle": "Clear next steps for every research question.",
   "app.accessKeyLabel": "Workspace access key",

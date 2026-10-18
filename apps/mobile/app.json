@@ -9,7 +9,13 @@
     "newArchEnabled": true,
     "ios": { "supportsTablet": true, "bundleIdentifier": "app.lingtai.mobile" },
     "android": { "package": "app.lingtai.mobile" },
-    "web": { "bundler": "metro", "name": "LingTai — your personal inverstment research agent" },
+    "web": {
+      "bundler": "metro",
+      "name": "LingTai — Your personal investment research agent",
+      "lang": "zh",
+      "themeColor": "#4F46E5",
+      "favicon": "./assets/logo.png"
+    },
     "plugins": [
       "expo-document-picker",
       "@config-plugins/react-native-blob-util",

@@ -213,13 +213,13 @@ test("memories can be edited and forgotten while identity changes persist", asyn
   await read("/identity", {
     name: "Nova",
     tone: "concise",
-    avatar: "lilac",
+    avatar: "avatar2",
     showChatUpdates: false,
   });
   const snapshot = await read<AgentWorkspace>("");
   assert.equal(snapshot.identity.name, "Nova");
   assert.equal(snapshot.identity.tone, "concise");
-  assert.equal(snapshot.identity.avatar, "lilac");
+  assert.equal(snapshot.identity.avatar, "avatar2");
   assert.equal(snapshot.identity.showChatUpdates, false);
   assert.equal(
     (await request("/identity", { name: "Nova", tone: "warm", avatar: "invalid" })).status,

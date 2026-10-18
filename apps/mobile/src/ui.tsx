@@ -3,6 +3,7 @@ import { type ReactNode } from "react";
 import {
   ActivityIndicator,
   Image,
+  type ImageSourcePropType,
   Modal,
   Pressable,
   ScrollView,
@@ -409,20 +410,46 @@ export function LinkRow({
     </Pressable>
   );
 }
-/** LingTai's original capybara, shared by every assistant surface. */
-export function Mascot({
-  size = 42,
-  variant = "sky",
-}: {
-  size?: number;
-  variant?: "sky" | "sand" | "lilac";
-}) {
-  const palette = {
-    sky: "#EEF2FF",
-    sand: "#FAF0DF",
-    lilac: "#F1ECF9",
-  }[variant];
+/**
+ * 可选照片头像：avatar1~avatar6 对应 assets 下的六张头像图，供用户在
+ * 偏好设置里挑选。未传入或历史留存值（旧版 sky/sand/lilac 等）时回退到
+ * 默认水豚涂装，保证旧数据仍可正常渲染。
+ */
+const AVATAR_SOURCES: Record<string, ImageSourcePropType> = {
+  avatar1: require("../assets/avatar1.png"),
+  avatar2: require("../assets/avatar2.png"),
+  avatar3: require("../assets/avatar3.png"),
+  avatar4: require("../assets/avatar4.png"),
+  avatar5: require("../assets/avatar5.png"),
+  avatar6: require("../assets/avatar6.png"),
+};
+
+/**
+ * LingTai's original capybara, shared by every assistant surface. When
+ * `variant` matches a photo avatar (avatar1~avatar6) a circular photo is
+ * rendered instead of the color-tinted capybara.
+ */
+export function Mascot({ size = 42, variant }: { size?: number; variant?: string }) {
   const { t } = useTranslation();
+  const source = variant ? AVATAR_SOURCES[variant] : undefined;
+  if (source) {
+    return (
+      <Image
+        accessibilityLabel={t("ui.capybaraLabel")}
+        source={source}
+        resizeMode="cover"
+        style={{ width: size, height: size, borderRadius: size / 2 }}
+        accessible={false}
+      />
+    );
+  }
+  // 兜底涂装：默认（无 variant）或旧版 sky/sand/lilac 仍渲染水豚。
+  const palette =
+    {
+      sky: "#EEF2FF",
+      sand: "#FAF0DF",
+      lilac: "#F1ECF9",
+    }[variant ?? "sky"] ?? "#EEF2FF";
   return (
     <View accessibilityLabel={t("ui.capybaraLabel")} style={{ width: size, height: size }}>
       <View

@@ -252,9 +252,12 @@ test("领域枚举标签在简体中文下不带英文残留", () => {
     "warm",
     "concise",
     "thoughtful",
-    "sky",
-    "sand",
-    "lilac",
+    "avatar1",
+    "avatar2",
+    "avatar3",
+    "avatar4",
+    "avatar5",
+    "avatar6",
   ];
   for (const value of known) {
     assert.ok(statusText[`status.${value}`], `缺少 status.${value}`);

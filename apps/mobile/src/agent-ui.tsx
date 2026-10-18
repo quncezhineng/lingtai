@@ -1812,13 +1812,26 @@ export function AppsScreen() {
     </View>
   );
 }
+/** 可挑选的照片头像枚举，与 assets/avatar1~6.png 一一对应。 */
+const AVATAR_OPTIONS = [
+  "avatar1",
+  "avatar2",
+  "avatar3",
+  "avatar4",
+  "avatar5",
+  "avatar6",
+] as const;
+function normalizeAvatar(value?: string): string {
+  // 兼容旧版 sky/sand/lilac 等历史值，一律落入默认头像。
+  return AVATAR_OPTIONS.includes(value as (typeof AVATAR_OPTIONS)[number]) ? (value as string) : "avatar1";
+}
 export function AgentPersonalitySheet() {
   const { t } = useTranslation();
   const { close, notify } = useWorkspace();
   const { data, mutate } = useAgentWorkspace();
   const [name, setName] = useState(data?.identity.name || t("common.agentName"));
   const [tone, setTone] = useState(data?.identity.tone || "warm");
-  const [avatar, setAvatar] = useState(data?.identity.avatar || "sky");
+  const [avatar, setAvatar] = useState(normalizeAvatar(data?.identity.avatar));
   const [showChatUpdates, setShowChatUpdates] = useState(data?.identity.showChatUpdates !== false);
   const [memory, setMemory] = useState("");
   const [error, setError] = useState("");
@@ -1827,7 +1840,7 @@ export function AgentPersonalitySheet() {
     if (data?.identity) {
       setName(data.identity.name);
       setTone(data.identity.tone);
-      setAvatar(data.identity.avatar || "sky");
+      setAvatar(normalizeAvatar(data.identity.avatar));
       setShowChatUpdates(data.identity.showChatUpdates !== false);
     }
   }, [
@@ -1855,7 +1868,7 @@ export function AgentPersonalitySheet() {
         <Card style={{ gap: 10 }}>
           <SectionHeading title={t("agent.yourAgent")} />
           <View style={[s.row, { gap: 16, justifyContent: "center", marginBottom: 12 }]}>
-            {(["sky", "sand", "lilac"] as const).map((item) => (
+            {AVATAR_OPTIONS.map((item) => (
               <Pressable
                 key={item}
                 accessibilityRole="radio"
