@@ -23,7 +23,7 @@ services:
       - key: AGENT_BACKEND
         value: model
       - key: MODEL
-        value: deepseek/deepseek-v4-flash
+        value: deepseek/deepseek-flash
       - key: DATA_DIR
         value: /var/data/lingtai
       - key: TASK_WORKER_ENABLED
