@@ -464,7 +464,7 @@ export function Mascot({ size = 42, variant }: { size?: number; variant?: string
         }}
       />
       <Image
-        source={require("../assets/capybara.png")}
+        source={require("../assets/logo.png")}
         resizeMode="contain"
         style={{ width: size, height: size }}
         accessible={false}
