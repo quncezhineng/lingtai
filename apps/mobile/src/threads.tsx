@@ -137,15 +137,10 @@ export function ThreadsSheet({ onClose }: { onClose: () => void }) {
     onClose();
     navigate(section);
   }
-  // 运行时首屏可能返回重复 id（平台随机生成的 slug 线程），渲染前去重避免 React key 冲突。
-  const seenVisitedIds = new Set<string>();
-  const visitedPending: Selection[] = [];
-  for (const item of visited) {
-    if (item.id === mainId || threads.threads.some((saved) => saved.id === item.id)) continue;
-    if (seenVisitedIds.has(item.id)) continue;
-    seenVisitedIds.add(item.id);
-    visitedPending.push(item);
-  }
+  // 运行时首屏可能返回重复 id（平台随机生成的 slug 线程）；且本地待建的旁聊首次
+  // 上线服务端列表时，同一 id 会同时出现在 visitedPending 与 listedThreads
+  // （同父级兄弟节点，key 必须互斥），因此先算 listedThreads，visitedPending
+  // 再按已列入单的 id 跨列表排除，避免 React 重复 key 告警。
   const seenThreadIds = new Set<string>();
   const listedThreads = threads.threads.filter((thread) => {
     if (thread.id === mainId || thread.archived !== archived) return false;
@@ -153,6 +148,19 @@ export function ThreadsSheet({ onClose }: { onClose: () => void }) {
     seenThreadIds.add(thread.id);
     return true;
   });
+  const seenVisitedIds = new Set<string>();
+  const visitedPending: Selection[] = [];
+  for (const item of visited) {
+    if (
+      item.id === mainId ||
+      threads.threads.some((saved) => saved.id === item.id) ||
+      seenThreadIds.has(item.id) ||
+      seenVisitedIds.has(item.id)
+    )
+      continue;
+    seenVisitedIds.add(item.id);
+    visitedPending.push(item);
+  }
   return (
     <Sheet
       title={t("common.agentName")}

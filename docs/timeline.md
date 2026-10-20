@@ -5,6 +5,30 @@
 
 ## 变更记录
 
+### 2026-10-20 · 修复控制台 5 条日志（嵌套按钮 + 重复 key + ERR_ABORTED）
+
+**背景**
+
+trae-preview 控制台出现 5 条日志：2 条嵌套 button 报错、1 条重复 key（`evidence-mail-fieldtrip`）、2 条 `net::ERR_ABORTED`。
+
+**根因与处理**
+
+| 日志 | 根因 | 处理 |
+|------|------|------|
+| 2× `In HTML, <button> cannot be a descendant of <button>` | React 19 的嵌套校验扩展到 `role="button"`：ThreadRow 外层整行是按钮，内层「重命名」Pressable 也设了 `accessibilityRole="button"`，Web 端渲染为 `div role="button"` 嵌套，触发告警 | [shell.tsx](../apps/mobile/src/shell.tsx)：去掉内层 Pressable 的 `accessibilityRole`（保留 onPress），渲染为普通 div + onClick，交互不变 |
+| 1× 重复 key `evidence-mail-fieldtrip` | 10-19 的去重只做了列表**内部**去重；当本地待建旁聊首次上线服务端列表的短暂窗口，同一 id 会同时出现在 `sideThreads` 与 `pendingThreads`（同一 ScrollView 的兄弟节点），以及 ThreadsSheet 的 `listedThreads` 与 `visitedPending`，跨列表重复 key | [shell.tsx](../apps/mobile/src/shell.tsx)：`pendingThreads` 增加 `seenSideIds.has(item.id)` 排除；[threads.tsx](../apps/mobile/src/threads.tsx)：先算 `listedThreads`，`visitedPending` 再按 `seenThreadIds` 跨列表排除 |
+| 2× `net::ERR_ABORTED /api/agent`、`/api/workspace` | 正常中断：`/api/agent` 每 3 秒轮询被新请求取代或页面切换时，浏览器取消在途请求；已 `catch(() => {})` 静默处理 | 无需改动（浏览器正常行为） |
+
+**验证**
+
+- `tsc --noEmit`（apps/mobile）通过。
+- 移动端测试 65/65 通过。
+- 修复均为纯前端防御性调整：嵌套 button 去掉内层角色、跨列表按 id 互斥去重，不改变线程数据与任何交互行为。
+
+**备注**
+
+`app.renameChatLabel` 翻译键因去掉内层按钮的无障碍标签而暂时无引用，与 `app.sideChat` 一样可作后续清理的技术债。
+
 ### 2026-10-20 · 保存设置去除按钮动效，改为弹窗提示已保存
 
 **背景**

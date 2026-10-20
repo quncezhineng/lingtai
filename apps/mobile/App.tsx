@@ -568,12 +568,9 @@ function WorkspaceShell({
                       ) : threadsLoading ? (
                         <ActivityIndicator color={colors.blueDark} />
                       ) : null}
-                      {!threadsLoading && selection.id !== mainId && (
-                        <Text style={[s.small, { textAlign: "center", marginBottom: 8 }]}>
-                          {t("app.sideChat")}
-                        </Text>
-                      )}
-                      {visited.map((thread) => (
+                      {/* visited 由 ThreadsProvider 维护（去重追加），但并发/重试下仍会
+                          出现瞬时重复 id，这里按 id 先去重再渲染，避免 React 重复 key 告警。 */}
+                      {[...new Map(visited.map((t) => [t.id, t])).values()].map((thread) => (
                         <View
                           key={thread.id}
                           style={{ display: selection.id === thread.id ? "flex" : "none", flex: 1 }}

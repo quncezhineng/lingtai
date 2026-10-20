@@ -277,11 +277,8 @@ function ThreadRow({
           }}
         />
       ) : (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t("app.renameChatLabel", { name: title })}
-          onPress={onStartEdit}
-        >
+        /* 内层不设 role="button"（外层整行已是按钮，React 19 不允许按钮嵌套按钮） */
+        <Pressable onPress={onStartEdit}>
           <Text numberOfLines={1} style={{ fontSize: 13.5, fontWeight: "500", color: colors.text }}>
             {title}
           </Text>
@@ -346,7 +343,9 @@ export function ChatsColumn() {
   const mainThread = threads.threads.find((saved) => saved.id === mainId);
   const mainName = t("app.mainChatsHeading");
   // CopilotKit 运行时会在列表首屏直出服务端线程（含平台随机生成的 slug id），
-  // 曾短暂返回同 id 两条记录，直接渲染会让 React 报重复 key。按 id 去重保留首个。
+  // 曾短暂返回同 id 两条记录；且一个本地待建的旁聊首次上线服务端列表时，同一 id
+  // 会同时出现在 sideThreads 与 pendingThreads（同父级兄弟节点，key 必须互斥），
+  // 因此两列表各自按 id 去重之外，还要跨列表排除，避免 React 重复 key 告警。
   const seenSideIds = new Set<string>();
   const sideThreads = threads.threads.filter((saved) => {
     if (saved.id === mainId || !matches(saved.name || "") || seenSideIds.has(saved.id))
@@ -358,6 +357,7 @@ export function ChatsColumn() {
   const pendingThreads = visited.filter((item) => {
     if (
       item.id === mainId ||
+      seenSideIds.has(item.id) ||
       threads.threads.some((saved) => saved.id === item.id) ||
       !matches(draftNames[item.id] ?? t("threads.untitledConversation")) ||
       seenPendingIds.has(item.id)
