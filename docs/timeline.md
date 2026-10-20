@@ -29,6 +29,10 @@ trae-preview 控制台出现 5 条日志：2 条嵌套 button 报错、1 条重�
 
 `app.renameChatLabel` 翻译键因去掉内层按钮的无障碍标签而暂时无引用，与 `app.sideChat` 一样可作后续清理的技术债。
 
+**反思（2026-10-20 晚）**
+
+本轮修复此前只停留在工作区、未提交（`git status` 显示 App.tsx / shell.tsx / threads.tsx / timeline.md 为 Modified），因此用户再次看到同样的 `evidence-mail-fieldtrip` 重复 key 报错——已部署/旧 bundle 版本不包含修复。当晚将三处渲染去重（shell / ThreadsSheet / App.tsx visited 按 id 去重）连同本期变更记录整理为单个 commit `b5c0931` 推送至 main。教训：**前端修复完成后必须及时提交并推送，否则线上（Render 自动部署来源）仍会复现旧问题**；同时确认所有线程列表渲染点均已覆盖去重（shell.tsx sideThreads/pendingThreads、threads.tsx listedThreads/visitedPending、App.tsx visited Map 去重）。
+
 ### 2026-10-20 · 保存设置去除按钮动效，改为弹窗提示已保存
 
 **背景**
