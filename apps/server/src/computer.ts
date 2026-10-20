@@ -138,14 +138,14 @@ export const runDocker: DockerRunner = (args, options) =>
 export function computerIdentity(config: Config, owner: string) {
   const deployment = hash(config.computerDeploymentId ?? config.publicUrl).slice(0, 16);
   const ownerHash = hash(owner).slice(0, 24);
-  const name = `lingtai-${deployment}-${ownerHash}`;
+  const name = `lingwu-${deployment}-${ownerHash}`;
   return {
     container: `${name}-computer`,
     volume: `${name}-workspace`,
     labels: {
-      "dev.lingtai.managed": "computer-v1",
-      "dev.lingtai.deployment": deployment,
-      "dev.lingtai.owner": ownerHash,
+      "dev.lingwu.managed": "computer-v1",
+      "dev.lingwu.deployment": deployment,
+      "dev.lingwu.owner": ownerHash,
     } as Record<string, string>,
   };
 }

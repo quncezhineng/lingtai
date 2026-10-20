@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a reproducible LingTai failure
+description: Report a reproducible LingWu failure
 title: "[Bug] "
 body:
   - type: textarea

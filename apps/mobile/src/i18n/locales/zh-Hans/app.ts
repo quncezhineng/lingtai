@@ -2,8 +2,8 @@ import type { Dictionary } from "../../types";
 
 /** 应用外壳文案（命名空间：app）：导航、标题、欢迎页与顶部状态栏。 */
 const app = {
-  "app.webTitle": "灵台 — 你的个人投研智能体",
-  "app.welcomeTitle": "欢迎使用灵台，你的个人投研智能体。",
+  "app.webTitle": "灵悟 — 你的个人投研智能体",
+  "app.welcomeTitle": "欢迎使用灵悟，你的个人投研智能体。",
   "app.welcomeSubtitle": "让每一次研究，都有清晰的下一步。",
   "app.accessKeyLabel": "工作区访问密钥",
   "app.accessKeyPlaceholder": "连接实时工作区时必填",
@@ -28,7 +28,7 @@ const app = {
   "app.profileSessionExpires": "会话到期",
   "app.profileUnset": "未设置",
   "app.profileLoading": "正在读取账号信息…",
-  "app.localWorkspaceHint": "本地工作区无需密钥即可打开。请确认你的灵台服务已在 {url} 上运行。",
+  "app.localWorkspaceHint": "本地工作区无需密钥即可打开。请确认你的灵悟服务已在 {url} 上运行。",
   "app.openingWorkspace": "正在打开你的工作区…",
   "app.navChat": "对话",
   "app.navActivity": "动态",

@@ -51,7 +51,7 @@ before(async () => {
   // Exactly one provider has a key: the picker must offer only that one.
   for (const key of providerKeys) delete process.env[key];
   process.env.DEEPSEEK_API_KEY = "test-deepseek-key";
-  directory = await mkdtemp(join(tmpdir(), "lingtai-model-switch-"));
+  directory = await mkdtemp(join(tmpdir(), "lingwu-model-switch-"));
   db = await createStore({ dataDir: join(directory, "db") });
   config = baseConfig();
   server = await createApp(db, config);
@@ -157,7 +157,7 @@ test("a sample or AG-UI deployment cannot switch models", async () => {
 });
 
 test("a choice made in the app is restored on the next start", async () => {
-  const isolated = await mkdtemp(join(tmpdir(), "lingtai-model-restore-"));
+  const isolated = await mkdtemp(join(tmpdir(), "lingwu-model-restore-"));
   const store = await createStore({ dataDir: join(isolated, "db") });
   try {
     const first = { ...baseConfig(), dataDir: isolated };

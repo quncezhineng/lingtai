@@ -10,7 +10,7 @@ import type {
   Section,
   Workspace,
 } from "../../../packages/domain/src";
-import type { LingTaiApi } from "./api";
+import type { LingWuApi } from "./api";
 export type Detail =
   | { type: "mail"; mail: Mail }
   | { type: "email"; draft?: Partial<EmailDraft> & { id?: string } }
@@ -26,7 +26,7 @@ export type Detail =
   | { type: "menu" };
 export interface WorkspaceContextValue {
   workspace: Workspace;
-  api: LingTaiApi;
+  api: LingWuApi;
   section: Section;
   navigate: (section: Section) => void;
   refresh: () => Promise<void>;

@@ -43,7 +43,7 @@ import { API_URL } from "./api";
 import { browserAddress } from "./browser-address";
 import { localDateTime, startOfZonedDay, zonedInstant } from "./date-time";
 import { activeLocaleTag, useTranslation } from "./i18n";
-import { runtimeLabel, statusLabel, tr } from "./i18n/translate";
+import { runtimeLabel, statusLabel } from "./i18n/translate";
 import {
   Button,
   Card,

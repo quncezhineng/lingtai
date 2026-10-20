@@ -8,7 +8,7 @@ const intEnv = (name: string, fallback: number) => {
 };
 const worker = await createWorkerServer({
   token,
-  dataDir: process.env.WORKER_DATA_DIR ?? ".lingtai/browser-profiles",
+  dataDir: process.env.WORKER_DATA_DIR ?? ".lingwu/browser-profiles",
   // 每个用户一个独立 Chromium 进程；多用户部署应提高这两个上限，避免
   // 用户数超过默认值时浏览器会话/档案被拒绝。默认值保持与旧版本一致。
   maxSessions: intEnv("WORKER_MAX_SESSIONS", 3),
@@ -16,7 +16,7 @@ const worker = await createWorkerServer({
   idleTimeoutMs: 30 * 60_000,
 });
 worker.server.listen(8790, process.env.WORKER_HOST ?? "127.0.0.1", () => {
-  console.log("LingTai browser worker listening on port 8790");
+  console.log("LingWu browser worker listening on port 8790");
 });
 let stopping = false;
 async function stop() {

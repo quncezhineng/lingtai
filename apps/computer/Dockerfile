@@ -3,11 +3,11 @@ FROM node:22.22.0-bookworm-slim
 RUN apt-get update \
     && apt-get install -y --no-install-recommends bash python3 git coreutils \
     && rm -rf /var/lib/apt/lists/* \
-    && mkdir -p /opt/lingtai /workspace \
+    && mkdir -p /opt/lingwu /workspace \
     && chown 1000:1000 /workspace
 
-COPY files.py /opt/lingtai/files.py
-RUN chmod 0555 /opt/lingtai/files.py
+COPY files.py /opt/lingwu/files.py
+RUN chmod 0555 /opt/lingwu/files.py
 
 ENV HOME=/workspace LANG=C.UTF-8
 WORKDIR /workspace

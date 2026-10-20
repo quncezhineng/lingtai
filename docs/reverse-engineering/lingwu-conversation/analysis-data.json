@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
   "generatedAt": "2026-10-17",
-  "generatedFor": "LingTai conversation module reverse engineering",
+  "generatedFor": "LingWu conversation module reverse engineering",
   "target": {
-    "repository": "/Users/luffy/Code/Bayes/EconSwarm/LingTai",
+    "repository": "/Users/luffy/Code/Bayes/EconSwarm/LingWu",
     "access": "read-only",
     "stack": {
       "server": "Python FastAPI, asyncio",
@@ -16,7 +16,7 @@
     "tool": "REA MCP 6.3.0",
     "directMcpRegistration": "not available in this Codex runtime",
     "advertisedTools": 139,
-    "fixture": "/private/tmp/rea-lingtai-conversation",
+    "fixture": "/private/tmp/rea-lingwu-conversation",
     "fixtureFiles": ["ChatScreen.tsx", "api.ts", "store.tsx", "types.ts", "api.test.ts"],
     "durationSeconds": 4.6,
     "textBytes": 170654,
@@ -46,71 +46,71 @@
       "featureTrace": "ev_b1120ba492cbf77e5c433b7b8163a7a20a8b0f95ff81673a290baf6f84010cd0"
     },
     "evidenceFiles": [
-      "/private/tmp/rea-lingtai-conversation.analysis.json",
-      "/private/tmp/rea-lingtai-conversation.evidence.json",
-      "/private/tmp/rea-lingtai-api-trace.result.json"
+      "/private/tmp/rea-lingwu-conversation.analysis.json",
+      "/private/tmp/rea-lingwu-conversation.evidence.json",
+      "/private/tmp/rea-lingwu-api-trace.result.json"
     ],
     "limitation": "Static source evidence only; it does not prove runtime execution, network behavior, concurrency, or deployment correctness."
   },
   "architecture": {
     "serverModules": [
       {
-        "path": "lingtai/server/events.py",
+        "path": "lingwu/server/events.py",
         "lines": "39-158",
         "role": "Timeline: ordered per-thread event log, 2000-event retention, JSON persistence, 0.3s write coalescing, atomic temp-file replace."
       },
       {
-        "path": "lingtai/server/events.py",
+        "path": "lingwu/server/events.py",
         "lines": "161-184",
         "role": "EventBus: per-client asyncio.Queue(maxsize=1000); slow subscriber is discarded when full."
       },
       {
-        "path": "lingtai/server/api.py",
+        "path": "lingwu/server/api.py",
         "lines": "609-619",
         "role": "GET thread events with limit, before cursor, and has_more."
       },
       {
-        "path": "lingtai/server/api.py",
+        "path": "lingwu/server/api.py",
         "lines": "1961-2003",
         "role": "WebSocket endpoint: first-frame auth, hello snapshot, dedicated pump, 4401 auth close, finally cleanup."
       },
       {
-        "path": "lingtai/server/api.py",
+        "path": "lingwu/server/api.py",
         "lines": "2070-2084",
         "role": "Ten-second WebSocket authentication deadline."
       },
       {
-        "path": "lingtai/server/service.py",
+        "path": "lingwu/server/service.py",
         "lines": "376-455",
         "role": "MuseService composition and thread loading."
       },
       {
-        "path": "lingtai/server/service.py",
+        "path": "lingwu/server/service.py",
         "lines": "800-880",
         "role": "Thread path validation and restart repair of pending approvals, questions, running tools, browser/hands, and holds."
       },
       {
-        "path": "lingtai/server/service.py",
+        "path": "lingwu/server/service.py",
         "lines": "1022-1069",
         "role": "Stop and clear behavior."
       },
       {
-        "path": "lingtai/server/service.py",
+        "path": "lingwu/server/service.py",
         "lines": "1072-1173",
         "role": "Message validation, attachments, device routing, cloud-once, question/avatar interception, timeline event, inbox queue, and worker start."
       },
       {
-        "path": "lingtai/server/service.py",
+        "path": "lingwu/server/service.py",
         "lines": "1238-1295",
         "role": "Per-thread worker loop, busy state, run execution, finish/error handling, and cleanup."
       },
       {
-        "path": "lingtai/server/service.py",
+        "path": "lingwu/server/service.py",
         "lines": "2612-2640",
         "role": "Complete state snapshot sent in hello."
       },
       {
-        "path": "lingtai/server/webui.py",
+        "path": "lingwu/server/webui.py",
         "lines": "330-404",
         "role": "UI adapter: emit/patch/status and stream_start, delta, stream_end, persisted assistant event."
       }

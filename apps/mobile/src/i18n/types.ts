@@ -18,7 +18,7 @@ export const LOCALES: readonly Locale[] = ["en", "zh-Hans"] as const;
 export const FALLBACK_LOCALE: Locale = "en";
 
 /** 语言偏好写入本地存储时使用的 key。 */
-export const LOCALE_STORAGE_KEY = "lingtai.locale";
+export const LOCALE_STORAGE_KEY = "lingwu.locale";
 
 /** 一种语言的扁平字典。 */
 export type Dictionary = Readonly<Record<string, string>>;

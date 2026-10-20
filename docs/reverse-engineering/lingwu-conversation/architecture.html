@@ -116,7 +116,7 @@
   <header class="shell hero">
     <p class="eyebrow">Artifact 01 · Architecture</p>
     <h1>对话模块架构与依赖关系</h1>
-    <p class="lede">上游 LingTai 将对话实现为“事件时间线 + 线程串行执行器 + 实时广播”的三层结构：业务状态在服务端收敛，浏览器只消费事件并维护短期渲染状态。</p>
+    <p class="lede">上游 LingWu 将对话实现为“事件时间线 + 线程串行执行器 + 实时广播”的三层结构：业务状态在服务端收敛，浏览器只消费事件并维护短期渲染状态。</p>
     <nav class="crumbs" aria-label="报告导航">
       <a href="index.html" target="_blank" rel="noopener noreferrer">总览</a>
       <a href="business-logic.html" target="_blank" rel="noopener noreferrer">业务逻辑</a>
@@ -176,32 +176,32 @@ FastAPI server
 
       <div class="module">
         <h3>Timeline：线程事实日志</h3>
-        <div class="path">lingtai/server/events.py:39-158</div>
+        <div class="path">lingwu/server/events.py:39-158</div>
         <p>每个线程拥有独立的 <code>Timeline</code>。事件由 <code>add()</code> 追加并自动生成 <code>id</code> 与 <code>ts</code>；超过 2000 条时从头部淘汰。持久化使用临时文件写入后 <code>replace()</code>，避免读者看到半写文件。写入合并延迟为 0.3 秒，并在线程池中执行磁盘 I/O。</p>
         <p><span class="tag">有序</span><span class="tag">有界</span><span class="tag">JSON</span><span class="tag">合并写盘</span><span class="tag">原子替换</span></p>
       </div>
 
       <div class="module">
         <h3>EventBus：实时扇出</h3>
-        <div class="path">lingtai/server/events.py:161-184</div>
+        <div class="path">lingwu/server/events.py:161-184</div>
         <p>每个订阅者获得一个 <code>asyncio.Queue(maxsize=1000)</code>。发布使用 <code>put_nowait()</code>；队列满时直接移除该订阅者，形成“慢客户端断开而非无限缓冲”的背压策略。</p>
       </div>
 
       <div class="module">
         <h3>API：REST 与 WebSocket 边界</h3>
-        <div class="path">lingtai/server/api.py:609-619, 1961-2003, 2070-2084</div>
+        <div class="path">lingwu/server/api.py:609-619, 1961-2003, 2070-2084</div>
         <p><code>GET /api/threads/:id/events</code> 支持 <code>limit</code> 与 <code>before</code> 游标，返回 <code>has_more</code>。WebSocket <code>/ws</code> 先 accept，再要求首帧 <code>{"kind":"auth","token":"..."}</code>；认证失败关闭码为 4401，成功则订阅事件队列并发送包含完整状态的 <code>hello</code> 消息。</p>
       </div>
 
       <div class="module">
         <h3>MuseService：线程编排</h3>
-        <div class="path">lingtai/server/service.py:376-455, 800-880, 1072-1173, 1238-1295</div>
+        <div class="path">lingwu/server/service.py:376-455, 800-880, 1072-1173, 1238-1295</div>
         <p>服务聚合线程表、时间线、代理、审批、记忆、目标、日历、云端同步与设备 hub。发送路径先生成用户可见事件，再投递到线程 inbox；worker 以线程为单位串行消费，保证同一对话不会并发运行两轮模型。</p>
       </div>
 
       <div class="module">
         <h3>Web UI 适配器：业务回调转事件</h3>
-        <div class="path">lingtai/server/webui.py:330-404</div>
+        <div class="path">lingwu/server/webui.py:330-404</div>
         <p><code>emit()</code> 统一写时间线并通过 <code>EventBus</code> 发布 <code>kind=event</code>。<code>patch()</code> 发布 <code>kind=update</code>，用于审批状态、工具状态、浏览器帧等原地更新。<code>on_text_delta()</code> 负责临时流的开始与增量。</p>
       </div>
     </section>
@@ -246,12 +246,12 @@ FastAPI server
       <table>
         <thead><tr><th>职责</th><th>位置</th><th>静态观察</th></tr></thead>
         <tbody>
-          <tr><td>时间线持久化</td><td><code>lingtai/server/events.py:39-126</code></td><td>2000 事件上限、0.3s 合并、临时文件替换</td></tr>
-          <tr><td>广播背压</td><td><code>lingtai/server/events.py:161-184</code></td><td>每客户端 1000 条队列，满则移除</td></tr>
-          <tr><td>历史分页</td><td><code>lingtai/server/api.py:609-619</code></td><td><code>limit</code>/<code>before</code>/<code>has_more</code></td></tr>
-          <tr><td>WebSocket 握手</td><td><code>lingtai/server/api.py:1961-2003</code></td><td>首帧认证、<code>hello</code>、独立 pump、finally 清理</td></tr>
-          <tr><td>发送与 worker</td><td><code>lingtai/server/service.py:1072-1173, 1238-1295</code></td><td>事件 → inbox → 单线程串行执行</td></tr>
-          <tr><td>流片段</td><td><code>lingtai/server/webui.py:373-404</code></td><td><code>stream_start</code> → <code>delta</code> → <code>stream_end</code> → assistant</td></tr>
+          <tr><td>时间线持久化</td><td><code>lingwu/server/events.py:39-126</code></td><td>2000 事件上限、0.3s 合并、临时文件替换</td></tr>
+          <tr><td>广播背压</td><td><code>lingwu/server/events.py:161-184</code></td><td>每客户端 1000 条队列，满则移除</td></tr>
+          <tr><td>历史分页</td><td><code>lingwu/server/api.py:609-619</code></td><td><code>limit</code>/<code>before</code>/<code>has_more</code></td></tr>
+          <tr><td>WebSocket 握手</td><td><code>lingwu/server/api.py:1961-2003</code></td><td>首帧认证、<code>hello</code>、独立 pump、finally 清理</td></tr>
+          <tr><td>发送与 worker</td><td><code>lingwu/server/service.py:1072-1173, 1238-1295</code></td><td>事件 → inbox → 单线程串行执行</td></tr>
+          <tr><td>流片段</td><td><code>lingwu/server/webui.py:373-404</code></td><td><code>stream_start</code> → <code>delta</code> → <code>stream_end</code> → assistant</td></tr>
           <tr><td>前端重连</td><td><code>web/src/api.ts:463-522</code></td><td>4401/4404 终止，其余指数退避</td></tr>
           <tr><td>前端归并</td><td><code>web/src/store.tsx:433-452, 607-620</code></td><td>流 reducer 与消息微批处理</td></tr>
           <tr><td>滚动与预览</td><td><code>web/src/screens/ChatScreen.tsx:119-157</code></td><td>120px/400px 阈值与 <code>ResizeObserver</code></td></tr>

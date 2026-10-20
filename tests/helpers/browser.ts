@@ -27,7 +27,7 @@ export async function browserFixture(
   await once(server, "listening");
   const address = server.address();
   assert(address && typeof address !== "string");
-  const directory = await mkdtemp(join(tmpdir(), "lingtai-browser-service-"));
+  const directory = await mkdtemp(join(tmpdir(), "lingwu-browser-service-"));
   const db = await createStore();
   const config: Config = {
     mode: "sample",

@@ -77,7 +77,7 @@ export class Auth {
   }
   /** 读取会话详情：先验 JWT 签名/过期，再查库确认会话未被撤销。 */
   async profile(authorization?: string) {
-    if (!authorization?.startsWith("Bearer ")) throw new AppError("Sign in to LingTai", 401);
+    if (!authorization?.startsWith("Bearer ")) throw new AppError("Sign in to LingWu", 401);
     const claims = verifyJwt(authorization.slice(7), this.signingKey);
     if (!claims) throw new AppError("Session expired. Sign in again.", 401);
     const session = await this.db.get<SessionRecord>("system", "sessions", claims.jti);

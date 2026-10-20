@@ -100,7 +100,7 @@ export function ThreadsProvider({ children }: { children: ReactNode }) {
     </ThreadContext.Provider>
   );
 }
-export function useLingTaiThread() {
+export function useLingWuThread() {
   const context = useContext(ThreadContext);
   if (!context) throw new Error("Threads provider is unavailable");
   return context;
@@ -117,7 +117,7 @@ export function ThreadsSheet({ onClose }: { onClose: () => void }) {
     retry,
     select,
     start,
-  } = useLingTaiThread();
+  } = useLingWuThread();
   const { workspace, open, navigate, refresh } = useWorkspace();
   const threads = useThreads({ agentId: "default", enabled, includeArchived: true, limit: 20 });
   const [editing, setEditing] = useState<string>();
@@ -137,6 +137,22 @@ export function ThreadsSheet({ onClose }: { onClose: () => void }) {
     onClose();
     navigate(section);
   }
+  // 运行时首屏可能返回重复 id（平台随机生成的 slug 线程），渲染前去重避免 React key 冲突。
+  const seenVisitedIds = new Set<string>();
+  const visitedPending: Selection[] = [];
+  for (const item of visited) {
+    if (item.id === mainId || threads.threads.some((saved) => saved.id === item.id)) continue;
+    if (seenVisitedIds.has(item.id)) continue;
+    seenVisitedIds.add(item.id);
+    visitedPending.push(item);
+  }
+  const seenThreadIds = new Set<string>();
+  const listedThreads = threads.threads.filter((thread) => {
+    if (thread.id === mainId || thread.archived !== archived) return false;
+    if (seenThreadIds.has(thread.id)) return false;
+    seenThreadIds.add(thread.id);
+    return true;
+  });
   return (
     <Sheet
       title={t("common.agentName")}
@@ -190,100 +206,89 @@ export function ThreadsSheet({ onClose }: { onClose: () => void }) {
               </Button>
             )}
             {!archived &&
-              visited
-                .filter(
-                  (item) =>
-                    item.id !== mainId && !threads.threads.some((saved) => saved.id === item.id),
-                )
-                .map((item, index) => (
-                  <LinkRow
-                    key={item.id}
-                    icon={MessageCircle}
-                    title={t("threads.sideChatNumber", { index: index + 1 })}
-                    detail={t("threads.openInThisApp")}
-                    onPress={() => {
-                      select(item);
-                      onClose();
-                    }}
-                  />
-                ))}
-            {threads.threads
-              .filter((thread) => thread.id !== mainId && thread.archived === archived)
-              .map((thread) => (
-                <View
-                  key={thread.id}
-                  style={{
-                    paddingVertical: 12,
-                    borderBottomWidth: 1,
-                    borderBottomColor: colors.line,
-                    gap: 10,
+              visitedPending.map((item, index) => (
+                <LinkRow
+                  key={item.id}
+                  icon={MessageCircle}
+                  title={t("threads.sideChatNumber", { index: index + 1 })}
+                  detail={t("threads.openInThisApp")}
+                  onPress={() => {
+                    select(item);
+                    onClose();
                   }}
-                >
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={t("threads.openConversation", {
-                      name: thread.name || t("threads.untitledConversation"),
-                    })}
-                    accessibilityState={{ selected: selection.id === thread.id }}
-                    onPress={() => {
-                      select({ id: thread.id, existing: true });
-                      onClose();
-                    }}
-                    style={[s.row, { gap: 10 }]}
-                  >
-                    <MessageCircle size={19} color={colors.text} />
-                    <Text style={[s.text, { flex: 1 }]}>
-                      {thread.name || t("threads.untitledConversation")}
-                    </Text>
-                  </Pressable>
-                  {editing === thread.id && (
-                    <Field
-                      label={t("threads.conversationName")}
-                      value={name}
-                      onChangeText={setName}
-                    />
-                  )}
-                  <View style={[s.row, { gap: 8 }]}>
-                    <Button
-                      small
-                      disabled={threads.isMutating || (editing === thread.id && !name.trim())}
-                      onPress={() => {
-                        if (editing === thread.id)
-                          void mutate(() => threads.renameThread(thread.id, name.trim()));
-                        else {
-                          setEditing(thread.id);
-                          setName(thread.name || "");
-                        }
-                      }}
-                    >
-                      {editing === thread.id ? t("threads.saveName") : t("threads.rename")}
-                    </Button>
-                    <Button
-                      small
-                      icon={Archive}
-                      disabled={threads.isMutating}
-                      onPress={() =>
-                        void mutate(() =>
-                          thread.archived
-                            ? threads.unarchiveThread(thread.id)
-                            : threads.archiveThread(thread.id),
-                        )
-                      }
-                    >
-                      {thread.archived ? t("threads.restore") : t("threads.archive")}
-                    </Button>
-                  </View>
-                </View>
+                />
               ))}
-            {!threads.isLoading &&
-              !threads.error &&
-              !threads.threads.some(
-                (thread) => thread.id !== mainId && thread.archived === archived,
-              ) && (
-                <Text style={s.muted}>
-                  {archived ? t("threads.emptyArchived") : t("threads.emptyActive")}
-                </Text>
-              )}
+            {listedThreads.map((thread) => (
+              <View
+                key={thread.id}
+                style={{
+                  paddingVertical: 12,
+                  borderBottomWidth: 1,
+                  borderBottomColor: colors.line,
+                  gap: 10,
+                }}
+              >
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t("threads.openConversation", {
+                    name: thread.name || t("threads.untitledConversation"),
+                  })}
+                  accessibilityState={{ selected: selection.id === thread.id }}
+                  onPress={() => {
+                    select({ id: thread.id, existing: true });
+                    onClose();
+                  }}
+                  style={[s.row, { gap: 10 }]}
+                >
+                  <MessageCircle size={19} color={colors.text} />
+                  <Text style={[s.text, { flex: 1 }]}>
+                    {thread.name || t("threads.untitledConversation")}
+                  </Text>
+                </Pressable>
+                {editing === thread.id && (
+                  <Field
+                    label={t("threads.conversationName")}
+                    value={name}
+                    onChangeText={setName}
+                  />
+                )}
+                <View style={[s.row, { gap: 8 }]}>
+                  <Button
+                    small
+                    disabled={threads.isMutating || (editing === thread.id && !name.trim())}
+                    onPress={() => {
+                      if (editing === thread.id)
+                        void mutate(() => threads.renameThread(thread.id, name.trim()));
+                      else {
+                        setEditing(thread.id);
+                        setName(thread.name || "");
+                      }
+                    }}
+                  >
+                    {editing === thread.id ? t("threads.saveName") : t("threads.rename")}
+                  </Button>
+                  <Button
+                    small
+                    icon={Archive}
+                    disabled={threads.isMutating}
+                    onPress={() =>
+                      void mutate(() =>
+                        thread.archived
+                          ? threads.unarchiveThread(thread.id)
+                          : threads.archiveThread(thread.id),
+                      )
+                    }
+                  >
+                    {thread.archived ? t("threads.restore") : t("threads.archive")}
+                  </Button>
+                </View>
+              </View>
+            ))}
+            {!threads.isLoading && !threads.error && !listedThreads.length && (
+              <Text style={s.muted}>
+                {archived ? t("threads.emptyArchived") : t("threads.emptyActive")}
+              </Text>
+            )}
             <ErrorNotice error={threads.fetchMoreError?.message} />
             {threads.hasMoreThreads && (
               <Button small busy={threads.isFetchingMoreThreads} onPress={threads.fetchMoreThreads}>

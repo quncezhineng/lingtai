@@ -3,7 +3,7 @@
  *
  * 这两类数据是「旁路写入」：主流程不依赖它们成功，失败只记录后台日志，
  * 不影响用户的正常操作。写入使用服务端角色密钥直接调 PostgREST，
- * 绕过 RLS（灵台的用户不会直接访问 Supabase，所有访问都经过灵台 API）。
+ * 绕过 RLS（灵悟的用户不会直接访问 Supabase，所有访问都经过灵悟 API）。
  */
 import type { Config } from "./config.ts";
 import { backgroundFailure } from "./log.ts";
@@ -56,7 +56,7 @@ export class SupabaseData {
 
   /** 写入一条操作行为日志；失败不影响主流程。 */
   async writeAuditLog(entry: AuditEntry): Promise<void> {
-    const ok = await this.insert("lingtai_audit_logs", {
+    const ok = await this.insert("lingwu_audit_logs", {
       user_id: entry.user_id,
       action: entry.action,
       resource_type: entry.resource_type ?? null,
@@ -70,7 +70,7 @@ export class SupabaseData {
 
   /** 登记一条业务资源索引；失败不影响主流程。 */
   async indexResource(entry: ResourceEntry): Promise<void> {
-    const ok = await this.insert("lingtai_resources", {
+    const ok = await this.insert("lingwu_resources", {
       user_id: entry.user_id,
       resource_type: entry.resource_type,
       resource_id: entry.resource_id,

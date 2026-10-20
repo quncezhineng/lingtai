@@ -1,7 +1,7 @@
 /**
  * i18n 单元测试。
  *
- * 覆盖：中英语言包 key 对齐、占位符一致性、专有名词「灵台」译名、
+ * 覆盖：中英语言包 key 对齐、占位符一致性、专有名词「灵悟」译名、
  * 插值、语言回退、当前语言切换、偏好持久化与语言决策逻辑。
  */
 import assert from "node:assert/strict";
@@ -62,18 +62,18 @@ test("英文语言包不包含中文（防止误把中文写进英文包）", ()
   }
 });
 
-test("专有名词 LingTai 在简体中文中统一译为「灵台」", () => {
-  assert.equal(en["common.agentName"], "LingTai");
-  assert.equal(zhHans["common.agentName"], "灵台");
-  // 英文里只要出现 LingTai，简体中文对应位置就必须出现「灵台」。
-  const sources = Object.entries(en).filter(([, value]) => value.includes("LingTai"));
+test("专有名词 LingWu 在简体中文中统一译为「灵悟」", () => {
+  assert.equal(en["common.agentName"], "LingWu");
+  assert.equal(zhHans["common.agentName"], "灵悟");
+  // 英文里只要出现 LingWu，简体中文对应位置就必须出现「灵悟」。
+  const sources = Object.entries(en).filter(([, value]) => value.includes("LingWu"));
   assert.ok(sources.length >= 5, "应至少覆盖欢迎语、本地工作区提示、水豚无障碍文案等处");
   for (const [key] of sources) {
-    assert.ok((zhText[key] ?? "").includes("灵台"), `${key} 未把 LingTai 译作「灵台」`);
+    assert.ok((zhText[key] ?? "").includes("灵悟"), `${key} 未把 LingWu 译作「灵悟」`);
   }
   // 简体中文包中不允许残留英文原名。
   for (const [key, value] of Object.entries(zhHans)) {
-    assert.ok(!value.includes("LingTai"), `简体中文的 ${key} 仍残留 LingTai`);
+    assert.ok(!value.includes("LingWu"), `简体中文的 ${key} 仍残留 LingWu`);
   }
 });
 
@@ -92,9 +92,9 @@ test("formatTemplate 支持命名占位符并保留未知占位符", () => {
 });
 
 test("translate 按「目标语言 -> 英文 -> 原始 key」回退且永不抛错", () => {
-  assert.equal(translate("zh-Hans", "common.agentName"), "灵台");
-  assert.equal(translate("en", "common.agentName"), "LingTai");
-  assert.equal(translate("zh-Hans", "app.welcomeTitle"), "欢迎使用灵台，你的个人投研智能体。");
+  assert.equal(translate("zh-Hans", "common.agentName"), "灵悟");
+  assert.equal(translate("en", "common.agentName"), "LingWu");
+  assert.equal(translate("zh-Hans", "app.welcomeTitle"), "欢迎使用灵悟，你的个人投研智能体。");
   assert.equal(translate("en", "not.a.real.key"), "not.a.real.key");
 });
 
@@ -102,10 +102,10 @@ test("tr 跟随当前生效语言切换", () => {
   const original = getActiveLocale();
   try {
     setActiveLocale("zh-Hans");
-    assert.equal(tr("common.agentName"), "灵台");
+    assert.equal(tr("common.agentName"), "灵悟");
     assert.equal(tr("app.statusIdle"), zhHans["app.statusIdle"]);
     setActiveLocale("en");
-    assert.equal(tr("common.agentName"), "LingTai");
+    assert.equal(tr("common.agentName"), "LingWu");
     assert.equal(tr("app.statusIdle"), en["app.statusIdle"]);
   } finally {
     setActiveLocale(original);
@@ -130,11 +130,11 @@ test("localizeAgentName 把服务端英文原名统一显示为当前语言译�
   const original = getActiveLocale();
   try {
     setActiveLocale("zh-Hans");
-    assert.equal(localizeAgentName("LingTai"), "灵台");
-    assert.equal(localizeAgentName(undefined), "灵台");
+    assert.equal(localizeAgentName("LingWu"), "灵悟");
+    assert.equal(localizeAgentName(undefined), "灵悟");
     assert.equal(localizeAgentName("小明"), "小明");
     setActiveLocale("en");
-    assert.equal(localizeAgentName("LingTai"), "LingTai");
+    assert.equal(localizeAgentName("LingWu"), "LingWu");
   } finally {
     setActiveLocale(original);
   }

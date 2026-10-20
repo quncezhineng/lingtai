@@ -1,6 +1,6 @@
-# 全局名称替换修改清单（openmuse → lingtai）
+# 全局名称替换修改清单（openmuse → lingwu）
 
-替换规则：`openmuse`→`lingtai`、`openMuse`→`lingTai`、`OpenMuse`→`LingTai`、`OPENMUSE`→`LINGTAI`。
+替换规则：`openmuse`→`lingwu`、`openMuse`→`lingWu`、`OpenMuse`→`LingWu`、`OPENMUSE`→`LINGWU`。
 
 本次重命名共修改 **101** 个文件、338 处。
 
@@ -8,10 +8,10 @@
 
 | 变体 | 替换后 | 处数 |
 |---|---|---|
-| `openmuse` | `lingtai` | 192 |
-| `openMuse` | `lingTai` | 0 |
-| `OpenMuse` | `LingTai` | 133 |
-| `OPENMUSE` | `LINGTAI` | 13 |
+| `openmuse` | `lingwu` | 192 |
+| `openMuse` | `lingWu` | 0 |
+| `OpenMuse` | `LingWu` | 133 |
+| `OPENMUSE` | `LINGWU` | 13 |
 
 ## 修改文件明细（按路径排序）
 

@@ -17,9 +17,9 @@ const details = {
   "details.writeReply": "Write a reply",
 
   // Email editor.
-  "details.draftSaved": "Draft saved in LingTai.",
+  "details.draftSaved": "Draft saved in LingWu.",
   "details.newMessage": "A new message",
-  "details.emailFrom": "From {email} · saved privately in LingTai",
+  "details.emailFrom": "From {email} · saved privately in LingWu",
   "details.to": "To",
   "details.toPlaceholder": "person@example.com",
   "details.cc": "Cc",

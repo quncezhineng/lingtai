@@ -1,4 +1,4 @@
-# LingTai feature inventory
+# LingWu feature inventory
 
 The native and web agent core runs locally. This inventory describes the current implementation and remaining extensions. Live providers and optional infrastructure require separate configuration and validation.
 
@@ -15,14 +15,14 @@ The native and web agent core runs locally. This inventory describes the current
 | PDF job | Durable import, typed input request, filled-copy preview, reviewed reply, receipt | OCR/scanned forms and additional PDF field types |
 | Generated results | Plans/reports/comparisons, finance CSV metrics, and scripts in the private Linux workspace | Managed tool installation/versioning and image/audio generation |
 | Notifications | Durable in-app inbox, source-linked change alerts, restart reconciliation | APNs/FCM/device push delivery |
-| Localization | English and Simplified Chinese (灵台) UI, runtime language switcher, persisted preference, localized dates/times and domain labels | Additional locales; server-generated content remains in the server's language (see [I18N.md](I18N.md)) |
+| Localization | English and Simplified Chinese (灵悟) UI, runtime language switcher, persisted preference, localized dates/times and domain labels | Additional locales; server-generated content remains in the server's language (see [I18N.md](I18N.md)) |
 | User accounts | Supabase email sign-up/sign-in, verification-code sign-in (Supabase email OTP), standard JWT sessions with configurable TTL, multi-device session list and remote sign-out, IP + account sign-in rate limiting, per-account audit logs, per-account private workspace; falls back to one shared access key when Supabase is unset | Password reset, roles, third-party OAuth |
 | Connectors | Searchable capability/status catalogue, Google connection, browser worker | Plaid, health, Instagram, WhatsApp and partner APIs |
 | OpenBot | Disabled adapter with pinned protocol/identity tests | Live session bridge, routines and computer backend wiring |
 
 The Linux computer is disabled until configured on the server and has no network access. It is a single-owner container with a persistent `/workspace`, separate from the browser worker; see [computer setup and limits](COMPUTER.md). It is not a graphical desktop or a full OS VM.
 
-With the `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` and `SUPABASE_SECRET_KEY` trio set, the server runs email accounts instead of the shared `LINGTAI_ACCESS_KEY`. Sign-up, sign-in and verification-code sign-in are proxied through Supabase; the server then issues its own standard JWT session (configurable TTL via `SESSION_TTL_MS`, default 24 hours), so later requests do not call Supabase again. Sessions are tracked server-side so a user can list and remotely revoke their other devices, and sign-in is rate-limited by both client IP and account to blunt brute force. Supabase also stores the audit log (`lingtai_audit_logs`) and a resource index (`lingtai_resources`) with row-level security, while business data stays in the LingTai database, namespaced by account id so threads, ideas, goals, notifications and file metadata are private to one account.
+With the `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` and `SUPABASE_SECRET_KEY` trio set, the server runs email accounts instead of the shared `LINGWU_ACCESS_KEY`. Sign-up, sign-in and verification-code sign-in are proxied through Supabase; the server then issues its own standard JWT session (configurable TTL via `SESSION_TTL_MS`, default 24 hours), so later requests do not call Supabase again. Sessions are tracked server-side so a user can list and remotely revoke their other devices, and sign-in is rate-limited by both client IP and account to blunt brute force. Supabase also stores the audit log (`lingwu_audit_logs`) and a resource index (`lingwu_resources`) with row-level security, while business data stays in the LingWu database, namespaced by account id so threads, ideas, goals, notifications and file metadata are private to one account.
 
 Sandbox isolation is per account: the browser worker creates an isolated Chromium profile per session, and the optional Linux computer runs in its own container or E2B Desktop sandbox per owner, so accounts on the same server do not share browser state or computer containers.
 

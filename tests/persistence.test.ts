@@ -6,7 +6,7 @@ import { test } from "node:test";
 import { createPool, createStore } from "../apps/server/src/db.ts";
 
 test("fresh nested data directory starts and survives a database restart", async () => {
-  const root = await mkdtemp(join(tmpdir(), "lingtai-db-"));
+  const root = await mkdtemp(join(tmpdir(), "lingwu-db-"));
   try {
     const options = { dataDir: join(root, "new-install", "postgres") };
     const first = await createStore(options);
@@ -23,7 +23,7 @@ test("fresh nested data directory starts and survives a database restart", async
 
 test("idle Postgres client errors are logged instead of crashing the process", async (t) => {
   const logged = t.mock.method(console, "error", () => {});
-  const pool = createPool("postgres://127.0.0.1:1/lingtai");
+  const pool = createPool("postgres://127.0.0.1:1/lingwu");
   try {
     assert.doesNotThrow(() => pool.emit("error", new Error("terminating connection")));
     assert.equal(logged.mock.callCount(), 1);

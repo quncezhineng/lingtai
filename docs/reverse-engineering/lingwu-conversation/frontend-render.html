@@ -142,7 +142,7 @@
     <section class="panel pad" aria-labelledby="auth">
       <h2 id="auth">认证、令牌与文件地址</h2>
       <div class="layer"><b>令牌获取：</b><code>getToken()</code> 先从 URL fragment 的 <code>#token=</code> 读取，写入 localStorage 后用 <code>history.replaceState</code> 从地址栏移除；fragment 不会发往服务器，比查询参数更安全。</div>
-      <div class="layer"><b>请求封装：</b><code>request()</code> 自动添加 Bearer 头；401 抛 <code>AuthError</code>；网络失败统一显示 “Cannot reach your LingTai right now.”；服务端 <code>detail</code> 只展示可读句子，验证错误数组不会原样泄漏。</div>
+      <div class="layer"><b>请求封装：</b><code>request()</code> 自动添加 Bearer 头；401 抛 <code>AuthError</code>；网络失败统一显示 “Cannot reach your LingWu right now.”；服务端 <code>detail</code> 只展示可读句子，验证错误数组不会原样泄漏。</div>
       <div class="layer"><b>内联资源：</b><code>fileUrl()</code> 不把令牌放进 URL，而是调用 <code>signedParams()</code> 生成带路径绑定的 <code>exp/sig</code>。图片、PDF、iframe 和下载都通过这条签名链路。</div>
       <div class="layer"><b>文本读取：</b><code>api.fileText()</code> 反过来使用 Authorization 头读取原始文本，供 Markdown、代码和 HTML 预览使用，避免把带签名的 URL 暴露给应用逻辑。</div>
     </section>

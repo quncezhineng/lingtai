@@ -6,7 +6,7 @@
     "moduleSuffixes": [".native", ""],
     "lib": ["ES2022", "DOM"],
     "paths": {
-      "@lingtai/domain": ["../../packages/domain/src/index.ts"]
+      "@lingwu/domain": ["../../packages/domain/src/index.ts"]
     },
     "allowImportingTsExtensions": true
   },

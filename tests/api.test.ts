@@ -23,7 +23,7 @@ let db: Store,
   directory: string;
 const headers = () => ({ Authorization: `Bearer ${token}`, "Content-Type": "application/json" });
 before(async () => {
-  directory = await mkdtemp(join(tmpdir(), "lingtai-api-"));
+  directory = await mkdtemp(join(tmpdir(), "lingwu-api-"));
   db = await createStore();
   config = {
     mode: "sample",

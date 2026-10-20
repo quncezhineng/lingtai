@@ -24,20 +24,14 @@ import {
   X,
 } from "lucide-react-native";
 import { useEffect, useState } from "react";
-import {
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import type { Section } from "../../../packages/domain/src";
 import { useAgentWorkspace } from "./agent-workspace";
 import { useTranslation } from "./i18n";
 import { LanguageSwitcher } from "./i18n/LanguageSwitcher";
 import type { TranslationKey } from "./i18n/locales/en";
 import { relativeDate } from "./relative-date";
-import { useLingTaiThread } from "./threads";
+import { useLingWuThread } from "./threads";
 import { Button, colors, ErrorNotice, Mascot, s } from "./ui";
 import { useWorkspace } from "./workspace";
 
@@ -309,7 +303,7 @@ export function ChatsColumn() {
   const { t } = useTranslation();
   const { notify } = useWorkspace();
   const { selection, visited, mainId, select, start, enabled, loading, error, retry } =
-    useLingTaiThread();
+    useLingWuThread();
   const threads = useThreads({ agentId: "default", enabled, includeArchived: false, limit: 20 });
   const [query, setQuery] = useState("");
   const [title, setTitle] = useState("");
@@ -351,15 +345,27 @@ export function ChatsColumn() {
 
   const mainThread = threads.threads.find((saved) => saved.id === mainId);
   const mainName = t("app.mainChatsHeading");
-  const sideThreads = threads.threads.filter(
-    (saved) => saved.id !== mainId && matches(saved.name || ""),
-  );
-  const pendingThreads = visited.filter(
-    (item) =>
-      item.id !== mainId &&
-      !threads.threads.some((saved) => saved.id === item.id) &&
-      matches(draftNames[item.id] ?? t("threads.untitledConversation")),
-  );
+  // CopilotKit 运行时会在列表首屏直出服务端线程（含平台随机生成的 slug id），
+  // 曾短暂返回同 id 两条记录，直接渲染会让 React 报重复 key。按 id 去重保留首个。
+  const seenSideIds = new Set<string>();
+  const sideThreads = threads.threads.filter((saved) => {
+    if (saved.id === mainId || !matches(saved.name || "") || seenSideIds.has(saved.id))
+      return false;
+    seenSideIds.add(saved.id);
+    return true;
+  });
+  const seenPendingIds = new Set<string>();
+  const pendingThreads = visited.filter((item) => {
+    if (
+      item.id === mainId ||
+      threads.threads.some((saved) => saved.id === item.id) ||
+      !matches(draftNames[item.id] ?? t("threads.untitledConversation")) ||
+      seenPendingIds.has(item.id)
+    )
+      return false;
+    seenPendingIds.add(item.id);
+    return true;
+  });
 
   const create = (name?: string) => {
     const id = start();

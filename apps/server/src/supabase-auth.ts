@@ -1,7 +1,7 @@
 /**
  * Supabase Auth 客户端。
  *
- * 灵台把「身份」交给 Supabase 托管（注册、密码、邮箱校验、第三方登录），
+ * 灵悟把「身份」交给 Supabase 托管（注册、密码、邮箱校验、第三方登录），
  * 自己只保存业务数据，并用 Supabase 用户的 uuid 作为工作区 owner，
  * 从而实现「不同用户的对话/文件/授权互相隔离」。
  *
@@ -10,13 +10,13 @@
  * - 登录：POST /auth/v1/token?grant_type=password（匿名密钥）
  * - 邮箱验证码登录：POST /auth/v1/otp 发送验证码、POST /auth/v1/verify 校验并换取用户身份
  *
- * 登录成功后灵台会签发自己的会话令牌，后续请求不再访问 Supabase，
+ * 登录成功后灵悟会签发自己的会话令牌，后续请求不再访问 Supabase，
  * 因此每个 API 请求都不会产生额外的网络往返。
  */
 import type { Config } from "./config.ts";
 import { AppError } from "./errors.ts";
 
-/** Supabase Auth 侧的用户标识，id 即灵台工作区 owner。 */
+/** Supabase Auth 侧的用户标识，id 即灵悟工作区 owner。 */
 export interface SupabaseUser {
   id: string;
   email?: string;
@@ -137,7 +137,7 @@ export class SupabaseAuth {
   /**
    * 校验邮箱验证码并返回 Supabase 用户身份。
    *
-   * 验证成功后 Supabase 会返回会话与用户信息；灵台只取其中的用户 id/email，
+   * 验证成功后 Supabase 会返回会话与用户信息；灵悟只取其中的用户 id/email，
    * 随后签发自己的会话令牌（见 auth.ts），不再依赖 Supabase 会话。
    */
   async verifyOtp(email: string, token: string): Promise<SupabaseUser> {
@@ -155,7 +155,7 @@ export class SupabaseAuth {
   }
 
   /**
-   * 读取灵台档案（头像、昵称等展示信息）。
+   * 读取灵悟档案（头像、昵称等展示信息）。
    *
    * 头像与昵称统一由 user_profiles 维护（主应用写入，缺失则回退会话里的邮箱前缀），
    * 邮箱则直接来自登录会话（Supabase Auth 的 auth.users），不再单独存表。

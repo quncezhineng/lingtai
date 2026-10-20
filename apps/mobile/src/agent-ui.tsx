@@ -2,6 +2,7 @@ import {
   ArrowRight,
   Bell,
   CalendarDays,
+  Check,
   ChevronRight,
   CircleDollarSign,
   FileText,
@@ -20,7 +21,7 @@ import {
   X,
 } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Image, Linking, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Image, Linking, Modal, Pressable, Text, View } from "react-native";
 import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 import type { Artifact, BrowserSession } from "../../../packages/domain/src";
 import type {
@@ -1172,7 +1173,7 @@ function IdeaCard({ idea }: { idea: Idea }) {
           <EvidenceList items={idea.evidence} />
           {editing && (
             <Field
-              label={t("agent.whatShouldLingTaiDo")}
+              label={t("agent.whatShouldLingWuDo")}
               value={prompt}
               onChangeText={setPrompt}
               multiline
@@ -1813,21 +1814,16 @@ export function AppsScreen() {
   );
 }
 /** 可挑选的照片头像枚举，与 assets/avatar1~6.png 一一对应。 */
-const AVATAR_OPTIONS = [
-  "avatar1",
-  "avatar2",
-  "avatar3",
-  "avatar4",
-  "avatar5",
-  "avatar6",
-] as const;
+const AVATAR_OPTIONS = ["avatar1", "avatar2", "avatar3", "avatar4", "avatar5", "avatar6"] as const;
 function normalizeAvatar(value?: string): string {
   // 兼容旧版 sky/sand/lilac 等历史值，一律落入默认头像。
-  return AVATAR_OPTIONS.includes(value as (typeof AVATAR_OPTIONS)[number]) ? (value as string) : "avatar1";
+  return AVATAR_OPTIONS.includes(value as (typeof AVATAR_OPTIONS)[number])
+    ? (value as string)
+    : "avatar1";
 }
 export function AgentPersonalitySheet() {
   const { t } = useTranslation();
-  const { close, notify } = useWorkspace();
+  const { close } = useWorkspace();
   const { data, mutate } = useAgentWorkspace();
   const [name, setName] = useState(data?.identity.name || t("common.agentName"));
   const [tone, setTone] = useState(data?.identity.tone || "warm");
@@ -1836,6 +1832,7 @@ export function AgentPersonalitySheet() {
   const [memory, setMemory] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState(false);
   useEffect(() => {
     if (data?.identity) {
       setName(data.identity.name);
@@ -1849,13 +1846,19 @@ export function AgentPersonalitySheet() {
     data?.identity.avatar,
     data?.identity.showChatUpdates,
   ]);
+  // 保存成功后弹出「已保存」提示，短暂显示后自动关闭。
+  useEffect(() => {
+    if (!saved) return;
+    const timer = setTimeout(() => setSaved(false), 1600);
+    return () => clearTimeout(timer);
+  }, [saved]);
   async function save(path: string, body: unknown) {
     setBusy(true);
     setError("");
     try {
       await mutate(path, body);
       if (path === "/memories") setMemory("");
-      notify(t("agent.saved"));
+      setSaved(true);
     } catch (e) {
       setError(errorText(e));
     } finally {
@@ -1863,80 +1866,129 @@ export function AgentPersonalitySheet() {
     }
   }
   return (
-    <Sheet title={t("agent.personalityMemory")} onClose={close}>
-      <View style={{ gap: 22 }}>
-        <Card style={{ gap: 10 }}>
-          <SectionHeading title={t("agent.yourAgent")} />
-          <View style={[s.row, { gap: 16, justifyContent: "center", marginBottom: 12 }]}>
-            {AVATAR_OPTIONS.map((item) => (
-              <Pressable
-                key={item}
-                accessibilityRole="radio"
-                accessibilityLabel={t("agent.avatarLabel", { name: statusLabel(item) })}
-                accessibilityState={{ checked: avatar === item }}
-                onPress={() => setAvatar(item)}
+    <>
+      <Sheet title={t("agent.personalityMemory")} onClose={close}>
+        <View style={{ gap: 22 }}>
+          <Card style={{ gap: 10 }}>
+            <SectionHeading title={t("agent.yourAgent")} />
+            <View style={[s.row, { gap: 16, justifyContent: "center", marginBottom: 12 }]}>
+              {AVATAR_OPTIONS.map((item) => (
+                <Pressable
+                  key={item}
+                  accessibilityRole="radio"
+                  accessibilityLabel={t("agent.avatarLabel", { name: statusLabel(item) })}
+                  accessibilityState={{ checked: avatar === item }}
+                  onPress={() => setAvatar(item)}
+                  style={{
+                    padding: 7,
+                    borderRadius: 24,
+                    backgroundColor: avatar === item ? colors.sky : colors.canvas,
+                  }}
+                >
+                  <Mascot size={62} variant={item} />
+                </Pressable>
+              ))}
+            </View>
+            <Field label={t("agent.nameLabel")} value={name} onChangeText={setName} />
+            <View style={[s.row, { gap: 8 }]}>
+              {(["warm", "concise", "thoughtful"] as const).map((item) => (
+                <Button key={item} small primary={tone === item} onPress={() => setTone(item)}>
+                  {statusLabel(item)}
+                </Button>
+              ))}
+            </View>
+            <CheckRow
+              label={t("agent.showBackgroundUpdates")}
+              checked={showChatUpdates}
+              onPress={() => setShowChatUpdates(!showChatUpdates)}
+            />
+            <Text style={s.small}>{t("agent.activityFullRecord")}</Text>
+            <Button
+              busy={busy}
+              quietBusy
+              disabled={!name.trim()}
+              onPress={() =>
+                void save("/identity", { name: name.trim(), tone, avatar, showChatUpdates })
+              }
+            >
+              {t("agent.savePreferences")}
+            </Button>
+          </Card>
+          <Card style={{ gap: 12 }}>
+            <SectionHeading title={t("agent.memory")} />
+            <Text style={s.muted}>{t("agent.memoryDetail")}</Text>
+            {data?.memories.map((item) => (
+              <MemoryRow key={item.id} memory={item} />
+            ))}
+            <Field
+              label={t("agent.rememberAboutMe")}
+              value={memory}
+              onChangeText={setMemory}
+              placeholder={t("agent.rememberPlaceholder")}
+            />
+            <Button
+              busy={busy}
+              quietBusy
+              disabled={!memory.trim()}
+              onPress={() =>
+                void save("/memories", {
+                  text: memory.trim(),
+                  source: t("agent.memorySourceUserAdded"),
+                })
+              }
+            >
+              {t("agent.remember")}
+            </Button>
+          </Card>
+          <ErrorNotice error={error} />
+        </View>
+      </Sheet>
+      {saved && (
+        <Modal transparent visible animationType="fade" onRequestClose={() => setSaved(false)}>
+          <View
+            style={{
+              flex: 1,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: "rgba(15,23,42,0.35)",
+            }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 10,
+                paddingVertical: 14,
+                paddingHorizontal: 22,
+                borderRadius: 16,
+                backgroundColor: "#FFFFFF",
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 6 },
+                shadowOpacity: 0.18,
+                shadowRadius: 18,
+                elevation: 6,
+              }}
+            >
+              <View
                 style={{
-                  padding: 7,
-                  borderRadius: 24,
-                  backgroundColor: avatar === item ? colors.sky : colors.canvas,
+                  width: 26,
+                  height: 26,
+                  borderRadius: 13,
+                  backgroundColor: "#16A34A",
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
               >
-                <Mascot size={62} variant={item} />
-              </Pressable>
-            ))}
+                <Check size={16} color="#FFFFFF" />
+              </View>
+              <Text style={{ color: colors.text, fontSize: 15, fontWeight: "600" }}>
+                {t("agent.saved")}
+              </Text>
+            </View>
           </View>
-          <Field label={t("agent.nameLabel")} value={name} onChangeText={setName} />
-          <View style={[s.row, { gap: 8 }]}>
-            {(["warm", "concise", "thoughtful"] as const).map((item) => (
-              <Button key={item} small primary={tone === item} onPress={() => setTone(item)}>
-                {statusLabel(item)}
-              </Button>
-            ))}
-          </View>
-          <CheckRow
-            label={t("agent.showBackgroundUpdates")}
-            checked={showChatUpdates}
-            onPress={() => setShowChatUpdates(!showChatUpdates)}
-          />
-          <Text style={s.small}>{t("agent.activityFullRecord")}</Text>
-          <Button
-            busy={busy}
-            disabled={!name.trim()}
-            onPress={() =>
-              void save("/identity", { name: name.trim(), tone, avatar, showChatUpdates })
-            }
-          >
-            {t("agent.savePreferences")}
-          </Button>
-        </Card>
-        <Card style={{ gap: 12 }}>
-          <SectionHeading title={t("agent.memory")} />
-          <Text style={s.muted}>{t("agent.memoryDetail")}</Text>
-          {data?.memories.map((item) => (
-            <MemoryRow key={item.id} memory={item} />
-          ))}
-          <Field
-            label={t("agent.rememberAboutMe")}
-            value={memory}
-            onChangeText={setMemory}
-            placeholder={t("agent.rememberPlaceholder")}
-          />
-          <Button
-            busy={busy}
-            disabled={!memory.trim()}
-            onPress={() =>
-              void save("/memories", {
-                text: memory.trim(),
-                source: t("agent.memorySourceUserAdded"),
-              })
-            }
-          >
-            {t("agent.remember")}
-          </Button>
-        </Card>
-        <ErrorNotice error={error} />
-      </View>
-    </Sheet>
+        </Modal>
+      )}
+    </>
   );
 }
 function MemoryRow({ memory }: { memory: AgentMemory }) {

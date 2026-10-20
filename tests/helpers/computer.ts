@@ -30,7 +30,7 @@ export function sandbox(running = true, owner = "owner") {
     Id: "container-id",
     Name: `/${identity.container}`,
     Config: {
-      Image: "lingtai-computer:local",
+      Image: "lingwu-computer:local",
       User: "1000:1000",
       Labels: identity.labels,
       Env: ["PATH=/usr/local/bin:/usr/bin:/bin", "HOME=/workspace", "LANG=C.UTF-8"],

@@ -27,7 +27,7 @@ import {
   type AuthMode,
   authConfig,
   createSession,
-  LingTaiApi,
+  LingWuApi,
   requestOtp,
   verifyOtp,
 } from "./src/api";
@@ -41,12 +41,12 @@ import type { TranslationKey } from "./src/i18n/locales/en";
 import { clearStorage, readStorage, writeStorage } from "./src/i18n/storage";
 import { BrowserScreen, CalendarScreen, FilesScreen, MailScreen } from "./src/screens";
 import { ACCOUNT_NAV, ChatsColumn, Rail, SECTION_NAV } from "./src/shell";
-import { ThreadsProvider, ThreadsSheet, useLingTaiThread } from "./src/threads";
+import { ThreadsProvider, ThreadsSheet, useLingWuThread } from "./src/threads";
 import { Button, Card, colors, ErrorNotice, Field, IconButton, Mascot, s } from "./src/ui";
 import { type Detail, useWorkspace, WorkspaceContext } from "./src/workspace";
 
 /** 登录会话在本地持久化的键，刷新网页后据此恢复登录状态。 */
-const SESSION_KEY = "lingtai.session";
+const SESSION_KEY = "lingwu.session";
 
 // 底部标签栏的顺序与宽屏图标栏一致：五个主页面在前，「我的」在最后。
 const nav = [...SECTION_NAV, ACCOUNT_NAV];
@@ -264,7 +264,7 @@ function Root() {
 }
 function WorkspaceApp({ token, onSignOut }: { token: string; onSignOut: () => void }) {
   const { t } = useTranslation();
-  const api = useMemo(() => new LingTaiApi(token), [token]);
+  const api = useMemo(() => new LingWuApi(token), [token]);
   const [workspace, setWorkspace] = useState<Workspace>();
   const [section, setSection] = useState<Section>("chat");
   const [detail, setDetail] = useState<Detail>();
@@ -386,7 +386,7 @@ function WorkspaceShell({
     error: threadsError,
     retry: retryThreads,
     enabled: richThreads,
-  } = useLingTaiThread();
+  } = useLingWuThread();
   const [threadsOpen, setThreadsOpen] = useState(false);
   const { width } = useWindowDimensions();
   const desktop = width >= 900;
@@ -397,7 +397,7 @@ function WorkspaceShell({
     data?.tasks.find(
       (task) => task.status === "waiting_approval" || task.status === "waiting_input",
     ) || data?.tasks.find((task) => task.status === "running");
-  // 服务端默认名称是英文原名（LingTai），展示前统一本地化，简体中文下显示「灵台」。
+  // 服务端默认名称是英文原名（LingWu），展示前统一本地化，简体中文下显示「灵悟」。
   const agentName = localizeAgentName(data?.identity.name);
   const status = activeTask
     ? activeTask.status === "waiting_approval"

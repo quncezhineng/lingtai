@@ -133,7 +133,7 @@ export class AgentService {
   async ensure(owner: string) {
     await this.db.insertIfAbsent(owner, "agent-settings", {
       id: "identity",
-      name: "LingTai",
+      name: "LingWu",
       tone: "warm",
     });
   }
@@ -159,7 +159,7 @@ export class AgentService {
       memories,
       artifacts,
       notifications,
-      identity: identity ?? { name: "LingTai", tone: "warm" },
+      identity: identity ?? { name: "LingWu", tone: "warm" },
       worker: {
         running:
           this.worker.running ||

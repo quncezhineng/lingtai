@@ -1,6 +1,6 @@
   <div align="center">
 
-# LingTai
+# LingWu
 
 **你的个人投研智能体 —— 带着浏览器、终端与文件，持续工作。兼容任何智能体框架。**
 
@@ -11,16 +11,16 @@ Built with CopilotKit React Native for iOS, Android, and web.
 
 [Quick start](#quick-start) · [Demo](#demo) · [Features](#features) · [Architecture](#architecture) · [Docs](docs/README.md) · [Contributing](CONTRIBUTING.md)
 
-[![CI](https://github.com/quncezhineng/LingTai/actions/workflows/ci.yml/badge.svg)](https://github.com/quncezhineng/LingTai/actions/workflows/ci.yml)
+[![CI](https://github.com/quncezhineng/LingWu/actions/workflows/ci.yml/badge.svg)](https://github.com/quncezhineng/LingWu/actions/workflows/ci.yml)
 [![MIT license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-<a href="https://trendshift.io/repositories/254992?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-254992" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/254992/daily?language=TypeScript" alt="CopilotKit%2Flingtai | Trendshift" width="250" height="55"/></a>
+<a href="https://trendshift.io/repositories/254992?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-254992" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/254992/daily?language=TypeScript" alt="CopilotKit%2Flingwu | Trendshift" width="250" height="55"/></a>
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/quncezhineng/LingTai)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/quncezhineng/LingWu)
 
 Clone this template and customize it however you want.
 
-**[Building on LingTai? Meet with the CopilotKit team →](https://www.copilotkit.ai/talk-to-an-engineer?ref=lingtai_hero)**
+**[Building on LingWu? Meet with the CopilotKit team →](https://www.copilotkit.ai/talk-to-an-engineer?ref=lingwu_hero)**
 
 https://github.com/user-attachments/assets/8014d185-346c-4954-8ff0-26c582c5093a
 
@@ -32,7 +32,7 @@ https://github.com/user-attachments/assets/0cc87de0-c3c1-4f24-b7df-e7d04bb946fd
 
 ## Demo
 
-On iPhone, ask LingTai to find interesting stories on Hacker News and summarize CopilotKit. On desktop, ask it to check the school-trip email, open the message, and research exhibits at Monterey Bay Aquarium. The agent shows email and browser results inline. **Take control** opens that same browser session when you need it.
+On iPhone, ask LingWu to find interesting stories on Hacker News and summarize CopilotKit. On desktop, ask it to check the school-trip email, open the message, and research exhibits at Monterey Bay Aquarium. The agent shows email and browser results inline. **Take control** opens that same browser session when you need it.
 
 The 38-second iPhone and 42-second desktop web demos show the current interface, framed in 16:9. The send arrow becomes a stop square inside the input pill while the agent replies, then switches back. Stopping keeps your draft intact. See the [recording notes](docs/DEMO.md) for the model setup and reproduction steps.
 
@@ -42,7 +42,7 @@ The [Jev aquarium-trip demo](docs/demos/jev-generative-ui.md) walks through a fi
 
 ## What it is
 
-LingTai is a personal-agent application with an agent computer, visible work, and rich results. It runs its own server, task worker, and browser worker. You can inspect and change the source under the MIT license.
+LingWu is a personal-agent application with an agent computer, visible work, and rich results. It runs its own server, task worker, and browser worker. You can inspect and change the source under the MIT license.
 
 The computer combines **persistent Chromium and an optional Linux workspace**. The agent can browse public pages, run commands in its own container, work with files, and move PDFs between the computer and the app. You can open its browser or terminal and continue the work. Graphical desktops and autonomous checkout remain future work.
 
@@ -68,8 +68,8 @@ The [feature inventory](docs/FEATURES.md) describes implemented capabilities and
 **Requirements:** Node 24 LTS, pnpm 11.19.0, and a CopilotKit Intelligence project key. The local sample app needs no model, Google account, or Docker.
 
 ```sh
-git clone https://github.com/quncezhineng/LingTai.git lingtai
-cd lingtai
+git clone https://github.com/quncezhineng/LingWu.git lingwu
+cd lingwu
 pnpm install --frozen-lockfile
 cp .env.example .env
 npx copilotkit@latest login
@@ -98,15 +98,15 @@ For iOS or Android, use `pnpm --dir apps/mobile ios` or `pnpm --dir apps/mobile 
 
 ## Deploy on Render
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/quncezhineng/LingTai)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/quncezhineng/LingWu)
 
 [render.yaml](render.yaml) deploys three services: the API, the web app, and a private browser. The API answers `/` with JSON, so the UI is its own static site.
 
 ### First run
 
-1. Click **Deploy to Render**. Wait until `lingtai-api`, `lingtai-web`, and `lingtai-browser` are live.
-2. On `lingtai-api`, open **Environment** and copy `LINGTAI_ACCESS_KEY`.
-3. Open the `lingtai-web` URL and sign in with that key.
+1. Click **Deploy to Render**. Wait until `lingwu-api`, `lingwu-web`, and `lingwu-browser` are live.
+2. On `lingwu-api`, open **Environment** and copy `LINGWU_ACCESS_KEY`.
+3. Open the `lingwu-web` URL and sign in with that key.
 4. Send a message.
 
 The deploy form asks for three values you provide. Render generates the other two.
@@ -116,18 +116,18 @@ The deploy form asks for three values you provide. Render generates the other tw
 | `CPK_INTELLIGENCE_API_KEY` | You. Run `npx copilotkit@latest login`, then `npx copilotkit@latest project select`. Keep it on the server. | Chat cannot open a thread. |
 | `CPK_TELEMETRY_ID` | You. Keep the identity generated by the same project selection. | Runtime usage cannot be attributed to the Intelligence signup account. |
 | `OPENAI_API_KEY` | You. Used by the default `openai/gpt-5`. Change `MODEL` and supply the matching provider key for Anthropic, Google, DeepSeek (`DEEPSEEK_API_KEY`) or Moonshot (`MOONSHOT_API_KEY`). | The model call fails. |
-| `LINGTAI_ACCESS_KEY` | Render | You cannot sign in. Only used when the Supabase variables are unset. |
+| `LINGWU_ACCESS_KEY` | Render | You cannot sign in. Only used when the Supabase variables are unset. |
 | `TOKEN_ENCRYPTION_KEY` | Render | The API refuses to start in live mode. |
 | `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY` | You | Optional. Unset means one shared key and one owner per deployment. |
 
-Health check: `https://<lingtai-api>/api/health`.
+Health check: `https://<lingwu-api>/api/health`.
 
 ### User accounts
 
 Set `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, and `SUPABASE_SECRET_KEY` to turn the deployment into a multi-user workspace:
 
 1. Create a Supabase project (or reuse one) and copy **Project URL**, **anon public**, and **service_role** from **Project Settings → API**.
-2. Set the three variables on `lingtai-api` and restart it. `/api/health` then reports `"authMode": "supabase"`, and the app shows an email sign-in screen instead of the access-key field.
+2. Set the three variables on `lingwu-api` and restart it. `/api/health` then reports `"authMode": "supabase"`, and the app shows an email sign-in screen instead of the access-key field.
 3. Run [supabase/migrations/0001_accounts.sql](supabase/migrations/0001_accounts.sql) in the Supabase SQL Editor (or `supabase db push`). It creates the profile, audit-log, and resource-index tables, the private avatar bucket, and a trigger that seeds a profile row for every new sign-up.
 4. Each visitor registers with an email and password. The account lives in Supabase Auth (`auth.users`), with a matching row in `public.user_profiles`.
 5. Every workspace record is stored under that account's id, so conversations, files, drafts, and Google connections are private to whoever signed in.
@@ -139,9 +139,9 @@ Leaving the three variables unset keeps the original single-owner behaviour, so 
 
 | Service | Plan | What it runs |
 |---|---|---|
-| `lingtai-api` | Standard, with a 1 GB disk at `/var/data` | The Hono API and the in-process task worker. `DATA_DIR` is `/var/data/lingtai`. |
-| `lingtai-web` | Static site | The Expo web export. `EXPO_PUBLIC_API_URL` is baked in at build time. |
-| `lingtai-browser` | Private service, Standard, 1 GB disk at `/data` | Playwright and Chromium. The API calls it on the private network. |
+| `lingwu-api` | Standard, with a 1 GB disk at `/var/data` | The Hono API and the in-process task worker. `DATA_DIR` is `/var/data/lingwu`. |
+| `lingwu-web` | Static site | The Expo web export. `EXPO_PUBLIC_API_URL` is baked in at build time. |
+| `lingwu-browser` | Private service, Standard, 1 GB disk at `/data` | Playwright and Chromium. The API calls it on the private network. |
 
 **Standard** is the smallest plan that stays up. At 512 MB the process runs out of memory before it binds a port, because PGlite loads an embedded Postgres build.
 
@@ -149,7 +149,7 @@ Leaving the three variables unset keeps the original single-owner behaviour, so 
 
 **Live mode** is required. Render binds `0.0.0.0`, and sample mode rejects any host that is not loopback. The Blueprint sets `WORKSPACE_MODE=live`.
 
-**Browsing is included, and you can take it out.** `lingtai-browser` is a private service, so it has no public URL. The API reaches it at `http://lingtai-browser:8790` with a token Render generates. If the private hostname is not `lingtai-browser`, set `BROWSER_WORKER_URL` to `http://<that-host>:8790`. To deploy without it, delete the `lingtai-browser` service and the `BROWSER_WORKER_URL` and `WORKER_TOKEN` entries on `lingtai-api`. Chat, drafts, and tasks still run. Page reads, screenshots, and **Take control** do not.
+**Browsing is included, and you can take it out.** `lingwu-browser` is a private service, so it has no public URL. The API reaches it at `http://lingwu-browser:8790` with a token Render generates. If the private hostname is not `lingwu-browser`, set `BROWSER_WORKER_URL` to `http://<that-host>:8790`. To deploy without it, delete the `lingwu-browser` service and the `BROWSER_WORKER_URL` and `WORKER_TOKEN` entries on `lingwu-api`. Chat, drafts, and tasks still run. Page reads, screenshots, and **Take control** do not.
 
 The Docker computer and Google mail or calendar need the setup in the sections below. This Blueprint does not start them.
 
@@ -159,7 +159,7 @@ Copy the commented settings in [.env.example](.env.example) into your private `.
 
 1. Set `AGENT_BACKEND=model`, `MODEL=provider/model-id`, and the matching provider key. Supported providers are OpenAI, Anthropic, Google, plus the built-in DeepSeek and Moonshot endpoints (each with its own key and base URL). Fictional data can still be used with a real model. Provider keys stay on the server. After signing in, **Apps → Model** switches between the providers whose key is set: the change applies immediately and is remembered across restarts, so `MODEL` only needs to name the startup default.
 2. Create or select a CopilotKit Intelligence project with `npx copilotkit@latest login` and `npx copilotkit@latest project select`. Keep the generated `CPK_INTELLIGENCE_API_KEY` on the server.
-3. For personal mail/calendar, set `WORKSPACE_MODE=live`, the generated `CPK_INTELLIGENCE_API_KEY`, and `TOKEN_ENCRYPTION_KEY` containing 32 random bytes encoded as base64. Then pick one sign-in model: the three [Supabase variables](#user-accounts) for one account per person, or a random `LINGTAI_ACCESS_KEY` of at least 24 characters for a single shared key. Restart the API.
+3. For personal mail/calendar, set `WORKSPACE_MODE=live`, the generated `CPK_INTELLIGENCE_API_KEY`, and `TOKEN_ENCRYPTION_KEY` containing 32 random bytes encoded as base64. Then pick one sign-in model: the three [Supabase variables](#user-accounts) for one account per person, or a random `LINGWU_ACCESS_KEY` of at least 24 characters for a single shared key. Restart the API.
 4. Configure a Google OAuth web client with Gmail and Calendar APIs enabled. Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`; register `${PUBLIC_API_URL}/api/google/callback` as its redirect URI. Configure consent/test-user access in your Google project.
 5. Open **Apps → Gmail** (or **Google Calendar**), connect read access, and grant write access when needed. Every send or calendar change still requires its own stored review. Changing/disconnecting the account invalidates pending connection-bound work.
 
@@ -189,7 +189,7 @@ Or use `docker compose --env-file .env -f infra/compose.yaml up --build -d`. The
 Build the computer image, enable it on the API, then open **Computer → Terminal → Start computer**:
 
 ```sh
-docker build -t lingtai-computer:local apps/computer
+docker build -t lingwu-computer:local apps/computer
 COMPUTER_ENABLED=true pnpm dev
 ```
 
@@ -197,7 +197,7 @@ The API needs access to the Docker CLI and engine. Commands run in a nonroot con
 
 ### Application storage
 
-By default, embedded PGlite, documents and the signing key live in `.lingtai/`; browser profiles live in `.lingtai/browser-profiles/`. Keep that directory private and back it up. The API hosts the task worker. The host must remain running for background work.
+By default, embedded PGlite, documents and the signing key live in `.lingwu/`; browser profiles live in `.lingwu/browser-profiles/`. Keep that directory private and back it up. The API hosts the task worker. The host must remain running for background work.
 
 For a separate task worker, configure the same `DATABASE_URL`, secrets and shared `DATA_DIR` for both processes, then set `TASK_WORKER_ENABLED=false` on the API and run `pnpm dev:worker`. PGlite cannot be opened by separate processes. Production commands are `pnpm build:server`, `pnpm start` and `pnpm start:worker`. Run one API instance; task workers coordinate through SQL leases.
 
@@ -211,7 +211,7 @@ Intelligence is a separate service and is not included in this repository's MIT 
 
 ## Signup and runtime tracking
 
-The CopilotKit SDK sends runtime telemetry through the shared CopilotKit sink to PostHog with `accessibility_title: "LingTai"`. Telemetry defaults to full capture; explicit SDK opt-outs and sampling settings take precedence. Keep the CLI-generated `CPK_TELEMETRY_ID` alongside the server-only project key when deploying. Intelligence records completed account signups separately; LingTai runtime usage can be joined to those accounts after the sink resolves the identity. [Setup, opt-out and PostHog validation](docs/TELEMETRY.md).
+The CopilotKit SDK sends runtime telemetry through the shared CopilotKit sink to PostHog with `accessibility_title: "LingWu"`. Telemetry defaults to full capture; explicit SDK opt-outs and sampling settings take precedence. Keep the CLI-generated `CPK_TELEMETRY_ID` alongside the server-only project key when deploying. Intelligence records completed account signups separately; LingWu runtime usage can be joined to those accounts after the sink resolves the identity. [Setup, opt-out and PostHog validation](docs/TELEMETRY.md).
 
 ## Architecture
 
@@ -246,7 +246,7 @@ flowchart TD
 
 ### OpenBot compatibility
 
-LingTai's native client and personal-agent workflows are independent of OpenBot. The disabled OpenBot adapter is pinned and contract-tested against upstream interfaces. Live user/session bridging, routine mapping, and computer backend wiring remain future work. OpenBot's Intelligence runtime is not a raw AG-UI endpoint. [Integration contract](docs/OPENBOT-INTEGRATION.md).
+LingWu's native client and personal-agent workflows are independent of OpenBot. The disabled OpenBot adapter is pinned and contract-tested against upstream interfaces. Live user/session bridging, routine mapping, and computer backend wiring remain future work. OpenBot's Intelligence runtime is not a raw AG-UI endpoint. [Integration contract](docs/OPENBOT-INTEGRATION.md).
 
 ## Development
 

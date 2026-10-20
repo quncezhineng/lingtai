@@ -150,7 +150,7 @@ const screens = {
   "screens.connectionsOpenBotNotice":
     "The OpenBot adapter is available in this open-source project. A live OpenBot backend has not been configured.",
   "screens.connectionsOpenBotDetail":
-    "Your current computer uses LingTai’s persistent Chromium worker. OpenBot integration will expand the execution backend while keeping this interface.",
+    "Your current computer uses LingWu’s persistent Chromium worker. OpenBot integration will expand the execution backend while keeping this interface.",
 } satisfies Dictionary;
 
 export default screens;

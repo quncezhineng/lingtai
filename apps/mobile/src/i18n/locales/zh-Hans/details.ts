@@ -17,9 +17,9 @@ const details = {
   "details.writeReply": "写回复",
 
   // 邮件编辑器。
-  "details.draftSaved": "草稿已保存到灵台。",
+  "details.draftSaved": "草稿已保存到灵悟。",
   "details.newMessage": "新邮件",
-  "details.emailFrom": "来自 {email} · 私密保存在灵台",
+  "details.emailFrom": "来自 {email} · 私密保存在灵悟",
   "details.to": "收件人",
   "details.toPlaceholder": "person@example.com",
   "details.cc": "抄送",

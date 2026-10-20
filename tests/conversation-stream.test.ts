@@ -665,7 +665,7 @@ test("a real loopback HTTP stream survives a disconnect and resumes its suffix",
 });
 
 test("a complete HTTP AG-UI run is mirrored into the replayable SSE ledger", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "lingtai-stream-e2e-"));
+  const directory = await mkdtemp(join(tmpdir(), "lingwu-stream-e2e-"));
   const db = await createStore({ dataDir: join(directory, "db") });
   const config: Config = {
     mode: "sample",

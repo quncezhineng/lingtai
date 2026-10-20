@@ -1,17 +1,17 @@
 {
   "expo": {
-    "name": "LingTai",
-    "slug": "lingtai",
-    "scheme": "lingtai",
+    "name": "LingWu",
+    "slug": "lingwu",
+    "scheme": "lingwu",
     "version": "0.1.0",
     "orientation": "default",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "ios": { "supportsTablet": true, "bundleIdentifier": "app.lingtai.mobile" },
-    "android": { "package": "app.lingtai.mobile" },
+    "ios": { "supportsTablet": true, "bundleIdentifier": "app.lingwu.mobile" },
+    "android": { "package": "app.lingwu.mobile" },
     "web": {
       "bundler": "metro",
-      "name": "LingTai — Your personal investment research agent",
+      "name": "LingWu — Your personal investment research agent",
       "lang": "zh",
       "themeColor": "#4F46E5",
       "favicon": "./assets/logo.png"

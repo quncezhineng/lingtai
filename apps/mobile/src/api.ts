@@ -9,7 +9,7 @@ export const API_URL = (
   (Platform.OS === "android" ? "http://10.0.2.2:8787" : "http://127.0.0.1:8787")
 ).replace(/\/$/, "");
 
-export class LingTaiApi {
+export class LingWuApi {
   constructor(readonly token: string) {}
   async request<T>(path: string, body?: unknown, method?: string): Promise<T> {
     const response = await fetch(`${API_URL}${path}`, {

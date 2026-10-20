@@ -2,8 +2,8 @@ import type { Dictionary } from "../../types";
 
 /** 应用外壳文案（命名空间：app）：导航、标题、欢迎页与顶部状态栏。 */
 const app = {
-  "app.webTitle": "LingTai — Your personal investment research agent",
-  "app.welcomeTitle": "Welcome to LingTai, your personal investment research agent.",
+  "app.webTitle": "LingWu — Your personal investment research agent",
+  "app.welcomeTitle": "Welcome to LingWu, your personal investment research agent.",
   "app.welcomeSubtitle": "Clear next steps for every research question.",
   "app.accessKeyLabel": "Workspace access key",
   "app.accessKeyPlaceholder": "Required for a live workspace",
@@ -29,7 +29,7 @@ const app = {
   "app.profileUnset": "Not set",
   "app.profileLoading": "Loading your account…",
   "app.localWorkspaceHint":
-    "Local workspaces open without a key. Make sure your LingTai server is running at {url}.",
+    "Local workspaces open without a key. Make sure your LingWu server is running at {url}.",
   "app.openingWorkspace": "Opening your workspace…",
   "app.navChat": "Chat",
   "app.navActivity": "Activity",

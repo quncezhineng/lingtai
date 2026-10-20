@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { LingTaiApi } from "./api";
+import type { LingWuApi } from "./api";
 import { createSseParser, type SseMessage } from "./sse";
 
 export interface StreamRun {
@@ -467,7 +467,7 @@ function reconnectDelay(attempt: number) {
 }
 
 export interface UseConversationStreamOptions {
-  api: Pick<LingTaiApi, "token" | "url">;
+  api: Pick<LingWuApi, "token" | "url">;
   threadId: string;
   enabled: boolean;
 }

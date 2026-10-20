@@ -139,7 +139,7 @@
       <div class="route"><span class="verb">POST</span><div><h3><code>/api/threads/{id}/clear</code></h3><p>仅空闲线程可清空；busy 时返回 409 <code>thread is busy</code>。</p></div></div>
       <div class="route"><span class="verb">GET</span><div><h3><code>/api/files/{path}</code> 与 <code>/api/files/upload</code></h3><p>下载支持 Bearer 或签名票据；上传使用原始字节 body，文件名走查询参数，避免 multipart 依赖。</p></div></div>
       <div class="route"><span class="verb">WS</span><div><h3><code>/ws</code></h3><p>首帧认证；支持 <code>send</code>、<code>approval</code>、<code>device</code>、<code>device_result</code>、<code>ping</code>；未知 kind 返回 error 而不是断开。</p></div></div>
-      <p class="muted">源码入口：<code>lingtai/server/api.py:1-65</code> 的路由说明，<code>500-620</code> 的认证与线程路由，<code>1880-1970</code> 的文件接口，<code>2060-2145</code> 的 WebSocket。</p>
+      <p class="muted">源码入口：<code>lingwu/server/api.py:1-65</code> 的路由说明，<code>500-620</code> 的认证与线程路由，<code>1880-1970</code> 的文件接口，<code>2060-2145</code> 的 WebSocket。</p>
     </section>
 
     <section class="panel pad" aria-labelledby="auth">

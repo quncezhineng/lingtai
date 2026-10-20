@@ -1,9 +1,53 @@
 # 项目时间线与进度
 
-> 本文件记录 LingTai（灵台）项目的里程碑、进度跟踪与变更记录。
+> 本文件记录 LingWu（灵悟）项目的里程碑、进度跟踪与变更记录。
 > 变更按时间倒序排列，最新变更在最上方。
 
 ## 变更记录
+
+### 2026-10-20 · 保存设置去除按钮动效，改为弹窗提示已保存
+
+**背景**
+
+「保存偏好设置」与「记住」两个按钮在保存中（`busy` 状态）会显示加载转圈动画、并整体降低透明度，产生“文字动态效果”。用户希望点击保存时消除该动态效果，改为在最上层弹窗提示“已保存”。
+
+**实现**
+
+- [ui.tsx](../apps/mobile/src/ui.tsx)：`Button` 新增 `quietBusy` 可选项——`busy` 时保持原有防重复点击能力，但不再渲染 `ActivityIndicator`、不再降低透明度，文字保持静止。
+- [agent-ui.tsx](../apps/mobile/src/agent-ui.tsx)：`AgentPersonalitySheet` 的「保存偏好设置」「记住」两个按钮改用 `busy + quietBusy`；保存成功后不再使用底部 toast 的 `notify`，改为经 `Modal` 弹出的居中「已保存」圆角卡片（对勾图标 + 文案），约 1.6 秒自动关闭；提示文案复用已有 i18n 键 `agent.saved`（已保存 / Saved）。
+
+**验证**
+
+- `npx tsc --noEmit`（apps/mobile）通过，无类型错误。
+- `vitest run`：11 个测试文件全部通过（含 i18n 完整性检查，本次未新增翻译键）。
+- Web bundle 编译 200 正常。
+
+### 2026-10-19 · 修复会话列表重复 key 报错
+
+**背景**
+
+浏览器控制台反复出现 React 真实报错：
+
+```
+Encountered two children with the same key, `evidence-mail-fieldtrip`.
+Keys should be unique so that components maintain their identity across updates.
+```
+
+**根因**
+
+- `evidence-mail-fieldtrip` 是 CopilotKit 运行时/平台随机生成的服务端线程 id（三词连字符 slug 风格），并非项目代码生成的字符串——代码库中不存在任何 `evidence-` 前缀拼接。
+- CopilotKit `useThreads` 首屏列表（`listSucceeded`）直接采用服务端返回的线程数组、不做去重（去重仅发生在翻页合并 `upsertThread` 时）。当运行时在首屏返回同 id 两条记录时，`ChatsColumn`（[shell.tsx](../apps/mobile/src/shell.tsx)）与 `ThreadsSheet`（[threads.tsx](../apps/mobile/src/threads.tsx)）的 `key={thread.id}` 渲染即冲突。
+- 主线程 id（`/api/main-thread` 返回 `randomUUID()`）与本地新建线程（`newThreadId()` UUID v4）均非 slug 格式，进一步确认重复 id 来自运行时/平台侧数据。
+
+**实现**
+
+- [shell.tsx](../apps/mobile/src/shell.tsx)：`sideThreads` 与 `pendingThreads` 渲染前按 id 去重（保留首个）。
+- [threads.tsx](../apps/mobile/src/threads.tsx)：`ThreadsSheet` 新增 `visitedPending` 与 `listedThreads` 两个去重后的列表，替换原两个 `.map()` 的渲染源；空态判断改用 `listedThreads.length`。
+
+**验证**
+
+- `npx tsc --noEmit`（apps/mobile）通过，无类型错误。
+- 修复为纯前端防御性去重，不改变线程数据本身与任何交互行为；重复记录仅影响列表展示。
 
 ### 2026-10-19 · 添加网站 logo 与 favicon
 
@@ -83,7 +127,7 @@ const integrityWarning = integrity.mismatched.length ? t("chat.streamIntegrityWa
 
 **背景**
 
-将 LingTai（灵台）的整体定位从「给今天留一点余地」的生活/通用助理，重构为「个人投研智能体」。范围包括介绍标题、对话模板、灵感模板、目标任务、功能定位等全部用户可见文案，统一为金融投研口径。
+将 LingWu（灵悟）的整体定位从「给今天留一点余地」的生活/通用助理，重构为「个人投研智能体」。范围包括介绍标题、对话模板、灵感模板、目标任务、功能定位等全部用户可见文案，统一为金融投研口径。
 
 **实现**
 
@@ -97,7 +141,7 @@ const integrityWarning = integrity.mismatched.length ? t("chat.streamIntegrityWa
 **验证**
 
 - `pnpm typecheck` 通过。
-- i18n 单测 15/15 通过（含中英 key 对齐、占位符一致、专有名词「灵台」译名校验）。
+- i18n 单测 15/15 通过（含中英 key 对齐、占位符一致、专有名词「灵悟」译名校验）。
 
 **备注（未纳入本次范围）**
 

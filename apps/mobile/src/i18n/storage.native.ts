@@ -7,7 +7,7 @@
  */
 import { File, Paths } from "expo-file-system";
 
-const FILE_NAME = "lingtai.preferences.locale";
+const FILE_NAME = "lingwu.preferences.locale";
 
 const memory = new Map<string, string>();
 

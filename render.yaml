@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: lingtai-api
+    name: lingwu-api
     runtime: node
     # starter (512 MB) gets OOM-killed before the server binds a port, because
     # the default PGlite store loads an embedded Postgres WASM build.
@@ -11,11 +11,11 @@ services:
     startCommand: pnpm start
     healthCheckPath: /api/health
     disk:
-      name: lingtai-data
+      name: lingwu-data
       mountPath: /var/data
       sizeGB: 1
     envVars:
-      # HOST must be 0.0.0.0 on Render, and LingTai only allows that in live mode.
+      # HOST must be 0.0.0.0 on Render, and LingWu only allows that in live mode.
       - key: HOST
         value: 0.0.0.0
       - key: WORKSPACE_MODE
@@ -25,22 +25,22 @@ services:
       - key: MODEL
         value: deepseek/deepseek-flash
       - key: DATA_DIR
-        value: /var/data/lingtai
+        value: /var/data/lingwu
       - key: TASK_WORKER_ENABLED
         value: "true"
       - key: PUBLIC_API_URL
         fromService:
-          name: lingtai-api
+          name: lingwu-api
           type: web
           envVarKey: RENDER_EXTERNAL_URL
       - key: ALLOWED_ORIGINS
         fromService:
-          name: lingtai-web
+          name: lingwu-web
           type: web
           envVarKey: RENDER_EXTERNAL_URL
       # User accounts: with these three set, every user signs up and signs in with
       # their own email and gets a private workspace. Leave them unset to fall back
-      # to the single shared LINGTAI_ACCESS_KEY below.
+      # to the single shared LINGWU_ACCESS_KEY below.
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_PUBLISHABLE_KEY
@@ -53,7 +53,7 @@ services:
       - key: SESSION_TTL_MS
         value: "86400000"
       # Only used when the Supabase variables above are unset (one owner per deploy).
-      - key: LINGTAI_ACCESS_KEY
+      - key: LINGWU_ACCESS_KEY
         generateValue: true
       - key: TOKEN_ENCRYPTION_KEY
         generateValue: true
@@ -75,13 +75,13 @@ services:
       # Use the CLI-issued identity for the same Intelligence project as the key.
       - key: CPK_TELEMETRY_ID
         sync: false
-      # Delete these two entries, and the lingtai-browser service below, to
+      # Delete these two entries, and the lingwu-browser service below, to
       # deploy without browsing. The API boots either way.
       - key: BROWSER_WORKER_URL
-        value: http://lingtai-browser:8790
+        value: http://lingwu-browser:8790
       - key: WORKER_TOKEN
         fromService:
-          name: lingtai-browser
+          name: lingwu-browser
           type: pserv
           envVarKey: WORKER_TOKEN
       # Per-user Linux computer sandbox (optional). Choose E2B Desktop so every
@@ -98,13 +98,13 @@ services:
   # Private Chromium for page reads, screenshots, and Take control.
   # Remove this service to skip it. The image listens on 8790, not $PORT.
   - type: pserv
-    name: lingtai-browser
+    name: lingwu-browser
     runtime: docker
     plan: standard
     dockerfilePath: ./apps/worker/Dockerfile
     dockerContext: ./apps/worker
     disk:
-      name: lingtai-browser-data
+      name: lingwu-browser-data
       mountPath: /data
       sizeGB: 1
     envVars:
@@ -122,7 +122,7 @@ services:
         value: "20"
 
   - type: web
-    name: lingtai-web
+    name: lingwu-web
     runtime: static
     # --clear avoids a cached Metro transform keeping a stale EXPO_PUBLIC_API_URL,
     # which Expo inlines into the bundle at build time.
@@ -137,6 +137,6 @@ services:
     envVars:
       - key: EXPO_PUBLIC_API_URL
         fromService:
-          name: lingtai-api
+          name: lingwu-api
           type: web
           envVarKey: RENDER_EXTERNAL_URL

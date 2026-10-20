@@ -172,8 +172,8 @@ export function runtimeLabel(value?: string | null): string {
 }
 
 /**
- * 统一智能体名称的展示：服务端默认返回英文原名（LingTai），
- * 在简体中文下必须显示为「灵台」。用户自定义过的名称（与英文原名不同）
+ * 统一智能体名称的展示：服务端默认返回英文原名（LingWu），
+ * 在简体中文下必须显示为「灵悟」。用户自定义过的名称（与英文原名不同）
  * 原样返回，避免覆盖用户数据。
  */
 export function localizeAgentName(name?: string | null): string {

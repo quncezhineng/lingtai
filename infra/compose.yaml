@@ -1,4 +1,4 @@
-name: lingtai
+name: lingwu
 services:
   browser-worker:
     build:

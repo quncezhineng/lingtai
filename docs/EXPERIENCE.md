@@ -1,6 +1,6 @@
-# LingTai interaction design
+# LingWu interaction design
 
-LingTai keeps conversation, ongoing work, and user control together in a shared native and web interface.
+LingWu keeps conversation, ongoing work, and user control together in a shared native and web interface.
 
 ## Conversation and work
 
@@ -19,7 +19,7 @@ LingTai keeps conversation, ongoing work, and user control together in a shared 
 
 ## Visual language
 
-An airy canvas, a purple brand accent (#4F46E5 primary, #6366F1 secondary), distinct gray and violet user-message bubbles, large touch targets, rounded input and navigation pills, and restrained artifact frames keep attention on the work. Email, browser and PDF previews show actual tool results. LingTai bundles an original warm tan capybara as the default avatar plus six selectable photo avatars (avatar1–avatar6) for the assistant's identity. See [artwork provenance](../apps/mobile/assets/README.md).
+An airy canvas, a purple brand accent (#4F46E5 primary, #6366F1 secondary), distinct gray and violet user-message bubbles, large touch targets, rounded input and navigation pills, and restrained artifact frames keep attention on the work. Email, browser and PDF previews show actual tool results. LingWu bundles an original warm tan capybara as the default avatar plus six selectable photo avatars (avatar1–avatar6) for the assistant's identity. See [artwork provenance](../apps/mobile/assets/README.md).
 
 ## Boundaries
 

@@ -14,7 +14,7 @@ import ui from "./ui";
 /**
  * 简体中文语言包。
  * `satisfies Record<TranslationKey, string>` 保证不会遗漏任何英文 key；
- * 专有名词 LingTai 统一译为「灵台」。
+ * 专有名词 LingWu 统一译为「灵悟」。
  */
 export const zhHans = {
   ...common,

@@ -5,7 +5,7 @@ import type { Dictionary } from "../../types";
  * 该文件由英文口径反向维护，简体中文见 locales/zh-Hans/common.ts。
  */
 const common = {
-  "common.agentName": "LingTai",
+  "common.agentName": "LingWu",
   "common.language": "Language",
   "common.changeLanguage": "Change language",
   "common.currentLanguage": "Current language: {language}",

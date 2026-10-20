@@ -73,7 +73,7 @@ const makeDue = (taskId: string) =>
 const maintain = () => (server.agent as unknown as { maintain(): Promise<void> }).maintain();
 
 before(async () => {
-  directory = await mkdtemp(join(tmpdir(), "lingtai-monitor-recovery-"));
+  directory = await mkdtemp(join(tmpdir(), "lingwu-monitor-recovery-"));
   db = await createStore({ dataDir: join(directory, "db") });
   server = await createApp(db, {
     mode: "sample",

@@ -215,7 +215,7 @@ export class WorkspaceService {
         from: "stay@seabird.example",
         to: ["alex@example.com"],
         subject: "Your weekend, all sorted",
-        body: "Your reservation is confirmed.\n\nCheck-in: Friday, 3 PM\nCheck-out: Sunday, 11 AM\n\nThis fictional reservation demonstrates how LingTai can organize travel details.",
+        body: "Your reservation is confirmed.\n\nCheck-in: Friday, 3 PM\nCheck-out: Sunday, 11 AM\n\nThis fictional reservation demonstrates how LingWu can organize travel details.",
         date: at(7, 30),
         unread: false,
         label: "Travel",

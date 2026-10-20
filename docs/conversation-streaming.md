@@ -7,7 +7,7 @@ CopilotKit runtime, mirrored into an app-owned replayable SSE ledger, consumed b
 client, and reconciled with persisted thread messages.
 
 The upstream reference is the read-only project at
-`/Users/luffy/Code/Bayes/EconSwarm/LingTai`. The technical name is **REA MCP**. The embedded
+`/Users/luffy/Code/Bayes/EconSwarm/LingWu`. The technical name is **REA MCP**. The embedded
 `mcp__rea__*` tools were not registered in this Codex runtime, so direct calls returned
 `unsupported call`. REA 6.3.0's own stdio MCP server was therefore started directly; it advertised
 139 tools, including `analyze_javascript_application`, `inspect_analysis_view`, and
@@ -16,7 +16,7 @@ The upstream reference is the read-only project at
 Analyses of the whole project and of `web/src` still exceeded the 300 second deadline. The static
 analysis was run instead on a five-file, read-only copy of the upstream conversation code
 (`ChatScreen.tsx`, `api.ts`, `store.tsx`, `types.ts`, and `api.test.ts`) at
-`/private/tmp/rea-lingtai-conversation`. REA completed in 4.6 seconds:
+`/private/tmp/rea-lingwu-conversation`. REA completed in 4.6 seconds:
 
 - Evidence `ev_74b40034b90bee5a94e3a37b622c167f65330193102c317f10dbd15f481d7d61` covered 5
   files, 170,654 text bytes, 24,037 AST nodes, and 328 findings, with 0 parse failures and 0
@@ -39,16 +39,16 @@ upstream project was modified.
 
 The continued read-only pass pinned the server-side and recovery path to these source coordinates:
 
-- `lingtai/server/events.py:39-126`: each thread has a 2000-event `Timeline` persisted as JSON;
+- `lingwu/server/events.py:39-126`: each thread has a 2000-event `Timeline` persisted as JSON;
   writes are coalesced for 0.3 seconds and use a temporary-file replace at lines 76-81.
-- `lingtai/server/events.py:161-184`: `EventBus` fans out through per-client asyncio queues capped
+- `lingwu/server/events.py:161-184`: `EventBus` fans out through per-client asyncio queues capped
   at 1000 messages and removes a subscriber whose queue is full.
-- `lingtai/server/api.py:1961-2003`: `/ws` accepts first-frame authentication, sends a `hello`
+- `lingwu/server/api.py:1961-2003`: `/ws` accepts first-frame authentication, sends a `hello`
   snapshot, runs a dedicated queue pump, closes authentication failures with 4401, and unsubscribes
   in `finally`. The ten-second authentication deadline is at lines 2070-2084.
-- `lingtai/server/api.py:609-619`: persisted history is available through
+- `lingwu/server/api.py:609-619`: persisted history is available through
   `GET /api/threads/{id}/events` with `limit`, `before`, and `has_more` pagination.
-- `lingtai/server/webui.py:373-404`: the first text delta creates `stream_start`, every delta emits
+- `lingwu/server/webui.py:373-404`: the first text delta creates `stream_start`, every delta emits
   `delta` under that stream id, and completion emits `stream_end` before the persisted assistant
   event replaces the temporary bubble.
 - `web/src/store.tsx:433-452` reduces those three stream frames; lines 607-620 batch a WebSocket
@@ -60,17 +60,17 @@ The continued read-only pass pinned the server-side and recovery path to these s
 - `web/src/screens/ChatScreen.tsx:119-138` uses the 120 px follow threshold and 400 px **Latest**
   threshold; lines 156-157 use `ResizeObserver` to account for content that grows after render.
 
-## Upstream design observed in LingTai
+## Upstream design observed in LingWu
 
 The upstream implementation uses a WebSocket event bus and a persisted timeline:
 
-- `lingtai/server/events.py`: each thread has an ordered `Timeline` JSON log, retained to 2000
+- `lingwu/server/events.py`: each thread has an ordered `Timeline` JSON log, retained to 2000
   events and written after a 0.3 second coalescing delay. `EventBus` fans out to `asyncio.Queue`
   subscribers with a 1000-message buffer; a full queue drops the slow subscriber.
-- `lingtai/server/api.py`: `WS /ws` authenticates in the first frame, sends a `hello` state
+- `lingwu/server/api.py`: `WS /ws` authenticates in the first frame, sends a `hello` state
   snapshot, and closes with 4401 for authentication failure. Historical events are available from
   `GET /api/threads/{id}/events` with pagination.
-- `lingtai/server/webui.py`: the first text delta creates a stream id and emits `stream_start`,
+- `lingwu/server/webui.py`: the first text delta creates a stream id and emits `stream_start`,
   every subsequent chunk emits `delta`, and completion emits `stream_end`. The persisted assistant
   event reuses the stream id when available.
 - `web/src/store.tsx`: reducers append deltas to a live stream, replace it with the persisted

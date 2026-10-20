@@ -1,5 +1,5 @@
 import { ArrowUpRight, Check, ChevronRight, type LucideIcon, X } from "lucide-react-native";
-import { type ReactNode } from "react";
+import type { ReactNode } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -129,6 +129,7 @@ export function Button({
   primary,
   disabled,
   busy,
+  quietBusy,
   small,
   danger,
   style,
@@ -139,6 +140,8 @@ export function Button({
   primary?: boolean;
   disabled?: boolean;
   busy?: boolean;
+  /** busy 时不显示加载动画、不降低透明度，仅保留防重复点击，避免文字产生动态效果。 */
+  quietBusy?: boolean;
   small?: boolean;
   danger?: boolean;
   style?: ViewStyle;
@@ -156,10 +159,12 @@ export function Button({
         primary ? s.primary : s.secondary,
         small && { minHeight: 38, paddingVertical: 7, paddingHorizontal: 13 },
         style,
-        { opacity: disabled ? 0.4 : busy ? 0.75 : pressed ? 0.85 : 1 },
+        {
+          opacity: disabled ? 0.4 : busy && !quietBusy ? 0.75 : pressed ? 0.85 : 1,
+        },
       ]}
     >
-      {busy ? (
+      {busy && !quietBusy ? (
         <ActivityIndicator color={color} size="small" />
       ) : Icon ? (
         <Icon size={15} color={color} />
@@ -425,7 +430,7 @@ const AVATAR_SOURCES: Record<string, ImageSourcePropType> = {
 };
 
 /**
- * LingTai's original capybara, shared by every assistant surface. When
+ * LingWu's original capybara, shared by every assistant surface. When
  * `variant` matches a photo avatar (avatar1~avatar6) a circular photo is
  * rendered instead of the color-tinted capybara.
  */

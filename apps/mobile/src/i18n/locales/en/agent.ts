@@ -75,7 +75,7 @@ const agent = {
   "agent.milestonePromptSeed":
     "Help with this milestone: {title}\nGoal: {goalTitle}\n{goalDescription}",
   "agent.delegateTitle": "Hand over an outcome",
-  "agent.delegateSubtitle": "LingTai saves a plan and keeps working on the server.",
+  "agent.delegateSubtitle": "LingWu saves a plan and keeps working on the server.",
   "agent.delegateMilestoneNote":
     "{goal} · {milestone}. Mark this milestone complete when you are satisfied with the result.",
   "agent.milestoneNoLongerAvailable": "This milestone is no longer available.",
@@ -100,7 +100,7 @@ const agent = {
   "agent.started": "Started",
   "agent.viewTask": "View task",
   "agent.viewIdeaLabel": "View idea: {title}",
-  "agent.whatShouldLingTaiDo": "What should LingTai research for you?",
+  "agent.whatShouldLingWuDo": "What should LingWu research for you?",
   "agent.startThis": "Start this",
   "agent.keepEdits": "Keep edits",
   "agent.edit": "Edit",
@@ -145,7 +145,7 @@ const agent = {
   "agent.checkEveryMinutes": "Check every (minutes)",
   "agent.samplePageNote": "Changes to this built-in page stay in your workspace.",
   "agent.monitorServerNote":
-    "LingTai checks this public page on the server and saves meaningful changes in Notifications.",
+    "LingWu checks this public page on the server and saves meaningful changes in Notifications.",
   "agent.startTracking": "Start tracking",
   "agent.builtInAvailabilityPage": "Built-in availability page",
   "agent.watchForPageChange": "Watch for a page change",

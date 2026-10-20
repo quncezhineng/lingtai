@@ -5,7 +5,7 @@ import type { Dictionary } from "../../types";
  * key 必须与 locales/en/common.ts 完全一致。
  */
 const common = {
-  "common.agentName": "灵台",
+  "common.agentName": "灵悟",
   "common.language": "语言",
   "common.changeLanguage": "切换语言",
   "common.currentLanguage": "当前语言：{language}",

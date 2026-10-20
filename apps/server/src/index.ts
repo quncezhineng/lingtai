@@ -12,7 +12,7 @@ await db.recoverInterruptedActions();
 const { app, agent, conversationStream } = await createApp(db, config);
 if (config.taskWorkerEnabled) agent.start();
 const server = serve({ fetch: app.fetch, port: config.port, hostname: config.host }, () =>
-  console.log(`LingTai ${config.mode} API ready at ${config.publicUrl}`),
+  console.log(`LingWu ${config.mode} API ready at ${config.publicUrl}`),
 );
 const shutdown = () => {
   server.close(() => {

@@ -1,10 +1,10 @@
--- LingTai 用户账号（Supabase）建表脚本
+-- LingWu 用户账号（Supabase）建表脚本
 --
--- 用途：创建灵台账号体系依赖的三张表、头像私有存储桶，以及「注册即建档案」的触发器。
+-- 用途：创建灵悟账号体系依赖的三张表、头像私有存储桶，以及「注册即建档案」的触发器。
 -- 使用：在 Supabase 控制台的 SQL Editor 里粘贴运行，或用 `supabase db push` 执行。
 --
 -- 说明：
---   1. 灵台把所有 Supabase 读写都走服务端 service_role 密钥（绕过 RLS），
+--   1. 灵悟把所有 Supabase 读写都走服务端 service_role 密钥（绕过 RLS），
 --      用户端不直接访问 Supabase，因此下面的表启用 RLS 后默认对用户端完全隐藏。
 --   2. 邮箱直接来自 auth.users，不单独存表；昵称/简介/头像统一由 user_profiles 维护。
 
@@ -23,10 +23,10 @@ create table if not exists public.user_profiles (
 alter table public.user_profiles enable row level security;
 
 -- ============================================================================
--- 2. 操作行为日志表 lingtai_audit_logs
+-- 2. 操作行为日志表 lingwu_audit_logs
 --    记录注册/登录/退出/远程下线等安全相关事件；旁路写入，失败不影响主流程。
 -- ============================================================================
-create table if not exists public.lingtai_audit_logs (
+create table if not exists public.lingwu_audit_logs (
   id bigint generated always as identity primary key,
   user_id uuid not null references auth.users (id) on delete cascade,
   action text not null,
@@ -38,16 +38,16 @@ create table if not exists public.lingtai_audit_logs (
   created_at timestamptz not null default now()
 );
 
-alter table public.lingtai_audit_logs enable row level security;
+alter table public.lingwu_audit_logs enable row level security;
 
-create index if not exists lingtai_audit_logs_user_idx
-  on public.lingtai_audit_logs (user_id, created_at desc);
+create index if not exists lingwu_audit_logs_user_idx
+  on public.lingwu_audit_logs (user_id, created_at desc);
 
 -- ============================================================================
--- 3. 业务资源索引表 lingtai_resources
+-- 3. 业务资源索引表 lingwu_resources
 --    记录「某资源属于某用户」，用于快速定位归属；旁路写入。
 -- ============================================================================
-create table if not exists public.lingtai_resources (
+create table if not exists public.lingwu_resources (
   id bigint generated always as identity primary key,
   user_id uuid not null references auth.users (id) on delete cascade,
   resource_type text not null,
@@ -55,10 +55,10 @@ create table if not exists public.lingtai_resources (
   created_at timestamptz not null default now()
 );
 
-alter table public.lingtai_resources enable row level security;
+alter table public.lingwu_resources enable row level security;
 
-create unique index if not exists lingtai_resources_owner_type_id_idx
-  on public.lingtai_resources (user_id, resource_type, resource_id);
+create unique index if not exists lingwu_resources_owner_type_id_idx
+  on public.lingwu_resources (user_id, resource_type, resource_id);
 
 -- ============================================================================
 -- 4. 头像私有存储桶 user-avatars
