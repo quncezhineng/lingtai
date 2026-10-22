@@ -193,7 +193,13 @@ export class AgentService {
       ),
     };
   }
-  async createTask(owner: string, raw: unknown, idempotencyKey?: string, held = false) {
+  async createTask(
+    owner: string,
+    raw: unknown,
+    idempotencyKey?: string,
+    held = false,
+    threadId?: string,
+  ) {
     const input = createTaskSchema.parse(raw);
     const id = idempotencyKey ? hash(`task:${idempotencyKey}`) : randomUUID();
     const existing = await this.db.get<AgentTask>(owner, "tasks", id);
@@ -229,6 +235,7 @@ export class AgentService {
       kind: input.kind,
       goalId: input.goalId,
       milestoneId: input.milestoneId,
+      threadId: threadId || undefined,
       status: held || goal?.status === "paused" ? "paused" : "queued",
       plan: titles.map((title, i) => ({ id: String(i), title, status: "pending" })),
       evidence: [],
@@ -357,7 +364,12 @@ export class AgentService {
         status: "queued",
         question: null,
         input: { ...task.input, ...(fields ? { fields } : {}) },
-        state: { ...task.state, answer },
+        state: {
+          ...task.state,
+          answer,
+          answeredQuestion: task.question ?? null,
+          answeredAt: date(),
+        },
         updatedAt: date(),
       },
     );

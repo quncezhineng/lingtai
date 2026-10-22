@@ -4,8 +4,10 @@ import { Pressable, Text, View } from "react-native";
 import type { Artifact, BrowserSession } from "../../../packages/domain/src";
 import type { AgentArtifact, AgentTask } from "../../../packages/domain/src/agent";
 import { ArtifactCard, TaskCard } from "./agent-ui";
+import { useAgentWorkspace } from "./agent-workspace";
 import { BrowserThreadCard } from "./computer";
 import { useTranslation } from "./i18n";
+import { QuestionCard, taskHasQuestion } from "./question-card";
 import { Button, Card, colors, ErrorNotice, s } from "./ui";
 import { useWorkspace } from "./workspace";
 
@@ -66,6 +68,7 @@ export function FileThreadCard({ file }: { file: Artifact }) {
 /** Hydrates task-linked artifacts by ID on replay; signed URLs are never stored in messages. */
 export function TaskThreadCard({ task }: { task: AgentTask }) {
   const { api } = useWorkspace();
+  const { data } = useAgentWorkspace();
   const { t } = useTranslation();
   const [detail, setDetail] = useState<{
     artifacts: AgentArtifact[];
@@ -93,9 +96,11 @@ export function TaskThreadCard({ task }: { task: AgentTask }) {
       active = false;
     };
   }, [api, task.id, task.updatedAt, attempt]);
+  const hasQuestion = taskHasQuestion(task);
   return (
     <View style={{ gap: 12 }}>
-      <TaskCard task={task} compact />
+      <QuestionCard task={task} agentName={data?.identity.name} />
+      {!hasQuestion && <TaskCard task={task} compact />}
       {detail?.browsers.map((browser) => (
         <BrowserThreadCard key={browser.id} browser={browser} />
       ))}

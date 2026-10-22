@@ -54,6 +54,14 @@ const chat = {
   "chat.messagePlaceholder": "Message…",
   "chat.stopReply": "Stop reply",
   "chat.sendMessage": "Send message",
+  "chat.openArtifacts": "Files",
+  "chat.closeArtifacts": "Close files panel",
+  "chat.artifactsEmptyTitle": "No files yet",
+  "chat.artifactsEmptyDetail":
+    "Ask LingWu to generate documents, spreadsheets, or PDFs in this conversation, and they will appear here.",
+  "chat.artifactRow": "Open artifact: {name}",
+  "chat.researchArtifacts": "Research outputs",
+  "chat.filesGroup": "Files",
 } satisfies Dictionary;
 
 export default chat;

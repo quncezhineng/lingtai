@@ -264,12 +264,18 @@ export function Sheet({
   children,
   onClose,
   wide,
+  fullscreen,
+  dismissOnBackdrop = true,
 }: {
   title: string;
   subtitle?: string;
   children: ReactNode;
   onClose: () => void;
   wide?: boolean;
+  /** 全屏模式：弹窗铺满整个网页/屏幕（如研究产物详情），优先级最高。 */
+  fullscreen?: boolean;
+  /** 点击弹窗外的深色背板区域时是否关闭弹窗，默认开启。 */
+  dismissOnBackdrop?: boolean;
 }) {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -277,21 +283,41 @@ export function Sheet({
   const compact = width < 600;
   return (
     <Modal transparent animationType={compact ? "slide" : "fade"} visible onRequestClose={onClose}>
-      <View style={[s.modalShade, compact && { padding: 0, justifyContent: "flex-end" }]}>
-        <View
+      {/* 背板：点击深色区域关闭弹窗（dismissOnBackdrop 可关闭此行为） */}
+      <Pressable
+        onPress={dismissOnBackdrop ? onClose : undefined}
+        style={[
+          s.modalShade,
+          compact && !fullscreen && { padding: 0, justifyContent: "flex-end" },
+          fullscreen && { padding: 0, justifyContent: "center" },
+        ]}
+      >
+        {/* 弹窗面板：自身拦截点击，避免面板内点击冒泡到背板导致误关 */}
+        <Pressable
           accessibilityViewIsModal
+          onPress={(e) => e.stopPropagation()}
           style={[
             s.sheet,
             wide && { maxWidth: 1050 },
-            compact && {
-              borderBottomLeftRadius: 0,
-              borderBottomRightRadius: 0,
-              paddingBottom: Math.max(insets.bottom, 12),
-              maxHeight: "94%",
+            compact &&
+              !fullscreen && {
+                borderBottomLeftRadius: 0,
+                borderBottomRightRadius: 0,
+                paddingBottom: Math.max(insets.bottom, 12),
+                maxHeight: "94%",
+              },
+            fullscreen && {
+              width: "100%",
+              height: "100%",
+              maxWidth: "100%",
+              maxHeight: "100%",
+              borderRadius: 0,
+              borderWidth: 0,
+              paddingBottom: 0,
             },
           ]}
         >
-          {compact && (
+          {compact && !fullscreen && (
             <View
               style={{
                 alignSelf: "center",
@@ -317,12 +343,17 @@ export function Sheet({
           </View>
           <ScrollView
             keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{ padding: compact ? 20 : 24 }}
+            style={fullscreen ? { flex: 1 } : undefined}
+            contentContainerStyle={
+              fullscreen
+                ? { flexGrow: 1, padding: compact ? 20 : 24 }
+                : { padding: compact ? 20 : 24 }
+            }
           >
             {children}
           </ScrollView>
-        </View>
-      </View>
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 }

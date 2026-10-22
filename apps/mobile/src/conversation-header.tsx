@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react-native";
+import { FileText } from "lucide-react-native";
 import { useEffect, useRef } from "react";
 import { Animated, Pressable, Text, View } from "react-native";
 import { colors } from "./ui";
@@ -16,14 +16,17 @@ export function ConversationHeader({
   title,
   status,
   state,
-  onNewChat,
-  newChatLabel,
+  onOpenFiles,
+  filesOpen,
+  filesLabel,
 }: {
   title: string;
   status: string;
   state: ConversationHeaderState;
-  onNewChat?: () => void;
-  newChatLabel?: string;
+  /** 点击打开/收起「文件产物」右边栏。 */
+  onOpenFiles?: () => void;
+  filesOpen?: boolean;
+  filesLabel?: string;
 }) {
   const pulse = useRef(new Animated.Value(1)).current;
   useEffect(() => {
@@ -79,11 +82,12 @@ export function ConversationHeader({
           {status}
         </Text>
       </View>
-      {onNewChat && (
+      {onOpenFiles && (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={newChatLabel}
-          onPress={onNewChat}
+          accessibilityLabel={filesLabel}
+          accessibilityState={{ selected: !!filesOpen }}
+          onPress={onOpenFiles}
           hitSlop={8}
           style={({ pressed }) => ({
             width: 32,
@@ -91,10 +95,11 @@ export function ConversationHeader({
             alignItems: "center",
             justifyContent: "center",
             borderRadius: 16,
-            backgroundColor: pressed ? colors.sky : "transparent",
+            backgroundColor:
+              filesOpen || pressed ? colors.sky : "transparent",
           })}
         >
-          <Plus size={17} color={colors.muted} />
+          <FileText size={17} color={filesOpen ? colors.blueDark : colors.muted} />
         </Pressable>
       )}
     </View>

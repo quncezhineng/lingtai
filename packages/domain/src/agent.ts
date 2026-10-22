@@ -29,6 +29,8 @@ export interface AgentTask {
   prompt: string;
   kind: "agent" | "document" | "monitor" | "finance" | "plan";
   status: TaskStatus;
+  /** 发起该任务的对话 threadId（对话内 delegate_task 创建的任务才有；独立入口创建的任务为空）。 */
+  threadId?: string;
   goalId?: string;
   milestoneId?: string;
   plan: TaskStep[];

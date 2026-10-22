@@ -690,7 +690,9 @@ function WorkspaceShell({
                           ? JSON.stringify(detail.draft)
                           : detail.type === "event"
                             ? detail.event?.id || "event-new"
-                            : detail.type
+                            : detail.type === "artifact"
+                              ? detail.artifact.id
+                              : detail.type
             }
             detail={detail}
           />

@@ -5,6 +5,214 @@
 
 ## 变更记录
 
+### 2026-10-22 · 研究产物数据支持代码块语法高亮
+
+**背景**
+
+用户要求在 iframe 渲染的研究产物详情页中为数据增加「HTML 语法渲染」（经确认是指**数据代码块高亮**）：产物数据里的 JSON、多行代码/长文本（如计划、对比数据）此前是转义后的纯文本，可读性差，希望按语法上色。
+
+**方案**
+
+维持「渲染后的网页」展示不变，在 [artifact-html.ts](../apps/mobile/src/artifact-html.ts) 内置一个零依赖的轻量 tokenizer 做语法高亮：所有内部文本仍先 `escapeHtml` 转义（安全不变），仅对有结构的文本按 token 分类包裹 span 上色。不引入任何外部高亮库/脚本，保证 iframe/WebView 跨端一致。
+
+**实现**
+
+- [artifact-html.ts](../apps/mobile/src/artifact-html.ts)：
+  - 新增 `highlightJson`：把 `JSON.stringify(value, null, 2)` 输出拆成 key / string / number / boolean·null / 标点 5 类 token 上色（key 靠「后跟冒号」判定）。
+  - 新增 `highlightCode`：多行/超长字符串（代码、Markdown 面板数据）拆成字符串 / 数字 / URL 3 类 token 上色。
+  - `text(value, inline=false)`：块级默认下，含换行或超 120 字符的字符串渲染为深色 `pre.code` 代码块；对象/数组渲染为 `pre.code[data-lang=json]` 高亮 JSON；`inline=true`（表格单元格）仍走转义行内纯文本，避免嵌套撑坏布局（`renderCell` 改传 `true`）。
+  - HTML 文档 `<style>` 新增 `pre.code` 深色代码块与 `tok-key/tok-str/tok-num/tok-bool/tok-punc/tok-url` 配色。
+
+**验证**
+
+- 根目录 `pnpm typecheck` 通过；biome 检查无告警。
+- 全量测试 555/555 通过。
+- 需在部署后实测：详情页中对象/数组字段显示为高亮 JSON 代码块；含换行的长字符串显示为深色代码块；表格单元格仍显示紧凑行内文本。
+
+**注意**
+
+- 无外部资源、无脚本，延续 iframe `sandbox=""` / WebView `about:srcdoc` 的安全渲染方式。
+- 仅影响详情页展示，对话内联的产物标题行与右侧边栏不受影响。
+
+### 2026-10-22 · 研究产物详情弹窗改为全屏
+
+**背景**
+
+用户反馈：点击对话里的研究产物标题行弹出的详情页（HTML 渲染网页）仍是一个居中的小弹窗（最大宽 790/1050、高 94%、圆角、带背板 padding），要求改为与整个网页相同大小，即全屏铺满。
+
+**方案**
+
+`Sheet` 是全部详情弹窗的公共组件（FileDetail/MailDetail/BrowserDetail 等共用），不能直接改基础样式。新增 `fullscreen` 属性，仅让研究产物详情使用：弹窗铺满整个视口（宽高 100%、去圆角、去边框、去背板 padding），紧凑屏（宽 < 600）分支同样统一为全屏（不再走底部抽屉样式、隐藏顶部拖动条）。
+
+**实现**
+
+- [ui.tsx](../apps/mobile/src/ui.tsx)：`Sheet` 新增可选属性 `fullscreen?: boolean`。为 true 时：背板 `padding: 0`；面板 `width/height/maxWidth/maxHeight: "100%"`、`borderRadius: 0`、`borderWidth: 0`；紧凑屏分支（`compact && !fullscreen`）与拖动条均被跳过；`ScrollView` 设 `flex: 1` + `contentContainerStyle.flexGrow: 1`，让内部内容撑满剩余空间。
+- [HtmlPreview.web.tsx](../apps/mobile/src/HtmlPreview.web.tsx) / [HtmlPreview.native.tsx](../apps/mobile/src/HtmlPreview.native.tsx)：外层 View `flex: 1` 撑满，iframe（`height: 100%`）与 WebView（`flex: 1`）填满容器，替换原先固定高度 620。
+- [details.tsx](../apps/mobile/src/details.tsx)：`ArtifactDetail` 由 `wide` 改为 `fullscreen`。
+
+**验证**
+
+- 根目录 `pnpm typecheck` 通过；biome 检查无告警。
+- 全量测试 555/555 通过。
+- 需在部署后实测：点击研究产物标题行 → 详情网页全屏铺满、HTML 内容自适应撑满、右上角关闭按钮正常。
+
+**注意**
+
+- 其他详情弹窗（文件/邮件/浏览器/任务等）未走 fullscreen 分支，仍保持居中弹窗样式，不受影响。
+
+### 2026-10-22 · 文件产物右边栏「分对话显示」
+
+**背景**
+
+用户反馈右侧「文件产物」边栏把**所有对话**生成的产物与文件一股脑放在一起，要求：只能展示左侧当前对话对应的产物文件，分对话显示，互不混淆。
+
+**方案**
+
+通过「对话 thread ↔ 任务 task ↔ 产物/文件」链路做过滤。任务创建时由服务端记录发起对话的 `threadId`；客户端边栏只展示「threadId 匹配当前对话的任务」所关联的研究产物（`AgentArtifact.taskId`）与文件（`AgentTask.artifactIds`）。
+
+**实现**
+
+- [agent.ts](../packages/domain/src/agent.ts)：`AgentTask` 新增可选字段 `threadId?: string`（发起该任务的对话 id；由对话内委托创建的任务才有，独立入口创建的任务为空）。
+- [service.ts](../apps/server/src/engine/service.ts)：`createTask(owner, raw, idempotencyKey?, held?, threadId?)` 新增第 5 个可选参数，持久化到任务的 `threadId` 字段。
+- [conversation.ts](../apps/server/src/engine/conversation.ts)：对话内 3 处创建任务的入口全部传入当前对话 `input.threadId` —— `delegate_task` 工具执行、sample 兜底的文档任务、sample 兜底的 agent 任务（`sample(prompt, key, threadId?)` 签名同步扩展）。
+- [chat.tsx](../apps/mobile/src/chat.tsx)：新增 `ThreadArtifactsPanel` 包装组件 —— 按当前 `threadId` 过滤出本级对话的任务集合，研究产物按 `artifact.taskId ∈ 任务 id 集合` 过滤，文件按任务 `artifactIds` 匹配，再交给原 `ArtifactsPanel` 渲染；`ChatScreen` 调用点从传全局 `w.files`/`agentWorkspace.artifacts` 改为传全量 + threadId 由包装组件过滤。
+
+**验证**
+
+- 根目录 `pnpm typecheck`（含 root `tsc --noEmit` 与 mobile 单独 typecheck）通过；biome 检查无告警。
+- 全量测试 555/555 通过。
+- 需在部署后实测：对话 A 生成的产物只出现在对话 A 的右侧边栏，对话 B 不受影响；旧任务（无 threadId）不再出现在任何对话边栏中。
+
+**注意**
+
+- 仅影响边栏展示；对话内联的产物标题行、任务详情卡片等展示逻辑不变。
+- 独立入口（监视任务、想法采纳、REST 创建）创建的任务不带 threadId，不会混入任意对话的边栏。
+
+### 2026-10-22 · 研究产物改为「标题行 + 点击弹出 HTML 详情页 + 文件产物边栏展示」
+
+**背景**
+
+用户在对话页中把结构化研究产物（`AgentArtifact`：计划/对比/财务/报告）展开成大量数据 div 的大卡片（原 `ArtifactCard`/`FinanceArtifact`，如财务 Svg 卡），希望改为：对话里只显示标题提示；点击标题弹出 HTML 渲染的网页查看详情；同时这些研究产物条目也要出现在右侧「文件产物」边栏中。经确认目标产物为**灵悟生成的研究产物**（`AgentArtifact`，`kind: plan/comparison/finance/report`）。
+
+**实现**
+
+- [artifact-html.ts](../apps/mobile/src/artifact-html.ts)（新增）：纯函数 `renderArtifactHtml(artifact)` —— 把研究产物渲染为**自包含静态 HTML 文档字符串**。无外部资源、无脚本、全部文本转义；通用数据按顶层字段渲染 `<table>`/`<dl>`/`<ul>`（数组截断 100 条）；财务产物专属「收入/支出/结余」统计卡 + 分类占比条形图 + 交易明细表。服务端不产出研究产物的 HTML 文件（`files.ts` 只处理 PDF），故由客户端生成。
+- [HtmlPreview.web.tsx](../apps/mobile/src/HtmlPreview.web.tsx) / [HtmlPreview.native.tsx](../apps/mobile/src/HtmlPreview.native.tsx)（新增）：平台分支组件，Web 用 `<iframe srcDoc sandbox="" referrerPolicy="no-referrer">`、原生端用 react-native `WebView source={{ html }}`，安全渲染产物 HTML。
+- [workspace.tsx](../apps/mobile/src/workspace.tsx)：`Detail` 联合类型新增 `{ type: "artifact"; artifact: AgentArtifact }`。
+- [App.tsx](../apps/mobile/App.tsx)：detail 分发 key 新增 `detail.type === "artifact" ? detail.artifact.id` 分支。
+- [details.tsx](../apps/mobile/src/details.tsx)：新增 `ArtifactDetail` 组件（`Sheet` + `HtmlPreview`，标题为产物标题、副标题为类型 + 日期）。
+- [agent-ui.tsx](../apps/mobile/src/agent-ui.tsx)：`ArtifactCard` 重写为 `LinkRow` 紧凑标题行（标题 + 「类型 · 查看详情」，点击 `open({ type: "artifact" })`）；删除旧的展开式大卡片与整个 `FinanceArtifact` Svg 财务卡、`record`/`display` 辅助函数。对话 flow 与任务详情中的调用点自动生效。
+- [chat.tsx](../apps/mobile/src/chat.tsx)：`ArtifactsPanel` 扩展数据源（新增 `artifacts`/`onOpenArtifact` props），面板按「研究产物 / 文件」两个分区渲染：研究产物行显示标题 + 「类型 · 创建时间」，点击打开 HTML 详情；文件行沿用原样。空态条件变为「files 与 artifacts 都为空」。
+- i18n：新增 `chat.researchArtifacts`（研究产物 / Research outputs）、`chat.filesGroup`（文件 / Files）、`chat.artifactRow`（打开产物：{name} / Open artifact: {name}），以及 `agent.artifactOpenDetail`（查看详情）、`agent.artifactPreview`（研究产物预览 / Artifact preview）、`agent.artifactEmpty`、`agent.artifactTruncated`（截断提示，含 `{count}` 占位符），中英双语同步。
+
+**验证**
+
+- `pnpm --dir apps/mobile typecheck`（`tsc --noEmit`）通过。
+- 全量测试 555/555 通过（含 i18n 中英 key 对等与占位符校验）。
+- HTML 渲染需登录态下硬刷新后实测：对话中产物显示为标题行、点标题弹出详情网页、右侧边栏按分区列出研究产物与文件。
+
+**注意**
+
+- `agent.financeTracker`/`financeTrackerDetail`/`financeReadFromTransactions`/`financeTransactionsSummary` 等旧财务卡专属键现无 UI 引用（无害，未删除）。
+- 财务统计卡复用的 `agent.financeIncome/Spending/Remaining`、`agent.whereMoneyWent`、`agent.viewTransactions` 等键仍被 `artifact-html.ts` 引用。
+
+### 2026-10-22 · 对话页顶部按钮改为「展开文件产物右边栏」
+
+**背景**
+
+用户对对话页（`ChatScreen`）顶部的「新建侧边对话」加号按钮提出修改：改为点击展开右边栏，右边栏列表展示该对话生成的文件产物（工作区文件）。
+
+**实现**
+
+- [conversation-header.tsx](../apps/mobile/src/conversation-header.tsx) `ConversationHeader`：
+  - 接口由 `onNewChat`/`newChatLabel` 改为 `onOpenFiles`/`filesOpen`/`filesLabel`；
+  - 顶部图标由 `Plus`（新建侧边对话）改为 `FileText`（文件产物），选中态（`filesOpen`）高亮为 `colors.sky` 背景 + `colors.blueDark` 图标。
+- [chat.tsx](../apps/mobile/src/chat.tsx) `ChatScreen`：
+  - 移除 `useLingWuThread()` 解构中的 `start`，新增 `filesOpen` 状态（布尔，默认收起）；
+  - header 传入 `onOpenFiles={() => setFilesOpen((open) => !open)}` 与语义化标签；
+  - 新增覆盖式 `ArtifactsPanel` 组件：`position: absolute` 盖在聊天区右侧（宽 320 / `maxWidth` 85%），白底 + 左边框 + 阴影 + `elevation`；顶部标题「文件产物」与 ✕ 关闭按钮；正文按 `createdAt` 倒序列出 `w.files`（每个文件行显示名称、来源与大小、创建时间），点击行 `onOpen(file)` 打开文件详情；无文件时显示空态。
+  - 交互与「点击背板关闭」保持一致：点击面板外的半透明遮罩（`Pressable`）收起面板；面板本体 `zIndex` 高于遮罩，内部点击不会误触遮罩关闭。
+- i18n：新增 `chat.openArtifacts`（文件产物 / Files）、`chat.closeArtifacts`、`chat.artifactsEmptyTitle`、`chat.artifactsEmptyDetail`，中英双语同步；列表行无障碍标签复用 `chat.openAttachment`。
+
+**验证**
+
+- `pnpm --dir apps/mobile typecheck`（`tsc --noEmit`）通过。
+- 全量测试 555/555 通过（含 i18n 中英 key 对等测试）。
+- 面板展开/点击遮罩收起需登录态下硬刷新后实测。
+
+**注意**
+
+- 对话页顶部原「新建侧边对话」入口被替换；`threads.newSideChat`（新建侧边对话）现仅在 `ThreadsSheet` 侧栏中使用，如后续需要可在此处另行补充入口。
+
+### 2026-10-22 · 详情弹窗支持「点击背板关闭」
+
+**背景**
+
+用户反馈：通知弹窗打开后（`NotificationsSheet` 经 `Sheet` 弹出），希望点击弹窗外任意处的深色背板（遮罩）也能关闭弹窗。
+
+**核查**
+
+此前代码中 `close` 仅由 ✕ 按钮（`onClose`）与 Escape 键（`ModalContent.js` 的 `closeOnEscape`）触发，不存在点击背板关闭的机制；`Sheet`/`Modal`/`modalShade` 均无背板点击 handler。
+
+**实现**
+
+[ui.tsx](../apps/mobile/src/ui.tsx) 的 `Sheet` 组件（所有详情弹窗的公共组件：通知 / 个性 / 委派 / 电脑 / 任务等）：
+
+- 外层 `modalShade`（深色遮罩）由 `View` 改为 `Pressable`，`onPress={onClose}`——点击弹窗外任意处即关闭；
+- 内层弹窗面板 `Pressable` 保留 `accessibilityViewIsModal`，并 `onPress={(e) => e.stopPropagation()}`——面板内任意点击（含空白区）不会冒泡到背板导致误关，面板内的按钮 / 滚动 / 底部抽屉拖动条等交互不受影响；
+- 新增 `dismissOnBackdrop` 可选项（默认 `true`），个别需要防止误关的弹窗可传 `false` 关闭背板点击行为。
+
+**验证**
+
+- `tsc --noEmit`（apps/mobile）通过。
+- Metro 运行中，`curl http://localhost:8081/apps/mobile/index.bundle?platform=web` 实测 bundle 已包含 `dismissOnBackdrop` 标识符（2 处）。
+- 面板内点击不关闭、点击背板关闭的交互需登录态下硬刷新后实测。
+
+**注意**
+
+`Sheet` 是所有详情弹窗的公共组件，因此该行为对全部详情弹窗生效（点击遮罩即关闭为 RN Web 生态常见惯例）。若个别场景需要「点背板不可关闭」，传 `dismissOnBackdrop={false}` 即可。
+
+### 2026-10-22 · 修复对话列表行点击无响应（嵌套按钮吞掉点击）
+
+**背景**
+
+用户反馈侧边栏「研究助手」会话行按钮点击没有反应，无法切换到该对话页。
+
+**根因**
+
+[shell.tsx](../apps/mobile/src/shell.tsx) 的 `ThreadRow` 把「点击标题改名」的内层 `Pressable` 嵌套在外层「选择对话」按钮内部。react-native-web 的 `PressResponder.onClick`（[PressResponder.js](../apps/mobile/node_modules/react-native-web/src/modules/usePressEvents/PressResponder.js)）始终调用 `event.stopPropagation()` 并只调用最近祖先 responder 的 onPress——点击标题区域时内层改名 handler 先触发并阻断冒泡，外层 `select()` 永远不执行，表现为「点击没反应」。Web 端已不可用，原生端也不符合「点击行应选中对话」的主流预期。
+
+**修复**
+
+- `ThreadRow` 重构：整行仅保留一个负责 `select()` 的按钮；改名入口改为行右侧独立铅笔图标（兄弟节点，不再嵌套），编辑态显示对勾保存/回车提交/失焦取消，与 `ThreadsSheet` 侧栏的「重命名 → 保存名称」交互一致。
+- 内层不再有任何可点元素，点击标题任意区域都会命中外层按钮并切换对话。
+
+**验证**
+
+- `tsc --noEmit`（apps/mobile）通过。
+- 全量测试 555/555 通过。
+- `curl http://localhost:8081/apps/mobile/index.bundle?platform=web` 实测 bundle 已包含新代码（`Pencil`/`hitSlop`/`threads.saveName`）；登录页之外的真实点击需用户登录态下硬刷新确认。
+
+**注意**
+
+- 原生端交互变化：之前单击标题直接进入改名，现在单击标题选中对话、点铅笔改名。若希望在原生端保留「单击标题改名」，可后续按平台分支处理，但需注意双端一致性与本项目一贯的 UI 一致性偏好（此前用户曾要求平台内布局一致）。
+
+### 2026-10-22 · 复核重复 key 报错：修复已生效，日志属历史/缓存
+
+**背景**
+
+用户再次从 trae-preview 控制台贴出 `Encountered two children with the same key, evidence-mail-fieldtrip`。
+
+**核查（只排查，无代码改动）**
+
+- 确认 10-20 修复 commit `b5c0931` 已入库，三个线程列表渲染点均带「列表内去重 + 跨列表互斥」：`shell.tsx`（`sideThreads`/`pendingThreads` + `seenSideIds`）、`threads.tsx`（`listedThreads`/`visitedPending` + `seenThreadIds`）、`App.tsx`（`visited` 经 Map 按 id 去重）。
+- `curl http://localhost:8081/apps/mobile/index.bundle?platform=web` 实测 bundle 已包含修复标识符（`seenSideIds`×4 / `seenThreadIds`×4 / `visitedPending`×5），即 dev server 提供的是修复后代码。
+- 其余 `key={*.id}` 渲染点（messages、toolCall、evidence、monitor、goal、notification 等）均非线程 id，不受 `evidence-mail-fieldtrip` 这类平台 slug 线程 id 影响。
+
+**结论**
+
+该报错是修复前页面产生的历史日志（React 警告随控制台保留、不自动清除），或 trae-preview 缓存了旧页面。清空控制台并硬刷新（清缓存重载）后不再出现；若刷新后仍复现，再按复现步骤追查。
+
 ### 2026-10-20 · 修复控制台 5 条日志（嵌套按钮 + 重复 key + ERR_ABORTED）
 
 **背景**

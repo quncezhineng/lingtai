@@ -8,7 +8,7 @@ import {
   useRenderToolCall,
   useThreads,
 } from "@copilotkit/react-native/headless";
-import { ArrowDown, ArrowUp, FileText, RotateCcw, Square, X } from "lucide-react-native";
+import { ArrowDown, ArrowUp, FileText, Lightbulb, RotateCcw, Square, X } from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
   Keyboard,
@@ -22,8 +22,11 @@ import {
   View,
 } from "react-native";
 import { z } from "zod";
+import type { ActionProposal, Artifact } from "../../../packages/domain/src";
+import type { AgentArtifact, AgentTask } from "../../../packages/domain/src/agent";
 import { ArtifactCard } from "./agent-ui";
 import { useAgentWorkspace } from "./agent-workspace";
+import { ApprovalCard } from "./approval-card";
 import { AssistantResponse } from "./assistant-response";
 import { BackgroundUpdates } from "./background-updates";
 import { BrowserRunContext, BrowserToolCard } from "./browser-tool-card";
@@ -41,13 +44,16 @@ import {
 import { type ConversationDraft, useConversationStream, verifyDrafts } from "./conversation-stream";
 import { DesktopToolCard } from "./desktop-tool-card";
 import { type TranslationKey, useTranslation } from "./i18n";
+import { statusLabel } from "./i18n/translate";
 import { confirmedJevSelection, displayJevUserMessage, latestJevPanelId } from "./jev-actions";
 import { JevInteractionContext, JevToolCard } from "./jev-tool-card";
 import { MailToolCard } from "./mail-tool-card";
+import { QuestionCard, taskHasQuestion } from "./question-card";
 import { SearchToolCard } from "./search-tool-card";
 import { FileThreadCard, TaskThreadCard } from "./thread-artifacts";
 import { type Selection, useLingWuThread } from "./threads";
-import { Button, Card, CheckRow, colors, ErrorNotice, s } from "./ui";
+import { parseToolArguments, ToolStep, type ToolStepStatus } from "./tool-step";
+import { Button, Card, CheckRow, colors, dateLabel, Empty, ErrorNotice, s } from "./ui";
 import { useWorkspace } from "./workspace";
 
 const displayParameters = z.record(z.string(), z.unknown());
@@ -64,6 +70,38 @@ const serverToolNameKeys: Record<string, TranslationKey> = {
   Tracking: "chat.serverToolTracking",
   Memory: "chat.serverToolMemory",
 };
+
+type ThreadApproval = { action: ActionProposal; task: AgentTask };
+
+/** Reads the task created by a delegate_task tool call so its approvals can sit in the same turn. */
+function delegatedTaskIds(message: Message, messages: Message[]): Set<string> {
+  const ids = new Set<string>();
+  const toolCalls = "toolCalls" in message ? message.toolCalls || [] : [];
+  for (const call of toolCalls) {
+    if (call.function.name !== "delegate_task") continue;
+    const toolMessage = messages.find(
+      (candidate): candidate is ToolMessage =>
+        candidate.role === "tool" && candidate.toolCallId === call.id,
+    );
+    if (!toolMessage) continue;
+    let value: unknown = toolMessage.content;
+    if (typeof value === "string") {
+      try {
+        value = JSON.parse(value);
+      } catch {
+        continue;
+      }
+    }
+    if (!value || typeof value !== "object") continue;
+    const record = value as Record<string, unknown>;
+    for (const key of ["id", "taskId"]) {
+      const id = record[key];
+      if (typeof id === "string" && id) ids.add(id);
+    }
+  }
+  return ids;
+}
+
 export function WorkspaceTools() {
   const { workspace, section } = useWorkspace();
   useAgentContext({
@@ -75,24 +113,30 @@ export function WorkspaceTools() {
     name: "search_mail",
     description: "Show the agent checking the mailbox",
     parameters: displayParameters,
-    render: ({ result, status }) => (
-      <MailToolCard search result={result} loading={status !== "complete"} />
+    render: ({ args, result, status }) => (
+      <ToolStep tool="search_mail" args={args} result={result} status={status}>
+        <MailToolCard search result={result} loading={status !== "complete"} />
+      </ToolStep>
     ),
   });
   useRenderTool({
     name: "read_mail_thread",
     description: "Show the email the agent read",
     parameters: displayParameters,
-    render: ({ result, status }) => (
-      <MailToolCard result={result} loading={status !== "complete"} />
+    render: ({ args, result, status }) => (
+      <ToolStep tool="read_mail_thread" args={args} result={result} status={status}>
+        <MailToolCard result={result} loading={status !== "complete"} />
+      </ToolStep>
     ),
   });
   useRenderTool({
     name: "search_web",
     description: "Show public web search progress and sources",
     parameters: displayParameters,
-    render: ({ result, status }) => (
-      <SearchToolCard result={result} loading={status !== "complete"} />
+    render: ({ args, result, status }) => (
+      <ToolStep tool="search_web" args={args} result={result} status={status}>
+        <SearchToolCard result={result} loading={status !== "complete"} />
+      </ToolStep>
     ),
   });
   useRenderTool({
@@ -100,65 +144,123 @@ export function WorkspaceTools() {
     description: "Follow the agent as it reads a webpage",
     parameters: displayParameters,
     render: ({ args, result, status }) => (
-      <BrowserToolCard url={args.url} result={result} loading={status !== "complete"} />
+      <ToolStep tool="browse_web" args={args} result={result} status={status} defaultOpen>
+        <BrowserToolCard url={args.url} result={result} loading={status !== "complete"} />
+      </ToolStep>
     ),
   });
   useRenderTool({
     name: "use_desktop",
     description: "Show the agent working on the computer's desktop",
     parameters: displayParameters,
-    render: ({ toolCallId, result, status }) => (
-      <DesktopToolCard toolCallId={toolCallId} result={result} loading={status !== "complete"} />
+    render: ({ toolCallId, args, result, status }) => (
+      <ToolStep tool="use_desktop" args={args} result={result} status={status} defaultOpen>
+        <DesktopToolCard toolCallId={toolCallId} result={result} loading={status !== "complete"} />
+      </ToolStep>
     ),
   });
   useRenderTool({
     name: "present_choices",
     description: "Show prepared choices for the conversation",
     parameters: displayParameters,
-    render: ({ result, status }) => <JevToolCard result={result} loading={status !== "complete"} />,
+    render: ({ args, result, status }) => (
+      <ToolStep tool="present_choices" args={args} result={result} status={status} defaultOpen>
+        <JevToolCard result={result} loading={status !== "complete"} />
+      </ToolStep>
+    ),
   });
   useRenderTool({
     name: "delegate_task",
     description: "Display delegated work",
     parameters: displayParameters,
-    render: ({ result, status }) => (
-      <ServerToolCard name="Task" result={result} loading={status !== "complete"} />
+    render: ({ args, result, status }) => (
+      <DelegateTaskStep args={args} result={result} status={status} />
     ),
   });
   useRenderTool({
     name: "agent_status",
     description: "Display saved agent progress",
     parameters: displayParameters,
-    render: ({ result, status }) => (
-      <ServerToolCard name="Agent progress" result={result} loading={status !== "complete"} />
+    render: ({ args, result, status }) => (
+      <ToolStep tool="agent_status" args={args} result={result} status={status}>
+        <ServerToolCard name="Agent progress" result={result} loading={status !== "complete"} />
+      </ToolStep>
     ),
   });
   useRenderTool({
     name: "create_goal",
     description: "Display a saved goal",
     parameters: displayParameters,
-    render: ({ result, status }) => (
-      <ServerToolCard name="Goal" result={result} loading={status !== "complete"} />
+    render: ({ args, result, status }) => (
+      <ToolStep tool="create_goal" args={args} result={result} status={status}>
+        <ServerToolCard name="Goal" result={result} loading={status !== "complete"} />
+      </ToolStep>
     ),
   });
   useRenderTool({
     name: "watch_page",
     description: "Display a saved page watch",
     parameters: displayParameters,
-    render: ({ result, status }) => (
-      <ServerToolCard name="Tracking" result={result} loading={status !== "complete"} />
+    render: ({ args, result, status }) => (
+      <ToolStep tool="watch_page" args={args} result={result} status={status}>
+        <ServerToolCard name="Tracking" result={result} loading={status !== "complete"} />
+      </ToolStep>
     ),
   });
   useRenderTool({
     name: "remember_fact",
     description: "Display saved personal context",
     parameters: displayParameters,
-    render: ({ result, status }) => (
-      <ServerToolCard name="Memory" result={result} loading={status !== "complete"} />
+    render: ({ args, result, status }) => (
+      <ToolStep tool="remember_fact" args={args} result={result} status={status}>
+        <ServerToolCard name="Memory" result={result} loading={status !== "complete"} />
+      </ToolStep>
     ),
   });
   return null;
 }
+function DelegateTaskStep({
+  args,
+  result,
+  status,
+}: {
+  args: Record<string, unknown>;
+  result: unknown;
+  status: ToolStepStatus;
+}) {
+  const { data } = useAgentWorkspace();
+  const task = parseTaskResult(result, data?.tasks);
+  return (
+    <ToolStep
+      tool="delegate_task"
+      args={args}
+      result={result}
+      status={status}
+      defaultOpen={!!task && taskHasQuestion(task)}
+    >
+      <ServerToolCard name="Task" result={result} loading={status !== "complete"} />
+    </ToolStep>
+  );
+}
+
+/** Reads the task id from a delegate_task result without treating malformed output as a task. */
+function parseTaskResult(result: unknown, tasks?: AgentTask[]): AgentTask | undefined {
+  let value = result;
+  if (typeof value === "string") {
+    try {
+      value = JSON.parse(value);
+    } catch {
+      return undefined;
+    }
+  }
+  if (!value || typeof value !== "object") return undefined;
+  const parsed = z
+    .object({ id: z.string().optional(), taskId: z.string().optional() })
+    .safeParse(value);
+  if (!parsed.success) return undefined;
+  return tasks?.find((task) => task.id === parsed.data.id || task.id === parsed.data.taskId);
+}
+
 function ServerToolCard({
   name,
   result,
@@ -238,7 +340,7 @@ export function ChatScreen({
   const { api, workspace: w, refresh, navigate, open } = useWorkspace();
   const { t } = useTranslation();
   const { data: agentWorkspace, refresh: refreshAgent } = useAgentWorkspace();
-  const { enabled: richThreads, mainId, claimPrompt, start } = useLingWuThread();
+  const { enabled: richThreads, mainId, claimPrompt } = useLingWuThread();
   const selection = thread || { id: "local", existing: false };
   const threadId = richThreads ? selection.id : "local-main";
   const agentId = `lingwu-${threadId}`;
@@ -264,6 +366,8 @@ export function ChatScreen({
   const [syncing, setSyncing] = useState(false);
   const [picking, setPicking] = useState(false);
   const [attachments, setAttachments] = useState<string[]>([]);
+  // 对话页顶部「文件产物」按钮控制的右边栏是否展开。
+  const [filesOpen, setFilesOpen] = useState(false);
   const list = useRef<ScrollView>(null);
   const [queue] = useState(() => new ConversationQueue());
   const choiceCompletions = useRef(
@@ -519,6 +623,19 @@ export function ChatScreen({
     setAttachments([]);
     setPicking(false);
   }
+  const decideAction = useCallback(
+    async (action: ActionProposal, decision: "approve" | "deny") => {
+      const result = await api.request<ActionProposal>(`/api/actions/${action.id}/decide`, {
+        decision,
+        hash: action.hash,
+      });
+      // The decision itself is complete once the API returns. Refresh both snapshots so the
+      // task and other screens follow, without turning a secondary read failure into a retry.
+      await Promise.all([refresh().catch(() => {}), refreshAgent().catch(() => {})]);
+      return result;
+    },
+    [api, refresh, refreshAgent],
+  );
   const messages = agent.messages || [];
   const latestPanelId = latestJevPanelId(messages, threadId);
   const latestUserIndex = messages.reduce(
@@ -530,6 +647,47 @@ export function ChatScreen({
       ? messages[latestUserIndex].content
       : null;
   const visible = messages.filter((m) => m.role === "user" || m.role === "assistant");
+  const threadTasks = (agentWorkspace?.tasks || []).filter((task) => task.threadId === threadId);
+  const approvalTaskSignal = threadTasks
+    .filter((task) => task.actionId)
+    .map((task) => `${task.id}:${task.actionId}:${task.status}`)
+    .sort()
+    .join("|");
+  // Workspace actions are not polled. Refresh them when a thread task gains an action or
+  // changes approval status, so the card appears and advances without leaving the chat.
+  useEffect(() => {
+    if (approvalTaskSignal) void refresh().catch(() => {});
+  }, [approvalTaskSignal, refresh]);
+  const threadApprovals: ThreadApproval[] = w.actions
+    .flatMap((action) => {
+      const task = threadTasks.find(
+        (candidate) => candidate.id === action.taskId || candidate.actionId === action.id,
+      );
+      return task ? [{ action, task }] : [];
+    })
+    .sort((left, right) => left.action.createdAt.localeCompare(right.action.createdAt));
+  // Put a review under the delegate_task turn that created it. If replay data is incomplete,
+  // the remaining reviews still appear as standalone timeline events at the end.
+  const approvalsByMessage = new Map<string, ThreadApproval[]>();
+  const placedApprovalIds = new Set<string>();
+  for (const message of visible) {
+    const taskIds = delegatedTaskIds(message, messages);
+    if (!taskIds.size) continue;
+    const matches = threadApprovals.filter(
+      (entry) => !placedApprovalIds.has(entry.action.id) && taskIds.has(entry.task.id),
+    );
+    if (!matches.length) continue;
+    approvalsByMessage.set(message.id, matches);
+    for (const entry of matches) placedApprovalIds.add(entry.action.id);
+  }
+  const unplacedApprovals = threadApprovals.filter(
+    (entry) => !placedApprovalIds.has(entry.action.id),
+  );
+  const embeddedTaskIds = new Set<string>();
+  for (const message of visible) {
+    for (const taskId of delegatedTaskIds(message, messages)) embeddedTaskIds.add(taskId);
+  }
+  const unplacedTasks = threadTasks.filter((task) => !embeddedTaskIds.has(task.id));
   const integrity = verifyDrafts(stream.state.drafts, messages);
   const mismatchedDraftIds = new Set(integrity.mismatched.map((item) => item.id));
   const matchedByTextDraftIds = new Set(integrity.matchedByText.map((item) => item.id));
@@ -639,8 +797,9 @@ export function ChatScreen({
         title={threadName}
         status={headerStatus}
         state={headerState}
-        onNewChat={richThreads ? () => start() : undefined}
-        newChatLabel={t("threads.newSideChat")}
+        onOpenFiles={() => setFilesOpen((open) => !open)}
+        filesOpen={filesOpen}
+        filesLabel={t("chat.openArtifacts")}
       />
       <ScrollView
         ref={list}
@@ -732,6 +891,7 @@ export function ChatScreen({
             const draft = user ? undefined : stream.state.drafts[message.id];
             const streaming = !!draft && !draft.done;
             const toolCalls = "toolCalls" in message ? message.toolCalls || [] : [];
+            const approvals = approvalsByMessage.get(message.id) || [];
             return (
               <View
                 key={message.id}
@@ -852,12 +1012,33 @@ export function ChatScreen({
                         (candidate): candidate is ToolMessage =>
                           candidate.role === "tool" && candidate.toolCallId === toolCall.id,
                       );
+                      const rendered = renderToolCall({ toolCall, toolMessage });
                       return (
-                        <View key={toolCall.id}>{renderToolCall({ toolCall, toolMessage })}</View>
+                        <View key={toolCall.id}>
+                          {rendered ?? (
+                            <ToolStep
+                              tool={toolCall.function.name}
+                              args={parseToolArguments(toolCall.function.arguments)}
+                              result={toolMessage?.content}
+                              status={toolMessage ? "complete" : "executing"}
+                            />
+                          )}
+                        </View>
                       );
                     })}
                   </BrowserRunContext>
                 </JevInteractionContext.Provider>
+                {approvals.map(({ action, task }) => (
+                  <ApprovalCard
+                    key={action.id}
+                    action={action}
+                    task={task}
+                    agentName={agentWorkspace?.identity.name}
+                    files={w.files}
+                    onDecide={decideAction}
+                    onOpenDetails={(item) => open({ type: "review", action: item })}
+                  />
+                ))}
               </View>
             );
           })
@@ -884,6 +1065,24 @@ export function ChatScreen({
               />
             </View>
           </View>
+        ))}
+        {unplacedApprovals.map(({ action, task }) => (
+          <ApprovalCard
+            key={action.id}
+            action={action}
+            task={task}
+            agentName={agentWorkspace?.identity.name}
+            files={w.files}
+            onDecide={decideAction}
+            onOpenDetails={(item) => open({ type: "review", action: item })}
+          />
+        ))}
+        {unplacedTasks.map((task) => (
+          <QuestionCard
+            key={`question-${task.id}`}
+            task={task}
+            agentName={agentWorkspace?.identity.name}
+          />
         ))}
         {!!latestDesktop && (
           <DesktopToolCard
@@ -1254,6 +1453,253 @@ export function ChatScreen({
           </View>
         </View>
       </KeyboardAvoidingView>
+      {filesOpen && (
+        <ThreadArtifactsPanel
+          threadId={threadId}
+          files={w.files}
+          tasks={agentWorkspace?.tasks || []}
+          artifacts={agentWorkspace?.artifacts || []}
+          onClose={() => setFilesOpen(false)}
+          onOpen={(file) => open({ type: "file", file })}
+          onOpenArtifact={(artifact) => open({ type: "artifact", artifact })}
+        />
+      )}
     </View>
+  );
+}
+/**
+ * 对话页右上角「文件产物」按钮展开的覆盖式右边栏。
+ * 只展示当前对话（threadId）发起任务所关联的产物与文件，不混入其他对话的内容。
+ * 过滤逻辑：按 threadId 找到本级对话创建的任务 → 产物按 art.taskId 匹配任务；文件按任务 artifactIds 匹配。
+ * 点击面板外的遮罩区域或面板右上角的关闭按钮即可收起；列表项点击后在右侧打开对应文件的详情。
+ */
+function ThreadArtifactsPanel({
+  threadId,
+  files,
+  tasks,
+  artifacts,
+  onClose,
+  onOpen,
+  onOpenArtifact,
+}: {
+  threadId: string;
+  files: Artifact[];
+  tasks: AgentTask[];
+  artifacts: AgentArtifact[];
+  onClose: () => void;
+  onOpen: (file: Artifact) => void;
+  onOpenArtifact: (artifact: AgentArtifact) => void;
+}) {
+  // 当前对话创建的任务（服务端在 delegate_task 创建任务时写入 threadId）。
+  const threadTasks = tasks.filter((task) => task.threadId === threadId);
+  const threadTaskIds = new Set(threadTasks.map((task) => task.id));
+  const threadArtifacts = artifacts.filter((artifact) => threadTaskIds.has(artifact.taskId));
+  const threadFiles = files.filter((file) =>
+    threadTasks.some((task) => task.artifactIds.includes(file.id)),
+  );
+  return (
+    <ArtifactsPanel
+      files={[...threadFiles].sort((a, b) => b.createdAt.localeCompare(a.createdAt))}
+      artifacts={[...threadArtifacts].sort((a, b) => b.createdAt.localeCompare(a.createdAt))}
+      onClose={onClose}
+      onOpen={onOpen}
+      onOpenArtifact={onOpenArtifact}
+    />
+  );
+}
+function ArtifactsPanel({
+  files,
+  artifacts,
+  onClose,
+  onOpen,
+  onOpenArtifact,
+}: {
+  files: Artifact[];
+  artifacts: AgentArtifact[];
+  onClose: () => void;
+  onOpen: (file: Artifact) => void;
+  onOpenArtifact: (artifact: AgentArtifact) => void;
+}) {
+  const { t } = useTranslation();
+  const listRowStyle = ({ pressed }: { pressed: boolean }): TextStyle => ({
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 14,
+    backgroundColor: pressed ? colors.sky : "transparent",
+  });
+  const listSectionLabel: TextStyle = {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.muted,
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 4,
+  };
+  return (
+    <>
+      {/* 遮罩：点击面板外任意区域收起右边栏（与 Sheet 的点击背板关闭保持一致）。 */}
+      <Pressable
+        accessibilityLabel={t("chat.closeArtifacts")}
+        accessibilityRole="button"
+        onPress={onClose}
+        style={{
+          position: "absolute",
+          zIndex: 8,
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: "rgba(17, 25, 28, 0.28)",
+        }}
+      />
+      <View
+        accessibilityViewIsModal
+        style={{
+          position: "absolute",
+          zIndex: 9,
+          top: 0,
+          right: 0,
+          bottom: 0,
+          width: 320,
+          maxWidth: "85%",
+          backgroundColor: colors.card,
+          borderLeftWidth: 1,
+          borderLeftColor: colors.line,
+          shadowColor: "#000",
+          shadowOffset: { width: -6, height: 0 },
+          shadowOpacity: 0.14,
+          shadowRadius: 18,
+          elevation: 16,
+        }}
+      >
+        <View
+          style={[
+            s.between,
+            {
+              paddingLeft: 18,
+              paddingRight: 10,
+              height: 52,
+              borderBottomWidth: 1,
+              borderBottomColor: colors.line,
+            },
+          ]}
+        >
+          <Text style={s.heading}>{t("chat.openArtifacts")}</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t("chat.closeArtifacts")}
+            onPress={onClose}
+            hitSlop={8}
+            style={({ pressed }) => ({
+              width: 32,
+              height: 32,
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: 16,
+              backgroundColor: pressed ? colors.sky : "transparent",
+            })}
+          >
+            <X size={17} color={colors.muted} />
+          </Pressable>
+        </View>
+        {files.length === 0 && artifacts.length === 0 ? (
+          <Empty
+            icon={FileText}
+            title={t("chat.artifactsEmptyTitle")}
+            detail={t("chat.artifactsEmptyDetail")}
+          />
+        ) : (
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ padding: 8, gap: 2 }}
+          >
+            {artifacts.length > 0 && (
+              <>
+                <Text style={listSectionLabel}>{t("chat.researchArtifacts")}</Text>
+                {artifacts.map((artifact) => (
+                  <Pressable
+                    key={artifact.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={t("chat.artifactRow", { name: artifact.title })}
+                    onPress={() => onOpenArtifact(artifact)}
+                    style={listRowStyle}
+                  >
+                    <View
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 12,
+                        backgroundColor: colors.sky,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      {artifact.kind === "finance" ? (
+                        <Lightbulb size={19} color={colors.blueDark} />
+                      ) : (
+                        <FileText size={19} color={colors.blueDark} />
+                      )}
+                    </View>
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Text
+                        numberOfLines={1}
+                        style={{ fontSize: 14, fontWeight: "600", color: colors.text }}
+                      >
+                        {artifact.title}
+                      </Text>
+                      <Text style={s.small}>
+                        {statusLabel(artifact.kind)} · {dateLabel(artifact.createdAt)}
+                      </Text>
+                    </View>
+                  </Pressable>
+                ))}
+              </>
+            )}
+            {files.length > 0 && (
+              <>
+                <Text style={listSectionLabel}>{t("chat.filesGroup")}</Text>
+                {files.map((file) => (
+                  <Pressable
+                    key={file.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={t("chat.openAttachment", { name: file.name })}
+                    onPress={() => onOpen(file)}
+                    style={listRowStyle}
+                  >
+                    <View
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 12,
+                        backgroundColor: colors.sky,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <FileText size={19} color={colors.blueDark} />
+                    </View>
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Text
+                        numberOfLines={1}
+                        style={{ fontSize: 14, fontWeight: "600", color: colors.text }}
+                      >
+                        {file.name}
+                      </Text>
+                      <Text style={s.small}>
+                        {file.source} · {Math.max(1, Math.round(file.size / 1024))} KB ·{" "}
+                        {dateLabel(file.createdAt)}
+                      </Text>
+                    </View>
+                  </Pressable>
+                ))}
+              </>
+            )}
+          </ScrollView>
+        )}
+      </View>
+    </>
   );
 }

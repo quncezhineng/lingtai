@@ -94,7 +94,11 @@ export class ConversationAgent extends AbstractAgent {
             threadId: input.threadId,
             runId: input.runId,
           });
-          void this.sample(typeof latest?.content === "string" ? latest.content : "", requestKey)
+          void this.sample(
+            typeof latest?.content === "string" ? latest.content : "",
+            requestKey,
+            input.threadId,
+          )
             .then(({ content, task }) => {
               const id = randomUUID();
               subscriber.next({
@@ -342,7 +346,8 @@ export class ConversationAgent extends AbstractAgent {
         description:
           "Hand a whole job to the durable server worker. It continues when the app closes and pauses for user input or approval. Use document for a selected email form, finance for imported CSV, plan for a goal plan, agent for other jobs.",
         parameters: createTaskSchema,
-        execute: async (args) => this.service.createTask(this.owner, args, key("task", args)),
+        execute: async (args) =>
+          this.service.createTask(this.owner, args, key("task", args), false, input.threadId),
       }),
       defineTool({
         name: "agent_status",
@@ -465,7 +470,7 @@ export class ConversationAgent extends AbstractAgent {
       };
     });
   }
-  private async sample(prompt: string, key: string) {
+  private async sample(prompt: string, key: string, threadId?: string) {
     if (/show.*calendar|what.*calendar|plan my day/i.test(prompt)) {
       const w = await this.service.workspace.snapshot(this.owner);
       return {
@@ -494,6 +499,8 @@ export class ConversationAgent extends AbstractAgent {
           input: { messageId: mail.id },
         },
         key,
+        false,
+        threadId,
       );
       return {
         content:
@@ -505,6 +512,8 @@ export class ConversationAgent extends AbstractAgent {
       this.owner,
       { kind: "agent", prompt: prompt || "Help with my next task" },
       key,
+      false,
+      threadId,
     );
     return {
       content: `I’ve saved “${task.title}” in Activity. Connect a model to start this task; your request will be waiting.`,

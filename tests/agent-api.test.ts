@@ -290,6 +290,9 @@ test("handling a task clears the notification that was waiting on the person", a
 
   const answered = await read<AgentTask>(`/tasks/${task.id}/input`, { answer: "Friday" });
   assert.notEqual(answered.status, "waiting_input");
+  assert.equal(answered.state.answer, "Friday");
+  assert.equal(answered.state.answeredQuestion, "Which day works?");
+  assert.equal(typeof answered.state.answeredAt, "string");
   assert.equal((await db.get<AgentNotification>(owner, "notifications", notice.id))?.read, true);
 
   // Cancelling the task is the same kind of "already handled" and clears its notices too.

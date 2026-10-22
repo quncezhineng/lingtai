@@ -12,11 +12,13 @@
 import { useThreads } from "@copilotkit/react-native/headless";
 import {
   Bell,
+  Check,
   CircleUserRound,
   Lightbulb,
   type LucideIcon,
   MessageCircle,
   PanelsTopLeft,
+  Pencil,
   Plus,
   Search,
   Shapes,
@@ -244,50 +246,77 @@ function ThreadRow({
   onCancelEdit?: () => void;
 }) {
   const { t } = useTranslation();
+  // 整行按钮负责「选中对话」；改名入口是右侧一枚独立的铅笔图标，不能嵌套在按钮里。
+  // 原因：react-native-web 的 PressResponder 在 onClick 里调用 stopPropagation，
+  // 内层可点元素会把点击吞掉，导致外层 `select` 永远触发不了（点击按钮没反应）。
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={editing ? t("app.renameChatPlaceholder") : title}
-      accessibilityState={{ selected: active }}
-      onPress={editing ? undefined : onPress}
-      style={({ pressed }) => ({
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 12,
-        backgroundColor: active ? colors.sky : pressed ? colors.line : "transparent",
-      })}
-    >
-      {editing ? (
-        <TextInput
-          value={draft}
-          onChangeText={onDraftChange}
-          onSubmitEditing={onCommitEdit}
-          onBlur={onCancelEdit}
-          autoFocus
-          selectTextOnFocus
-          returnKeyType="done"
-          accessibilityLabel={t("app.renameChatPlaceholder")}
-          style={{
-            fontSize: 13.5,
-            fontWeight: "500",
-            color: colors.text,
-            paddingVertical: 0,
-            borderBottomWidth: 1,
-            borderBottomColor: colors.blueDark,
-          }}
-        />
-      ) : (
-        /* 内层不设 role="button"（外层整行已是按钮，React 19 不允许按钮嵌套按钮） */
-        <Pressable onPress={onStartEdit}>
-          <Text numberOfLines={1} style={{ fontSize: 13.5, fontWeight: "500", color: colors.text }}>
+    <View style={{ flexDirection: "row", alignItems: "center" }}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={editing ? t("app.renameChatPlaceholder") : title}
+        accessibilityState={{ selected: active }}
+        onPress={onPress}
+        disabled={editing}
+        style={({ pressed }) => ({
+          flex: 1,
+          paddingHorizontal: 12,
+          paddingVertical: 8,
+          borderRadius: 12,
+          backgroundColor: active ? colors.sky : pressed ? colors.line : "transparent",
+        })}
+      >
+        {editing ? (
+          <TextInput
+            value={draft}
+            onChangeText={onDraftChange}
+            onSubmitEditing={onCommitEdit}
+            onBlur={onCancelEdit}
+            autoFocus
+            selectTextOnFocus
+            returnKeyType="done"
+            accessibilityLabel={t("app.renameChatPlaceholder")}
+            style={{
+              fontSize: 13.5,
+              fontWeight: "500",
+              color: colors.text,
+              paddingVertical: 0,
+              borderBottomWidth: 1,
+              borderBottomColor: colors.blueDark,
+            }}
+          />
+        ) : (
+          <Text
+            numberOfLines={1}
+            style={{ fontSize: 13.5, fontWeight: "500", color: colors.text }}
+          >
             {title}
           </Text>
+        )}
+        <Text numberOfLines={1} style={{ fontSize: 11.5, lineHeight: 16, color: colors.muted }}>
+          {detail}
+        </Text>
+      </Pressable>
+      {onStartEdit != null && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={editing ? t("threads.saveName") : t("threads.rename")}
+          onPress={editing ? onCommitEdit : onStartEdit}
+          hitSlop={8}
+          style={({ pressed }) => ({
+            marginRight: 8,
+            padding: 6,
+            borderRadius: 10,
+            backgroundColor: pressed ? colors.line : "transparent",
+          })}
+        >
+          {editing ? (
+            <Check size={15} strokeWidth={2.2} color={colors.blueDark} />
+          ) : (
+            <Pencil size={14} strokeWidth={2} color={colors.muted} />
+          )}
         </Pressable>
       )}
-      <Text numberOfLines={1} style={{ fontSize: 11.5, lineHeight: 16, color: colors.muted }}>
-        {detail}
-      </Text>
-    </Pressable>
+    </View>
   );
 }
 

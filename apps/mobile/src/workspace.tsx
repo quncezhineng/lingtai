@@ -10,12 +10,14 @@ import type {
   Section,
   Workspace,
 } from "../../../packages/domain/src";
+import type { AgentArtifact } from "../../../packages/domain/src/agent";
 import type { LingWuApi } from "./api";
 export type Detail =
   | { type: "mail"; mail: Mail }
   | { type: "email"; draft?: Partial<EmailDraft> & { id?: string } }
   | { type: "event"; event?: CalendarEvent; draft?: EventDraft; neighbors?: CalendarEvent[] }
   | { type: "file"; file: Artifact }
+  | { type: "artifact"; artifact: AgentArtifact }
   | { type: "browser"; browser: BrowserSession }
   | { type: "review"; action: ActionProposal }
   | { type: "task"; taskId: string }

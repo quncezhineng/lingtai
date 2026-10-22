@@ -18,7 +18,7 @@ import {
   Trash2,
   X,
 } from "lucide-react-native";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Image, Linking, Platform, Text, View } from "react-native";
 import {
   type ActionProposal,
@@ -32,12 +32,15 @@ import {
   type Mail,
   type ProposalInput,
 } from "../../../packages/domain/src";
+import type { AgentArtifact } from "../../../packages/domain/src/agent";
 import { AgentPersonalitySheet, DelegateSheet, NotificationsSheet, TaskDetail } from "./agent-ui";
+import { renderArtifactHtml } from "./artifact-html";
 import BrowserConsole from "./BrowserConsole";
 import { browserAddress, browserSite } from "./browser-address";
 import { ComputerSheet } from "./computer";
 import DateTimeEditor from "./DateTimeEditor";
 import { localDateTime, zonedInstant } from "./date-time";
+import HtmlPreview from "./HtmlPreview";
 import { activeLocaleTag, useTranslation } from "./i18n";
 import { statusLabel } from "./i18n/translate";
 import PdfReader from "./PdfReader";
@@ -79,6 +82,7 @@ export function Details({ detail }: { detail: Detail }) {
   if (detail.type === "event")
     return <EventEditor event={detail.event} draft={detail.draft} neighbors={detail.neighbors} />;
   if (detail.type === "file") return <FileDetail file={detail.file} />;
+  if (detail.type === "artifact") return <ArtifactDetail artifact={detail.artifact} />;
   if (detail.type === "review") return <ReviewDetail initial={detail.action} />;
   if (detail.type === "browser") return <BrowserDetail initial={detail.browser} />;
   return (
@@ -879,6 +883,25 @@ function FileDetail({ file: f }: { file: Artifact }) {
           date: dateLabel(f.createdAt),
         })}
       </Text>
+    </Sheet>
+  );
+}
+/**
+ * 研究产物详情：把 `AgentArtifact` 的标题/摘要/全部数据渲染成一张自包含
+ * 的 HTML 网页。Web 端用 iframe(`srcDoc`) 展示、原生端用 WebView 展示，
+ * 与「对话里只显示标题提示、点击弹出网页详情」的交互保持一致。
+ */
+function ArtifactDetail({ artifact }: { artifact: AgentArtifact }) {
+  const { close } = useWorkspace();
+  const html = useMemo(() => renderArtifactHtml(artifact), [artifact]);
+  return (
+    <Sheet
+      title={artifact.title}
+      subtitle={`${statusLabel(artifact.kind)} · ${dateLabel(artifact.createdAt)}`}
+      onClose={close}
+      fullscreen
+    >
+      <HtmlPreview html={html} title={artifact.title} />
     </Sheet>
   );
 }
