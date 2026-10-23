@@ -49,9 +49,9 @@ services:
         sync: false
       # Email verification-code sign-in uses Supabase Auth's email OTP (enable
       # "Email OTP" in Supabase Auth settings; no extra provider key needed).
-      # Signed-in sessions expire after this many milliseconds (default 24 hours).
+      # Signed-in sessions expire after this many milliseconds (default 7 days).
       - key: SESSION_TTL_MS
-        value: "86400000"
+        value: "604800000"
       # Only used when the Supabase variables above are unset (one owner per deploy).
       - key: LINGWU_ACCESS_KEY
         generateValue: true

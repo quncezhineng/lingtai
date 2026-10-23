@@ -61,7 +61,7 @@ export interface Config {
   computerProvider?: ComputerProvider;
   computerE2bTemplate?: string;
   e2bApiKey?: string;
-  /** 登录会话有效期（毫秒），默认 24 小时。 */
+  /** 登录会话有效期（毫秒），默认 7 天。 */
   sessionTtlMs?: number;
   allowedOrigins: string[];
   trustProxy?: boolean;

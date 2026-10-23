@@ -5,6 +5,68 @@
 
 ## 变更记录
 
+### 2026-10-23 · 旁聊操作入口由内联重命名改为紧贴按钮的下拉操作列表
+
+**背景**
+
+用户要求「svg 改为点击弹出小窗，可选择重命名、归档和删除」，随后进一步明确「删掉标题，换成小弹窗，弹窗要紧挨按钮——准确说是按钮下属的二级操作列表」：此前对话列表中旁聊行右侧的铅笔图标点击后直接进入内联重命名，交互单一；现改为点击铅笔弹出**紧贴按钮的下拉操作列表**（无标题栏），提供「重命名 / 归档 / 删除」三项操作。
+
+**方案**
+
+- 旁聊行的铅笔图标保留为独立的行内按钮（不嵌套在整行选中按钮内，避免 react-native-web 冒泡吞点击），点击时把 `pageX/pageY` 记作锚点，在其正下方弹出无标题栏的下拉菜单 `ThreadActionsMenu`；菜单超出右/下边缘时向回夹紧，避免溢出屏幕。
+- 菜单内三个操作项：
+  - **重命名**：关闭菜单并复用既有的内联改名输入框（`editingId`/`draft` 逻辑不变）。
+  - **归档**：调用 `useThreads` 的 `archiveThread(id)`；成功后若被归档的正是当前选中对话，自动切回主对话。
+  - **删除**：CopilotKit `deleteThread` 为不可恢复的永久删除，菜单内先进入确认步骤（红色警示 + 取消按钮），确认后才真正删除；删除后若正是当前选中对话，同样切回主对话。
+- 点击菜单外部任意处（透明背板）关闭菜单；菜单面板自身拦截点击冒泡，避免误关。
+
+**实现**
+
+- [shell.tsx](../apps/mobile/src/shell.tsx)：
+  - 新增 `MenuAction`（操作行）与 `ThreadActionsMenu`（无标题下拉菜单，`Modal` + 透明背板 + 绝对定位卡片，含删除二次确认态）。
+  - `ChatsColumn` 新增 `menuAnchor` 状态（记录坐标 `x/y` 与目标线程 `id`）与 `renameFromMenu` / `archiveFromMenu` / `deleteFromMenu` 处理逻辑；旁聊行 `onStartEdit` 改为透传铅笔按钮点击坐标并打开菜单。
+  - `ThreadRow` 的 `onStartEdit` 签名由 `() => void` 扩展为 `(x, y) => void`，铅笔按钮 `onPress` 读取 `e.nativeEvent.pageX/pageY` 传出。
+  - 新增 `Archive`、`Trash2` 图标导入；`Modal`、`useWindowDimensions` 从 react-native 导入；移除不再使用的 `Sheet` 导入。
+- [en/threads.ts](../apps/mobile/src/i18n/locales/en/threads.ts) / [zh-Hans/threads.ts](../apps/mobile/src/i18n/locales/zh-Hans/threads.ts)：新增 `threads.actions`、`threads.delete`、`threads.permanentlyDelete`、`threads.deleteConfirmTitle`、`threads.deleteConfirmNote` 中英双语键。
+
+**验证**
+
+- biome 检查无告警（自动格式化）；`pnpm typecheck` 通过；全量测试 555/555 通过。
+- 影响面：仅宽屏外壳（窗口宽度 ≥ 900）对话列表栏的旁聊行交互；主对话、本地待建旁聊（无铅笔）不受影响；`ThreadsSheet`（小屏「更多」面板）既有交互保持不变。
+
+**注意**
+
+- 删除为永久操作，已在菜单内增加二次确认；归档后可从「更多 → 对话」面板中恢复。
+
+### 2026-10-22 · 登录会话有效期由 24 小时延长至 7 天
+
+**背景**
+
+用户要求「延长用户登录有效期到一周」：此前登录会话默认 24 小时过期，登录后一天内未操作即需重新登录，改为 7 天。
+
+**方案**
+
+会话有效期由 `SESSION_TTL_MS` 环境变量控制（代码默认值兜底），统一将默认值与本地/部署配置全部改为 7 天（`604800000` ms），确保不因某处配置遗漏而回退到短有效期。
+
+**实现**
+
+- [auth.ts](../apps/server/src/auth.ts)：`ttl()` 默认值 `24 * 60 * 60 * 1000` → `7 * 24 * 60 * 60 * 1000`，注释同步。
+- [config.ts](../apps/server/src/config.ts)：`sessionTtlMs` 字段注释更新为「默认 7 天」。
+- [.env](../.env) / [.env.example](../.env.example)：启用并写入 `SESSION_TTL_MS=604800000`。
+- [render.yaml](../render.yaml)：`lingwu-api` 服务 `SESSION_TTL_MS` 值 `"86400000"` → `"604800000"`（下一次部署生效）。
+- [demo/entry.ts](../apps/server/src/demo/entry.ts)：demo 模式预置会话 `expiresAt` 同步改为 7 天。
+- [FEATURES.md](../docs/FEATURES.md)：说明文字「default 24 hours」→「default 7 days」。
+
+**验证**
+
+- biome 检查无告警；`pnpm typecheck` 通过；全量测试 555/555 通过。
+- 影响面：仅登录 JWT/session 的过期时长；已签发的会话在签发时按当时 TTL 计算，新配置对新登录会话生效。
+
+**注意**
+
+- Render 部署后需重新部署 `lingwu-api` 以应用新 `SESSION_TTL_MS`；本地直接重启 API 即可（.env 已生效）。
+- demo 模式与 live 模式登录有效期保持一致的 7 天。
+
 ### 2026-10-22 · 研究产物数据支持代码块语法高亮
 
 **背景**

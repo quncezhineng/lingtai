@@ -27,9 +27,9 @@ export class Auth {
     private readonly config: Config,
     private readonly signingKey: string,
   ) {}
-  /** 会话有效期（毫秒），默认 24 小时。 */
+  /** 会话有效期（毫秒），默认 7 天。 */
   private ttl() {
-    return this.config.sessionTtlMs ?? 24 * 60 * 60 * 1000;
+    return this.config.sessionTtlMs ?? 7 * 24 * 60 * 60 * 1000;
   }
   /**
    * 为指定 owner 签发登录会话。

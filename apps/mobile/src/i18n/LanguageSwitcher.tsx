@@ -125,7 +125,7 @@ export function LanguageSwitcher({
                 right: anchor.right,
                 left: anchor.left,
                 bottom: anchor.bottom,
-                minWidth: 208,
+                minWidth: 168,
                 backgroundColor: colors.card,
                 borderRadius: 20,
                 borderWidth: 1,

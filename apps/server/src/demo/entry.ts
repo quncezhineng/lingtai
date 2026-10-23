@@ -38,7 +38,7 @@ try {
   await db.put("system", "sessions", {
     id: createHash("sha256").update(sessionToken).digest("hex"),
     owner: "local-user",
-    expiresAt: Date.now() + 24 * 60 * 60 * 1000,
+    expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
   });
 } finally {
   await db.close();
